@@ -14,6 +14,7 @@ extern Link			task_time_out_list;
  * 	idle_task
  * 	  call in DISABLE_IRQ
  */
+ /* Idle Task */
 void
 idle_task(void)
 {
