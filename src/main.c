@@ -17,6 +17,7 @@ delay(void)
 	}
 }
 
+/* メインタスク */
 void
 task1(void)
 {
