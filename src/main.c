@@ -5,16 +5,18 @@
  *      Author: biwa
  */
 #include "common.h"
-#include "arm.h"
-#include "cp15reg.h"
 
 extern TaskStruct	task_info[];
 extern uint32_t		task_info_num;
 
 int main(void)
 {
+	int ix;
 	tprintf("main start\n");
-	task_init(task_info, task_info_num);
+	task_init();
+	for (ix=0; ix<task_info_num; ix++) {
+		task_create(&task_info[ix]);
+	}
 	irq_init();
 	timer_init();
 	schedule();

@@ -12,7 +12,8 @@
 /* configuration end */
 /***********************/
 
-#define	TASK_PRIORITY_NUM		16	/* タスク優先度レベル数 */
+#define	TASK_MAX_NUM			(100)	/* 最大タスクID番号 */
+#define	TASK_PRIORITY_NUM		(16)	/* タスク優先度レベル数 */
 
 #define	EXE_DISPATCH()		\
 				if ( (_ctask != _ntask) && (0 == _nodispatch_level) ) { \
@@ -26,12 +27,13 @@ static struct {
 	Link	task[TASK_PRIORITY_NUM];
 } run_queue;
 
-TaskStruct*		_ctask = NULL;
-TaskStruct*		_ntask = NULL;
-uint32_t		_nodispatch_level = 0;
+TaskStruct*		_ctask = NULL;			/* 現在実行中のタスク */
+TaskStruct*		_ntask = NULL;			/* ディスパッチが要求されたタスク */
+uint32_t		_nodispatch_level = 0;	/* 非ディスパッチレベル */
 
 Link			task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
+static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
 extern void schedule(void);
 
@@ -158,10 +160,27 @@ void schedule(void)
 	irq_restore(cpsr);
 }
 
-static void task_create(TaskStruct* tinfo, uint32_t taskid)
+void task_init(void)
+{
+	int			ix;
+	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
+		run_queue.task[ix].next = run_queue.task[ix].prev = &run_queue.task[ix];
+	}
+	_ctask = NULL;
+	_ntask = NULL;
+}
+
+OSAPI int task_create(TaskStruct* tinfo)
 {
 	extern void	_entry_stub(void);
 	uint32_t*		ptr;
+	uint32_t		index = tinfo->taskid;
+
+	if ( (tinfo->taskid == 0) || (TASK_MAX_NUM < tinfo->taskid) ||
+								task_obj_cnv_tbl[tinfo->taskid] ) {
+		return RT_ERR;
+	}
+	task_obj_cnv_tbl[tinfo->taskid] = tinfo;
 	Link_clear(&tinfo->link);
 	Link_clear(&tinfo->tlink);
 	/* setup stack pointer */
@@ -172,26 +191,13 @@ static void task_create(TaskStruct* tinfo, uint32_t taskid)
 	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)tinfo->start_entry;
 	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
-	tprintf("task %d: PC:%08X CPSR:%08X\n", taskid, ptr[TASK_FRAME_PC], ptr[TASK_FRAME_PSR]);
+	tprintf("task %d: PC:%08X CPSR:%08X\n", tinfo->taskid, ptr[TASK_FRAME_PC], ptr[TASK_FRAME_PSR]);
 	/* setup TaskStruct */
-	tinfo->taskid = taskid;
 	tinfo->task_state = TASK_READY;
 
 	task_add_queue(tinfo, tinfo->priority);
-}
 
-void task_init(TaskStruct* tinfo, uint32_t task_num)
-{
-	int			ix;
-	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
-		run_queue.task[ix].next = run_queue.task[ix].prev = &run_queue.task[ix];
-	}
-	_ctask = NULL;
-	_ntask = NULL;
-
-	for (ix=0; ix<task_num; ix++) {
-		task_create(&tinfo[ix], ix+1);
-	}
+	return RT_OK;
 }
 
 OSAPI void task_sleep(void)
@@ -210,8 +216,7 @@ OSAPI void task_wakeup(int32_t tskid)
 	TaskStruct*		task;
 
 	irq_save(cpsr);
-	tskid--;
-	task = &task_info[tskid];
+	task = task_obj_cnv_tbl[tskid];
 	if ( task->task_state == TASK_WAIT ) {
 		/* remove timeout queue */
 		if ( task->tlink.next != NULL ) {
