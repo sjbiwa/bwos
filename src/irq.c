@@ -21,8 +21,8 @@ static struct {
 void
 c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 {
-	uint		ack;
-	uint		irqno;
+	uint32_t		ack;
+	uint32_t		irqno;
 	/* Get Acknowledge */
 	ack = ioread32(GICC_IAR);
 	irqno = ack & 0x3ff;
@@ -39,7 +39,7 @@ c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
  * 	irq_add_handler
  */
 void
-irq_add_handler(uint irqno, IRQ_HANDLER func, void* info)
+irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 {
 	if ( irqno < IRQ_NUM ) {
 		irq_action[irqno].handler = func;
@@ -51,10 +51,10 @@ irq_add_handler(uint irqno, IRQ_HANDLER func, void* info)
  * 	irq_set_enable
  */
 void
-irq_set_enable(uint irqno)
+irq_set_enable(uint32_t irqno)
 {
-	uint		off;
-	uint		bit;
+	uint32_t		off;
+	uint32_t		bit;
 
 	off = irqno / 32;
 	bit = irqno % 32;
@@ -65,10 +65,10 @@ irq_set_enable(uint irqno)
  * 	irq_set_disable
  */
  void
-irq_set_disable(uint irqno)
+irq_set_disable(uint32_t irqno)
 {
-	uint		off;
-	uint		bit;
+	uint32_t		off;
+	uint32_t		bit;
 
 	off = irqno / 32;
 	bit = irqno % 32;
@@ -82,7 +82,7 @@ void
 irq_init(void)
 {
 	int			ix;
-	uint		irq_num;
+	uint32_t		irq_num;
 
 	/* DIC initialize */
 	irq_num = (ioread32(GICD_TYPER) & 0x1f) << 5;

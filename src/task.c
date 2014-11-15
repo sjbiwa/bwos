@@ -9,24 +9,10 @@
 #include "arm.h"
 #include "task.h"
 
-/* configuration task */
-extern void task1(void);
-extern void task2(void);
-extern void task3(void);
-extern void task4(void);
-extern void task5(void);
-static uint		stack[5][1024] __attribute__((aligned(16)));
-TaskStruct		task_info[] = {
-		{{0,0}, task1, stack[0], 1024, "TASK1", 1, 0},
-		{{0,0}, task2, stack[1], 1024, "TASK2", 1, 0},
-		{{0,0}, task3, stack[2], 1024, "TASK3", 1, 0},
-		{{0,0}, task4, stack[3], 1024, "TASK4", 1, 0},
-		{{0,0}, task5, stack[4], 1024, "TASK5", 1, 0},
-};
 /* configuration end */
 /***********************/
 
-#define	TASK_QUEUE_NUM		16
+#define	TASK_PRIORITY_NUM		16	/* タスク優先度レベル数 */
 
 #define	EXE_DISPATCH()		\
 				if ( (_ctask != _ntask) && (0 == _nodispatch_level) ) { \
@@ -37,7 +23,7 @@ TaskStruct		task_info[] = {
 				}
 
 static struct {
-	Link	task[TASK_QUEUE_NUM];
+	Link	task[TASK_PRIORITY_NUM];
 } run_queue;
 
 TaskStruct*		_ctask = NULL;
@@ -49,8 +35,7 @@ Link			task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 extern void schedule(void);
 
-static void
-task_remove_queue(TaskStruct* task)
+static void task_remove_queue(TaskStruct* task)
 {
 	Link*		top;
 	Link*		end;
@@ -63,8 +48,7 @@ task_remove_queue(TaskStruct* task)
 	end->prev = top;
 }
 
-static void
-task_add_queue(TaskStruct* task, uint32_t pri)
+static void task_add_queue(TaskStruct* task, uint32_t pri)
 {
 	Link*		top;
 	Link*		end;
@@ -80,8 +64,7 @@ task_add_queue(TaskStruct* task, uint32_t pri)
 	}
 }
 
-static void
-task_remove_timeout_queue(Link* task)
+static void task_remove_timeout_queue(Link* task)
 {
 	Link*		top;
 	Link*		end;
@@ -94,8 +77,7 @@ task_remove_timeout_queue(Link* task)
 	end->prev = top;
 }
 
-static void
-task_add_timeout_queue(Link* task)
+static void task_add_timeout_queue(Link* task)
 {
 	Link*		top;
 	Link*		end;
@@ -109,8 +91,7 @@ task_add_timeout_queue(Link* task)
 	end->prev = curr;
 }
 
-static void
-task_rotate_queue(uint32_t pri)
+static void task_rotate_queue(uint32_t pri)
 {
 	Link*		curr;
 	if ( (pri < TASK_QUEUE_NUM)  && (run_queue.task[pri].next != &(run_queue.task[pri])) ) {
@@ -121,8 +102,63 @@ task_rotate_queue(uint32_t pri)
 	}
 }
 
-static void
-task_create(TaskStruct* tinfo, uint32_t taskid)
+static void dump_rq(void)
+{
+	Link*			link;
+	TaskStruct*		task;
+	tprintf("DUMP_RQ\n");
+	for (link=run_queue.task[1].next; link != &run_queue.task[1]; link = link->next) {
+		task = containerof(link, TaskStruct, link);
+		tprintf("%s\n", task->name);
+	}
+	tprintf("DUMP_END\n");
+}
+
+static void dump_list(void)
+{
+	Link*			link;
+	TaskStruct*		task;
+#if 0
+	for (link=task_time_out_list.next; link != &task_time_out_list; link = link->next) {
+		task = containerof(link, TaskStruct, tlink);
+		tprintf("IDLE %s\n", task->name);
+	}
+#endif
+}
+
+void task_tick(void)
+{
+	Link*			link;
+	TaskStruct*		task;
+
+	dump_list();
+	for (link=task_time_out_list.next; link != &task_time_out_list; link = link->next) {
+		task = containerof(link, TaskStruct, tlink);
+		if ( task->timeout <= tick_count ) {
+			link = link->prev;
+			task_wakeup(task->taskid);
+		}
+	}
+}
+
+void schedule(void)
+{
+	uint32_t	cpsr;
+	int			ix;
+
+	irq_save(cpsr);
+	_ntask = NULL;
+	for (ix=0; ix<TASK_QUEUE_NUM; ix++) {
+		if ( run_queue.task[ix].next != &(run_queue.task[ix]) ) {
+			_ntask = (TaskStruct*)(run_queue.task[ix].next);
+			break;
+		}
+	}
+	EXE_DISPATCH();
+	irq_restore(cpsr);
+}
+
+static void task_create(TaskStruct* tinfo, uint32_t taskid)
 {
 	extern void	_entry_stub(void);
 	uint32_t*		ptr;
@@ -144,68 +180,21 @@ task_create(TaskStruct* tinfo, uint32_t taskid)
 	task_add_queue(tinfo, tinfo->priority);
 }
 
-static void
-dump_rq(void)
+void task_init(TaskStruct* tinfo, uint32_t task_num)
 {
-	Link*			link;
-	TaskStruct*		task;
-	tprintf("DUMP_RQ\n");
-	for (link=run_queue.task[1].next; link != &run_queue.task[1]; link = link->next) {
-		task = containerof(link, TaskStruct, link);
-		tprintf("%s\n", task->name);
-	}
-	tprintf("DUMP_END\n");
-}
-
-static void
-dump_list(void)
-{
-	Link*			link;
-	TaskStruct*		task;
-#if 0
-	for (link=task_time_out_list.next; link != &task_time_out_list; link = link->next) {
-		task = containerof(link, TaskStruct, tlink);
-		tprintf("IDLE %s\n", task->name);
-	}
-#endif
-}
-
-void
-task_tick(void)
-{
-	Link*			link;
-	TaskStruct*		task;
-
-	dump_list();
-	for (link=task_time_out_list.next; link != &task_time_out_list; link = link->next) {
-		task = containerof(link, TaskStruct, tlink);
-		if ( task->timeout <= tick_count ) {
-			link = link->prev;
-			task_wakeup(task->taskid);
-		}
-	}
-}
-
-void
-schedule(void)
-{
-	uint32_t	cpsr;
 	int			ix;
-
-	irq_save(cpsr);
-	_ntask = NULL;
-	for (ix=0; ix<TASK_QUEUE_NUM; ix++) {
-		if ( run_queue.task[ix].next != &(run_queue.task[ix]) ) {
-			_ntask = (TaskStruct*)(run_queue.task[ix].next);
-			break;
-		}
+	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
+		run_queue.task[ix].next = run_queue.task[ix].prev = &run_queue.task[ix];
 	}
-	EXE_DISPATCH();
-	irq_restore(cpsr);
+	_ctask = NULL;
+	_ntask = NULL;
+
+	for (ix=0; ix<task_num; ix++) {
+		task_create(&tinfo[ix], ix+1);
+	}
 }
 
-void
-task_sleep(void)
+OSAPI void task_sleep(void)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -215,8 +204,7 @@ task_sleep(void)
 	irq_restore(cpsr);
 }
 
-void
-task_wakeup(int32_t tskid)
+OSAPI void task_wakeup(int32_t tskid)
 {
 	uint32_t		cpsr;
 	TaskStruct*		task;
@@ -238,8 +226,7 @@ task_wakeup(int32_t tskid)
 	irq_restore(cpsr);
 }
 
-void
-task_tsleep(uint32_t tm)
+OSAPI void task_tsleep(uint32_t tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -249,19 +236,4 @@ task_tsleep(uint32_t tm)
 	task_add_timeout_queue(&(_ctask->tlink));
 	schedule();
 	irq_restore(cpsr);
-}
-
-void
-task_init(void)
-{
-	int			ix;
-	for (ix=0; ix<TASK_QUEUE_NUM; ix++) {
-		run_queue.task[ix].next = run_queue.task[ix].prev = &run_queue.task[ix];
-	}
-	_ctask = NULL;
-	_ntask = NULL;
-
-	for (ix=0; ix<arrayof(task_info); ix++) {
-		task_create(&task_info[ix], ix+1);
-	}
 }

@@ -2,7 +2,7 @@
 #
 #
 
-PROJECT = emos
+PROJECT = bwos
 TARGET = $(PROJECT).bin
 TARGET_BIN = $(PROJECT).bin
 TARGET_ELF = $(PROJECT).elf
@@ -22,7 +22,7 @@ ARCH = -march=armv7-a -mcpu=cortex-a9
 INC = -I../inc
 VPATH = ../src
 
-C_SRCS = main.c printf.c task.c irq.c timer.c idle.c
+C_SRCS = main.c printf.c task.c irq.c timer.c idle.c resource.c target.c
 A_SRCS = boot.S dispatch.S handler.S
 OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 

@@ -8,8 +8,6 @@
 #include "arm.h"
 #include "task.h"
 
-extern Link			task_time_out_list;
-
 /*
  * 	idle_task
  * 	  call in DISABLE_IRQ
@@ -17,11 +15,9 @@ extern Link			task_time_out_list;
 void
 idle_task(void)
 {
-	Link*			link;
-	TaskStruct*		task;
 	for (;;) {
-		irq_enable();
 		irq_disable();
 		__wfi();
+		irq_enable();
 	}
 }

@@ -9,10 +9,6 @@
 #define TYPES_H_
 
 #ifndef __ASM__
-typedef	unsigned char		uchar;
-typedef	unsigned short		ushort;
-typedef	unsigned int		uint;
-typedef	unsigned long		ulong;
 #else
 #endif
 
