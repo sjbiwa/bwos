@@ -138,7 +138,7 @@ void task_tick(void)
 		task = containerof(link, TaskStruct, tlink);
 		if ( task->timeout <= tick_count ) {
 			link = link->prev;
-			task_wakeup(task->taskid);
+			task_wakeup(task);
 		}
 	}
 }
@@ -174,13 +174,7 @@ OSAPI int task_create(TaskStruct* tinfo)
 {
 	extern void	_entry_stub(void);
 	uint32_t*		ptr;
-	uint32_t		index = tinfo->taskid;
 
-	if ( (tinfo->taskid == 0) || (TASK_MAX_NUM < tinfo->taskid) ||
-								task_obj_cnv_tbl[tinfo->taskid] ) {
-		return RT_ERR;
-	}
-	task_obj_cnv_tbl[tinfo->taskid] = tinfo;
 	Link_clear(&tinfo->link);
 	Link_clear(&tinfo->tlink);
 	/* setup stack pointer */
@@ -191,7 +185,7 @@ OSAPI int task_create(TaskStruct* tinfo)
 	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)tinfo->start_entry;
 	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
-	tprintf("task %d: PC:%08X CPSR:%08X\n", tinfo->taskid, ptr[TASK_FRAME_PC], ptr[TASK_FRAME_PSR]);
+	tprintf("task : PC:%08X CPSR:%08X\n", ptr[TASK_FRAME_PC], ptr[TASK_FRAME_PSR]);
 	/* setup TaskStruct */
 	tinfo->task_state = TASK_READY;
 
@@ -210,13 +204,11 @@ OSAPI void task_sleep(void)
 	irq_restore(cpsr);
 }
 
-OSAPI void task_wakeup(int32_t tskid)
+OSAPI void task_wakeup(TaskStruct* task)
 {
 	uint32_t		cpsr;
-	TaskStruct*		task;
 
 	irq_save(cpsr);
-	task = task_obj_cnv_tbl[tskid];
 	if ( task->task_state == TASK_WAIT ) {
 		/* remove timeout queue */
 		if ( task->tlink.next != NULL ) {

@@ -16,10 +16,10 @@ extern void task5(void);
 static uint		stack[5][1024] __attribute__((aligned(16)));
 
 TaskStruct		task_info[] = {
-		{{0,0}, task1, stack[0], 1024, "TASK1", 1, TASKID_0},
-		{{0,0}, task2, stack[1], 1024, "TASK2", 1, TASKID_1},
-		{{0,0}, task3, stack[2], 1024, "TASK3", 1, TASKID_2},
-		{{0,0}, task4, stack[3], 1024, "TASK4", 1, TASKID_3},
-		{{0,0}, task5, stack[4], 1024, "TASK5", 1, TASKID_4},
+		{{0,0}, task1, stack[0], 1024, "TASK1", 1},
+		{{0,0}, task2, stack[1], 1024, "TASK2", 1},
+		{{0,0}, task3, stack[2], 1024, "TASK3", 1},
+		{{0,0}, task4, stack[3], 1024, "TASK4", 1},
+		{{0,0}, task5, stack[4], 1024, "TASK5", 1},
 };
 const uint32_t task_info_num = arrayof(task_info);

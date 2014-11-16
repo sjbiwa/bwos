@@ -15,7 +15,7 @@
 
 OSAPI int task_create(TaskStruct* tinfo);
 OSAPI void task_sleep(void);
-OSAPI void task_wakeup(int32_t tskid);
+OSAPI void task_wakeup(TaskStruct* tinfo);
 OSAPI void task_tsleep(uint32_t tm);
 
 #endif /* INC_API_H_ */

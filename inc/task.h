@@ -26,7 +26,6 @@ typedef	struct tagTaskStruct {
 	uint32_t	stack_size;			/* Stack Size */
 	uint8_t		name[32];			/* Task Name */
 	uint32_t	priority;			/* Task Priority */
-	uint32_t	taskid;				/* TaskID */
 	TaskState	task_state;			/* Task State */
 	Link		tlink;				/* TimeOut LinkList */
 	uint32_t	timeout;			/* TimeOut Time */
