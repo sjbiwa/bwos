@@ -16,7 +16,7 @@
 /***********************/
 
 #define	TASK_MAX_NUM			(100)	/* 最大タスクID番号 */
-#define	TASK_PRIORITY_NUM		(16)	/* タスク優先度レベル数 */
+#define	TASK_PRIORITY_NUM		(32)	/* タスク優先度レベル数 */
 
 #define	EXE_DISPATCH()		\
 				if ( (_ctask != _ntask) && (0 == _nodispatch_level) ) { \
@@ -27,7 +27,8 @@
 				}
 
 static struct {
-	Link	task[TASK_PRIORITY_NUM];
+	uint32_t	pri_bits;				/* 優先度毎の有効ビット */
+	Link		task[TASK_PRIORITY_NUM];/* 優先度毎のRUNキュー */
 } run_queue;
 
 TaskStruct*		_ctask = NULL;			/* 現在実行中のタスク */
@@ -40,18 +41,49 @@ static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
 extern void schedule(void);
 
-static void task_remove_queue(TaskStruct* task)
+static inline int32_t lowest_bit(uint32_t value)
 {
-	link_remove(&(task->link));
+	int32_t ret = 0;
+	if ( value & 0xffff0000 ) {
+		ret = 16;
+		value >>= 16;
+	}
+	if ( value & 0xff00 ) {
+		ret += 8;
+		value >>= 8;
+	}
+	if ( value & 0xf0 ) {
+		ret += 4;
+		value >>= 4;
+	}
+	if ( value & 0xc0 ) {
+		ret += 2;
+		value >>= 2;
+	}
+	if ( value & 0x80 ) {
+		ret += 1;
+	}
+	return ret;
 }
 
-static void task_add_queue(TaskStruct* task, uint32_t pri)
+static void task_remove_queue(TaskStruct* task)
+{
+	uint32_t	pri = task->priority;
+	link_remove(&(task->link));
+	/* 優先度キューに登録がなければ該当ビットをクリア */
+	if ( run_queue.task[pri].next == run_queue.task[pri].prev ) {
+		run_queue.pri_bits &= ~(0x00000001u << pri);
+	}
+}
+
+static void task_add_queue(TaskStruct* task)
 {
 	Link*		top;
-
+	uint32_t	pri = task->priority;
 	if ( pri < TASK_PRIORITY_NUM ) {
 		top = &run_queue.task[pri];
 		link_add_last(top, &(task->link));
+		run_queue.pri_bits |= (0x00000001u << pri);
 	}
 }
 
@@ -74,7 +106,7 @@ static void task_rotate_queue(uint32_t pri)
 	if ( (pri < TASK_PRIORITY_NUM)  && (run_queue.task[pri].next != &(run_queue.task[pri])) ) {
 		curr = run_queue.task[pri].next;
 		task_remove_queue((TaskStruct*)curr);
-		task_add_queue((TaskStruct*)curr, pri);
+		task_add_queue((TaskStruct*)curr);
 		schedule();
 	}
 }
@@ -115,8 +147,7 @@ void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 		}
 		task->result_code = result_code;
 		task->task_state = TASK_READY;
-		task_add_queue(task, task->priority);
-		schedule();
+		task_add_queue(task);
 	}
 }
 
@@ -137,16 +168,11 @@ void task_tick(void)
 void schedule(void)
 {
 	uint32_t	cpsr;
-	int			ix;
 
 	irq_save(cpsr);
 	_ntask = NULL;
-	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
-		if ( run_queue.task[ix].next != &(run_queue.task[ix]) ) {
-			_ntask = (TaskStruct*)(run_queue.task[ix].next);
-			break;
-		}
-	}
+	uint32_t bits = lowest_bit(run_queue.pri_bits);
+	_ntask = (TaskStruct*)(run_queue.task[bits].next);
 	EXE_DISPATCH();
 	irq_restore(cpsr);
 }
@@ -154,6 +180,7 @@ void schedule(void)
 void task_init(void)
 {
 	int			ix;
+	run_queue.pri_bits = 0x00000000;
 	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
 		run_queue.task[ix].next = run_queue.task[ix].prev = &run_queue.task[ix];
 	}
@@ -180,7 +207,7 @@ OSAPI int task_create(TaskStruct* task)
 	/* setup TaskStruct */
 	task->task_state = TASK_READY;
 
-	task_add_queue(task, task->priority);
+	task_add_queue(task);
 
 	return RT_OK;
 }
