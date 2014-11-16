@@ -9,10 +9,10 @@ static int tsprintf_decimal(signed long,char* ,int ,int );
 static int tsprintf_hexadecimal(unsigned long ,char* ,int ,int ,int );
 
 static void
-debug_print(uchar* str)
+debug_print(uint8_t* str)
 {
 	for (;*str;str++) {
-		*((volatile uint*)0x10009000) = *str;
+		*((volatile uint32_t*)0x10009000) = *str;
 	}
 }
 

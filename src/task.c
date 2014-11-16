@@ -7,7 +7,9 @@
 
 #include "common.h"
 #include "arm.h"
+#include "api.h"
 #include "task.h"
+#include "timer.h"
 
 /* configuration end */
 /***********************/
@@ -56,7 +58,7 @@ static void task_add_queue(TaskStruct* task, uint32_t pri)
 	Link*		end;
 	Link*		curr = (Link*)task;
 
-	if ( pri < TASK_QUEUE_NUM ) {
+	if ( pri < TASK_PRIORITY_NUM ) {
 		top = &run_queue.task[pri];
 		end = top->prev;
 		curr->next = top;
@@ -96,7 +98,7 @@ static void task_add_timeout_queue(Link* task)
 static void task_rotate_queue(uint32_t pri)
 {
 	Link*		curr;
-	if ( (pri < TASK_QUEUE_NUM)  && (run_queue.task[pri].next != &(run_queue.task[pri])) ) {
+	if ( (pri < TASK_PRIORITY_NUM)  && (run_queue.task[pri].next != &(run_queue.task[pri])) ) {
 		curr = run_queue.task[pri].next;
 		task_remove_queue((TaskStruct*)curr);
 		task_add_queue((TaskStruct*)curr, pri);
@@ -150,7 +152,7 @@ void schedule(void)
 
 	irq_save(cpsr);
 	_ntask = NULL;
-	for (ix=0; ix<TASK_QUEUE_NUM; ix++) {
+	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
 		if ( run_queue.task[ix].next != &(run_queue.task[ix]) ) {
 			_ntask = (TaskStruct*)(run_queue.task[ix].next);
 			break;
