@@ -209,7 +209,7 @@ OSAPI int task_create(TaskStruct* task)
 	/* setup TaskStruct */
 	task->task_state = TASK_READY;
 
-	task_add_queue(tinfo, task->priority);
+	task_add_queue(task, task->priority);
 
 	return RT_OK;
 }

@@ -20,7 +20,7 @@ static void delay(void)
 void task1(void)
 {
 	for (;;) {
-		int32_t ret = task_tsleep(500);
+		int32_t ret = task_tsleep(200);
 		irq_disable();
 		tprintf("task1 : wakeup=%d\n", ret);
 		irq_enable();
@@ -30,7 +30,7 @@ void task1(void)
 void task2(void)
 {
 	for (;;) {
-		task_tsleep(100);
+		task_tsleep(700);
 		task_wakeup(&task_info[0]);
 		irq_disable();
 		tprintf("task2 : wakeup\n");
@@ -41,7 +41,7 @@ void task2(void)
 void task3(void)
 {
 	for (;;) {
-		task_tsleep(300);
+		task_tsleep(1500);
 		irq_disable();
 		tprintf("task3 : time-out\n");
 		irq_enable();
