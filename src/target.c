@@ -41,10 +41,10 @@ void task2(void)
 void task3(void)
 {
 	for (;;) {
-		task_tsleep(1500);
 		irq_disable();
 		tprintf("task3 : time-out\n");
 		irq_enable();
+		task_tsleep(500);
 	}
 }
 

@@ -8,6 +8,7 @@
 #include "common.h"
 #include "arm.h"
 #include "api.h"
+#include "link.h"
 #include "task.h"
 #include "timer.h"
 
@@ -41,58 +42,30 @@ extern void schedule(void);
 
 static void task_remove_queue(TaskStruct* task)
 {
-	Link*		top;
-	Link*		end;
-	Link*		curr = (Link*)task;
-
-	top = curr->prev;
-	end = curr->next;
-
-	top->next = end;
-	end->prev = top;
+	link_remove(&(task->link));
 }
 
 static void task_add_queue(TaskStruct* task, uint32_t pri)
 {
 	Link*		top;
-	Link*		end;
-	Link*		curr = (Link*)task;
 
 	if ( pri < TASK_PRIORITY_NUM ) {
 		top = &run_queue.task[pri];
-		end = top->prev;
-		curr->next = top;
-		curr->prev = end;
-		top->prev = curr;
-		end->next = curr;
+		link_add_last(top, &(task->link));
 	}
 }
 
-static void task_remove_timeout_queue(Link* task)
+static void task_remove_timeout_queue(TaskStruct* task)
 {
-	Link*		top;
-	Link*		end;
-	Link*		curr = task;
-
-	top = curr->prev;
-	end = curr->next;
-
-	top->next = end;
-	end->prev = top;
+	link_remove(&(task->tlink));
 }
 
-static void task_add_timeout_queue(Link* task)
+static void task_add_timeout_queue(TaskStruct* task)
 {
 	Link*		top;
-	Link*		end;
-	Link*		curr = task;
 
 	top = &task_time_out_list;
-	end = top->next;
-	curr->next = end;
-	curr->prev = top;
-	top->next = curr;
-	end->prev = curr;
+	link_add_last(top, &(task->tlink));
 }
 
 static void task_rotate_queue(uint32_t pri)
@@ -130,15 +103,14 @@ static void dump_list(void)
 #endif
 }
 
-static void task_wakeup_stub(TaskStruct* task, int32_t result_code)
+void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 {
 	uint32_t		cpsr;
 
-	irq_save(cpsr);
 	if ( task->task_state == TASK_WAIT ) {
 		/* remove timeout queue */
 		if ( task->tlink.next != NULL ) {
-			task_remove_timeout_queue(&(task->tlink));
+			task_remove_timeout_queue(task);
 			task->tlink.next = task->tlink.prev = NULL;
 		}
 		task->result_code = result_code;
@@ -146,7 +118,6 @@ static void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 		task_add_queue(task, task->priority);
 		schedule();
 	}
-	irq_restore(cpsr);
 }
 
 void task_tick(void)
@@ -195,8 +166,8 @@ OSAPI int task_create(TaskStruct* task)
 	extern void	_entry_stub(void);
 	uint32_t*		ptr;
 
-	Link_clear(&task->link);
-	Link_clear(&task->tlink);
+	link_clear(&task->link);
+	link_clear(&task->tlink);
 	/* setup stack pointer */
 	ptr = (uint32_t*)((uint32_t)(task->save_sp) + task->stack_size - TASK_FRAME_SIZE);
 	task->save_sp = (void*)ptr;
@@ -214,30 +185,38 @@ OSAPI int task_create(TaskStruct* task)
 	return RT_OK;
 }
 
+void task_sleep_stub(TaskStruct* task)
+{
+	task_remove_queue(task);
+	task->task_state = TASK_WAIT;
+}
+
 OSAPI void task_sleep(void)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
-	task_remove_queue(_ctask);
-	_ctask->task_state = TASK_WAIT;
+	task_sleep_stub(_ctask);
 	schedule();
 	irq_restore(cpsr);
 }
 
 OSAPI void task_wakeup(TaskStruct* task)
 {
+	uint32_t		cpsr;
+	irq_save(cpsr);
 	task_wakeup_stub(task, RT_WAKEUP);
+	schedule();
+	irq_restore(cpsr);
 }
 
 OSAPI int32_t task_tsleep(uint32_t tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
-	task_remove_queue(_ctask);
-	_ctask->task_state = TASK_WAIT;
+	task_sleep_stub(_ctask);
 	_ctask->timeout = tick_count + tm;
 	_ctask->result_code = RT_TIMEOUT; /* デフォルトはタイムアウトに設定 */
-	task_add_timeout_queue(&(_ctask->tlink));
+	task_add_timeout_queue(_ctask);
 	schedule();
 	irq_restore(cpsr);
 	return _ctask->result_code;

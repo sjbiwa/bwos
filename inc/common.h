@@ -37,7 +37,7 @@ typedef	struct tagLink {
 
 
 /* ユーティリティ インライン関数 */
-static inline void Link_clear(Link* link) { link->next = link->prev = NULL; }
+static inline void link_clear(Link* link) { link->next = link->prev = NULL; }
 
 #else
 #endif

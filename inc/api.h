@@ -15,6 +15,7 @@
 #define	RT_ERR				(-1)
 #define	RT_TIMEOUT			(-2)
 #define	RT_WAKEUP			(-3)
+#define	RT_EVENT			(-4)
 
 OSAPI int task_create(TaskStruct* task);
 OSAPI void task_sleep(void);
