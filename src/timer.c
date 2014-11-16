@@ -7,6 +7,7 @@
 #include "common.h"
 #include "mpcore.h"
 #include "task.h"
+#include "timer.h"
 
 uint32_t		tick_count = 0L;
 

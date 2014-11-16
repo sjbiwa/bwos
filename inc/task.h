@@ -16,6 +16,7 @@
 #define	TASK_FRAME_STUB		(9)		/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
 
 #ifndef __ASM__
+
 typedef	enum { TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
 typedef	struct tagTaskStruct {
 	/* Fixed Position */
@@ -29,14 +30,17 @@ typedef	struct tagTaskStruct {
 	TaskState	task_state;			/* Task State */
 	Link		tlink;				/* TimeOut LinkList */
 	uint32_t	timeout;			/* TimeOut Time */
-} TaskStruct ;
+	int32_t		result_code;		/* API完了コード */
+} TaskStruct;
 
 extern	TaskStruct*			_ctask;
 extern	TaskStruct*			_ntask;
 
 #else
+
 #define	START_ENTRY			(0)
 #define	SAVE_SP				(12)
-#endif
+
+#endif /* __ASM__ */
 
 #endif /* TASK_H_ */

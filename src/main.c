@@ -5,6 +5,7 @@
  *      Author: biwa
  */
 #include "common.h"
+#include "task.h"
 
 extern TaskStruct	task_info[];
 extern uint32_t		task_info_num;
