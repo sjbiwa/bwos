@@ -17,6 +17,8 @@
 
 #ifndef __ASM__
 
+#include "link.h"
+
 typedef	enum { TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
 typedef	struct tagTaskStruct {
 	/* Fixed Position */
@@ -35,6 +37,9 @@ typedef	struct tagTaskStruct {
 
 extern	TaskStruct*			_ctask;
 extern	TaskStruct*			_ntask;
+
+extern void task_remove_queue(TaskStruct* task);
+extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
 
 #else
 

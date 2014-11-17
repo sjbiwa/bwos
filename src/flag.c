@@ -6,12 +6,9 @@
  */
 #include "common.h"
 #include "task.h"
-
-
-typedef	struct tagFlagStruct {
-	Link		link;
-	uint32_t	value;
-} FlagStruct;
+#include "flag.h"
+#include "link.h"
+#include "api.h"
 
 OSAPI int flag_create(FlagStruct* flag)
 {

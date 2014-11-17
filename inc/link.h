@@ -14,12 +14,11 @@ typedef	struct tagLink {
 	struct tagLink*		prev;
 } Link;
 
-
-inline void link_clear(Link* link) {
+static inline void link_clear(Link* link) {
 	link->next = link->prev = link;
 }
 
-inline void link_remove(Link* curr)
+static inline void link_remove(Link* curr)
 {
 	Link*		top;
 	Link*		end;
@@ -31,7 +30,7 @@ inline void link_remove(Link* curr)
 	end->prev = top;
 }
 
-inline void link_add_first(Link* list, Link* curr)
+static inline void link_add_first(Link* list, Link* curr)
 {
 	Link*		first;
 
@@ -42,7 +41,7 @@ inline void link_add_first(Link* list, Link* curr)
 	first->prev = curr;
 }
 
-inline void link_add_last(Link* list, Link* curr)
+static inline void link_add_last(Link* list, Link* curr)
 {
 	Link*		end;
 
@@ -53,7 +52,7 @@ inline void link_add_last(Link* list, Link* curr)
 	end->next = curr;
 }
 
-inline bool link_is_empty(Link* curr)
+static inline bool link_is_empty(Link* curr)
 {
 	bool ret = false;
 	if ( curr == (curr->next) ) {

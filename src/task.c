@@ -44,29 +44,29 @@ extern void schedule(void);
 static inline int32_t lowest_bit(uint32_t value)
 {
 	int32_t ret = 0;
-	if ( value & 0xffff0000 ) {
+	if ( (value & 0x0000ffff) == 0 ) {
 		ret = 16;
 		value >>= 16;
 	}
-	if ( value & 0xff00 ) {
+	if ( (value & 0x00ff) == 0 ) {
 		ret += 8;
 		value >>= 8;
 	}
-	if ( value & 0xf0 ) {
+	if ( (value & 0x0f) == 0 ) {
 		ret += 4;
 		value >>= 4;
 	}
-	if ( value & 0xc0 ) {
+	if ( (value & 0x3) == 0 ) {
 		ret += 2;
 		value >>= 2;
 	}
-	if ( value & 0x80 ) {
+	if ( (value & 0x1) == 0 ) {
 		ret += 1;
 	}
 	return ret;
 }
 
-static void task_remove_queue(TaskStruct* task)
+void task_remove_queue(TaskStruct* task)
 {
 	uint32_t	pri = task->priority;
 	link_remove(&(task->link));
@@ -131,14 +131,18 @@ void task_tick(void)
 {
 	Link*			link;
 	TaskStruct*		task;
-
+	bool			req_sched = false;
 	link = task_time_out_list.next;
 	while ( link != &task_time_out_list ) {
 		task = containerof(link, TaskStruct, tlink);
 		link = link->next; /* 次のタスクを取得しておく */
 		if ( task->timeout <= tick_count ) {
 			task_wakeup_stub(task, RT_TIMEOUT);
+			req_sched = true;
 		}
+	}
+	if ( req_sched ) {
+		schedule();
 	}
 }
 
@@ -148,8 +152,10 @@ void schedule(void)
 
 	irq_save(cpsr);
 	_ntask = NULL;
-	uint32_t bits = lowest_bit(run_queue.pri_bits);
-	_ntask = (TaskStruct*)(run_queue.task[bits].next);
+	if ( run_queue.pri_bits != 0 ) {
+		uint32_t bits = lowest_bit(run_queue.pri_bits);
+		_ntask = (TaskStruct*)(run_queue.task[bits].next);
+	}
 	EXE_DISPATCH();
 	irq_restore(cpsr);
 }
@@ -175,12 +181,10 @@ OSAPI int task_create(TaskStruct* task)
 	/* setup stack pointer */
 	ptr = (uint32_t*)((uint32_t)(task->save_sp) + task->stack_size - TASK_FRAME_SIZE);
 	task->save_sp = (void*)ptr;
-	tprintf("task_create:%s sp=%08X\n", ptr);
 	/* setup task-context */
 	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)task->start_entry;
 	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
-	tprintf("task : PC:%08X CPSR:%08X\n", ptr[TASK_FRAME_PC], ptr[TASK_FRAME_PSR]);
 	/* setup TaskStruct */
 	task->task_state = TASK_READY;
 

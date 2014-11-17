@@ -6,6 +6,7 @@
  */
 #include "common.h"
 #include "task.h"
+#include "flag.h"
 
 extern TaskStruct	task_info[];
 
@@ -48,46 +49,30 @@ void task3(void)
 	}
 }
 
-#if 0
+static FlagStruct	wait_flag;
+
 void task4(void)
 {
-	int			ix;
-	int			iy;
-	long long	llval1 = 0;
-	long long	llval2 = 0;
-	long long	llval3 = 0;
-	long long	llval4 = 0;
-	for (ix=0, iy=0;;ix++, iy+=3) {
-		llval1 += ix;
-		llval2 += ix;
-		llval3 += ix;
-		llval4 += ix;
-		irq_disable();
-		tprintf("task4 : %d %08X\n", iy, ({uint32_t sp;asm volatile ("mov %0, sp":"=r"(sp)::"memory");sp;}));
-		tprintf("task4 : %08X %08X %08X %08X\n", &llval1, &llval2, &llval3, &llval4);
-		irq_enable();
-		task_tsleep(35);
+	flag_create(&wait_flag);
+	irq_disable();
+	tprintf("start task4\n");
+	irq_enable();
+	for (;;) {
+		task_tsleep(500);
+		flag_set(&wait_flag);
 	}
 }
 
 void task5(void)
 {
-	int			ix;
-	int			iy;
-	long long	llval1 = 0;
-	long long	llval2 = 0;
-	long long	llval3 = 0;
-	long long	llval4 = 0;
-	for (ix=0, iy=0;;ix++, iy+=3) {
-		llval1 += ix;
-		llval2 += ix;
-		llval3 += ix;
-		llval4 += ix;
+	irq_disable();
+	tprintf("start task5\n");
+	irq_enable();
+
+	for (;;) {
+		flag_wait(&wait_flag);
 		irq_disable();
-		tprintf("task5 : %d %08X\n", iy, ({uint32_t sp;asm volatile ("mov %0, sp":"=r"(sp)::"memory");sp;}));
-		tprintf("task5 : %08X %08X %08X %08X\n", &llval1, &llval2, &llval3, &llval4);
+		tprintf("wakeup task5\n");
 		irq_enable();
-		task_tsleep(40);
 	}
 }
-#endif
