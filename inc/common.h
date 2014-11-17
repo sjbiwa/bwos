@@ -29,16 +29,6 @@
 /* OS固有定義マクロ */
 #define	OSAPI
 
-/* オブジェクトリンク構造体 */
-typedef	struct tagLink {
-	struct tagLink*		next;
-	struct tagLink*		prev;
-} Link;
-
-
-/* ユーティリティ インライン関数 */
-static inline void link_clear(Link* link) { link->next = link->prev = NULL; }
-
 #else
 #endif
 

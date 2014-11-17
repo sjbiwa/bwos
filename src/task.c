@@ -71,7 +71,7 @@ static void task_remove_queue(TaskStruct* task)
 	uint32_t	pri = task->priority;
 	link_remove(&(task->link));
 	/* 優先度キューに登録がなければ該当ビットをクリア */
-	if ( run_queue.task[pri].next == run_queue.task[pri].prev ) {
+	if ( link_is_empty(&run_queue.task[pri]) ) {
 		run_queue.pri_bits &= ~(0x00000001u << pri);
 	}
 }
@@ -103,36 +103,12 @@ static void task_add_timeout_queue(TaskStruct* task)
 static void task_rotate_queue(uint32_t pri)
 {
 	Link*		curr;
-	if ( (pri < TASK_PRIORITY_NUM)  && (run_queue.task[pri].next != &(run_queue.task[pri])) ) {
+	if ( (pri < TASK_PRIORITY_NUM)  && !link_is_empty(&run_queue.task[pri]) ) {
 		curr = run_queue.task[pri].next;
-		task_remove_queue((TaskStruct*)curr);
-		task_add_queue((TaskStruct*)curr);
+		task_remove_queue(containerof(curr, TaskStruct, link));
+		task_add_queue(containerof(curr, TaskStruct, link));
 		schedule();
 	}
-}
-
-static void dump_rq(void)
-{
-	Link*			link;
-	TaskStruct*		task;
-	tprintf("DUMP_RQ\n");
-	for (link=run_queue.task[1].next; link != &run_queue.task[1]; link = link->next) {
-		task = containerof(link, TaskStruct, link);
-		tprintf("%s\n", task->name);
-	}
-	tprintf("DUMP_END\n");
-}
-
-static void dump_list(void)
-{
-	Link*			link;
-	TaskStruct*		task;
-#if 0
-	for (link=task_time_out_list.next; link != &task_time_out_list; link = link->next) {
-		task = containerof(link, TaskStruct, tlink);
-		tprintf("IDLE %s\n", task->name);
-	}
-#endif
 }
 
 void task_wakeup_stub(TaskStruct* task, int32_t result_code)
@@ -141,9 +117,9 @@ void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 
 	if ( task->task_state == TASK_WAIT ) {
 		/* remove timeout queue */
-		if ( task->tlink.next != NULL ) {
+		if ( !link_is_empty(&(task->tlink)) ) {
 			task_remove_timeout_queue(task);
-			task->tlink.next = task->tlink.prev = NULL;
+			link_clear(&(task->tlink));
 		}
 		task->result_code = result_code;
 		task->task_state = TASK_READY;
@@ -156,10 +132,11 @@ void task_tick(void)
 	Link*			link;
 	TaskStruct*		task;
 
-	for (link=task_time_out_list.next; link != &task_time_out_list; link = link->next) {
+	link = task_time_out_list.next;
+	while ( link != &task_time_out_list ) {
 		task = containerof(link, TaskStruct, tlink);
+		link = link->next; /* 次のタスクを取得しておく */
 		if ( task->timeout <= tick_count ) {
-			link = link->prev;
 			task_wakeup_stub(task, RT_TIMEOUT);
 		}
 	}
@@ -182,7 +159,7 @@ void task_init(void)
 	int			ix;
 	run_queue.pri_bits = 0x00000000;
 	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
-		run_queue.task[ix].next = run_queue.task[ix].prev = &run_queue.task[ix];
+		link_clear(&run_queue.task[ix]);
 	}
 	_ctask = NULL;
 	_ntask = NULL;
