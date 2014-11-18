@@ -20,5 +20,6 @@ int main(void)
 	}
 	irq_init();
 	timer_init();
+	lprintf_init();
 	schedule();
 }

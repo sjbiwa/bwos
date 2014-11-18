@@ -1,5 +1,8 @@
 #include <stdarg.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "common.h"
+#include "mutex.h"
 
 static int vtsprintf(char* buff,char* fmt,va_list arg);
 
@@ -246,8 +249,14 @@ tsprintf(char* buff,char* fmt, ...){
 /*
   Tiny sprintf関数
 */
-int
-tprintf(char* fmt, ...)
+static MutexStruct printf_mutex;
+
+void lprintf_init(void)
+{
+	mutex_create(&printf_mutex);
+}
+
+int tprintf(char* fmt, ...)
 {
 static char		buff[1024];
 	va_list arg;
@@ -263,4 +272,24 @@ static char		buff[1024];
 
 	va_end(arg);
 	debug_print(buff);
+}
+
+int lprintf(char* fmt, ...)
+{
+static char		buff[1024];
+	va_list arg;
+	int len;
+	int size;
+	int zeroflag,width;
+
+	size = 0;
+	len = 0;
+	va_start(arg, fmt);
+
+	mutex_lock(&printf_mutex, 0);
+	vtsprintf(buff,fmt,arg);
+
+	va_end(arg);
+	debug_print(buff);
+	mutex_unlock(&printf_mutex);
 }

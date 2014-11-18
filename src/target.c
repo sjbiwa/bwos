@@ -21,31 +21,25 @@ static void delay(void)
 void task1(void)
 {
 	for (;;) {
-		int32_t ret = task_tsleep(200);
-		irq_disable();
-		tprintf("task1 : wakeup=%d\n", ret);
-		irq_enable();
+		int32_t ret = task_tsleep(1);
+		lprintf("task1 : wakeup=%d\n", ret);
 	}
 }
 
 void task2(void)
 {
 	for (;;) {
-		task_tsleep(700);
+		task_tsleep(1);
 		task_wakeup(&task_info[0]);
-		irq_disable();
-		tprintf("task2 : wakeup\n");
-		irq_enable();
+		lprintf("task2 : wakeup\n");
 	}
 }
 
 void task3(void)
 {
 	for (;;) {
-		irq_disable();
-		tprintf("task3 : time-out\n");
-		irq_enable();
-		task_tsleep(500);
+		lprintf("task3 : time-out\n");
+		task_tsleep(1);
 	}
 }
 
@@ -54,25 +48,20 @@ static FlagStruct	wait_flag;
 void task4(void)
 {
 	flag_create(&wait_flag);
-	irq_disable();
-	tprintf("start task4\n");
-	irq_enable();
+	lprintf("start task4\n");
 	for (;;) {
-		task_tsleep(500);
+		task_tsleep(50);
 		flag_set(&wait_flag);
+		lprintf("set_flag task4\n");
 	}
 }
 
 void task5(void)
 {
-	irq_disable();
-	tprintf("start task5\n");
-	irq_enable();
+	lprintf("start task5\n");
 
 	for (;;) {
 		flag_wait(&wait_flag);
-		irq_disable();
-		tprintf("wakeup task5\n");
-		irq_enable();
+		lprintf("wakeup task5\n");
 	}
 }

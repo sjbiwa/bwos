@@ -21,9 +21,9 @@ OSAPI void flag_set(FlagStruct* flag)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
-	Link* link = flag->link.next;
-	if ( link ) {
+	if ( !link_is_empty(&(flag->link)) ) {
 		/* linkの先頭タスクをwakeup */
+		Link* link = flag->link.next;
 		link_remove(link);
 		TaskStruct* task = containerof(link, TaskStruct, link);
 		task_wakeup_stub(task, RT_EVENT);
@@ -49,7 +49,7 @@ OSAPI int flag_wait(FlagStruct* flag, uint32_t tmout)
 	else {
 		task_remove_queue(_ctask);
 		_ctask->task_state = TASK_WAIT;
-		link_add_last(&(flag->link), _ctask);
+		link_add_last(&(flag->link), &(_ctask->link));
 		schedule();
 	}
 	irq_restore(cpsr);
