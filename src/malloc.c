@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "common.h"
 #include "malloc.h"
+#include "link.h"
 
 #define	MB_SIGNATURE			(0xA55Au)
 #define	MB_SPACE				(0x0001u)
@@ -23,10 +24,10 @@ typedef	struct {
 } MBIdentify;
 
 /* 空きブロック先頭構造 */
-typedef	struct tagMBProlog {
+typedef	struct {
 	MBIdentify		identify;		/* メモリブロックID */
 	uint32_t		mb_size;
-	struct tagMBProlog link;
+	Link			link;
 } MBSpaceProlog;
 
 /* 空きブロック最終構造 */
@@ -48,9 +49,14 @@ typedef	struct {
 
 
 /* 空きメモリブロック先頭 */
-static MBSpaceProlog*	mb_space_link = NULL;
+static 	Link	mb_space_link;
 
-void malloc_init(void* addr, uint32_t size)
+void malloc_init(void)
+{
+	link_clear(&mb_space_link);
+}
+
+void malloc_add_block(void* addr, uint32_t size)
 {
 	/* 最低限必要なメモリ容量のチェック */
 	if ( (sizeof(MBIdentify)*2 + sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog)) < size ) {
@@ -71,46 +77,43 @@ void malloc_init(void* addr, uint32_t size)
 	mb_prolog->identify.status = mb_epilog->identify.status = MB_SPACE;
 	mb_prolog->mb_size = mb_epilog->mb_size = size;
 
-	/* 空きメモリブロックをリンクリストの先頭に挿入 */
-	mb_prolog->link = mb_space_link;
-	mb_space_link = mb_prolog;
+	/* 空きメモリブロックをリンクリストに挿入 */
+	link_add_last(&mb_space_link, &(mb_prolog->link));
 }
 
 OSAPI void* malloc(uint32_t size)
 {
 	void* ret = NULL;
-	MBSpaceProlog* mb_space;
-	MBSpaceProlog** mb_prev;
+	Link* find_link = NULL;
+	MBSpaceProlog* mb_space = NULL;
+
 	/* サイズを4バイトアラインに適用し、管理領域サイズを足しておく */
 	size = ((size + 3) & ~0x00000003u) + MB_USE_INFO_SIZE;
 
 	/* 指定サイズ以上の空きブロックを探す */
-	mb_space = mb_space_link;
-	mb_prev = &mb_space_link;
-	while ( mb_space ) {
-		if ( size <= mb_space->mb_size ) {
+	find_link = mb_space_link.next;
+	while ( find_link != &mb_space_link ) {
+		MBSpaceProlog* mb_temp = containerof(find_link, MBSpaceProlog, link);
+		if ( size <= mb_temp->mb_size ) {
+			mb_space = mb_temp;
 			break;
 		}
-		mb_prev = &(mb_space->link);
-		mb_space = mb_space->link;
+		find_link = find_link->next;
 	}
 	if ( mb_space ) {
+		/* 対象空きブロックをリンクリストから外す */
+		link_remove(&(mb_space->link));
+
 		/* 確保後の残りサイズチェック(余りが４以下ならすべてを割り当てる) */
 		uint32_t remain_size = mb_space->mb_size - size;
-		if ( remain_size < (MB_SPACE_INFO_SIZE+4) ) {
-			size = mb_space->mb_size;
-			/* 対象空きブロックを空きブロックリストから外す */
-			*mb_prev = mb_space->link;
-		}
-		else {
+		if ( MB_SPACE_INFO_SIZE <= remain_size ) {
 			/* 残りブロックを新たに空きブロックとする */
 			MBSpaceProlog* mb_remain_prolog = (MBSpaceProlog*)(((uint8_t*)mb_space) + size);
 			MBSpaceEpilog* mb_remain_epilog = (MBSpaceEpilog*)(((uint8_t*)mb_remain_prolog) + (remain_size - sizeof(MBSpaceEpilog)));
 			mb_remain_prolog->identify.signature = MB_SIGNATURE;
 			mb_remain_prolog->identify.status = MB_SPACE;
 			mb_remain_prolog->mb_size = mb_remain_epilog->mb_size = remain_size;
-			mb_remain_prolog->link = mb_space->link;
-			*mb_prev = &(mb_remain_prolog->link);
+			link_add_last(&mb_space_link, &(mb_remain_prolog->link));
 		}
 
 		/* 確保した領域の初期化 */
