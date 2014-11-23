@@ -13,6 +13,9 @@
 #define	MB_SPACE				(0x0001u)
 #define	MB_USE					(0x0002u)
 
+#define	MB_SPACE_INFO_SIZE		(sizeof(MBSpaceProlog)+sizeof(MBSpaceEpilog))
+#define	MB_USE_INFO_SIZE		(sizeof(MBUseProlog)+sizeof(MBUseEpilog))
+
 /* メモリブロック状態 */
 typedef	struct {
 	uint16_t	signature;		/* 管理ブロックシグネチャ */
@@ -36,7 +39,7 @@ typedef	struct {
 typedef	struct {
 	MBIdentify		identify;		/* メモリブロックID */
 	uint32_t		mb_size;
-} MBUsedProlog;
+} MBUseProlog;
 
 /* 使用ブロック最終構造 */
 typedef	struct {
@@ -75,7 +78,51 @@ void malloc_init(void* addr, uint32_t size)
 
 OSAPI void* malloc(uint32_t size)
 {
-	return NULL;
+	void* ret = NULL;
+	MBSpaceProlog* mb_space;
+	MBSpaceProlog** mb_prev;
+	/* サイズを4バイトアラインに適用し、管理領域サイズを足しておく */
+	size = ((size + 3) & ~0x00000003u) + MB_USE_INFO_SIZE;
+
+	/* 指定サイズ以上の空きブロックを探す */
+	mb_space = mb_space_link;
+	mb_prev = &mb_space_link;
+	while ( mb_space ) {
+		if ( size <= mb_space->mb_size ) {
+			break;
+		}
+		mb_prev = &(mb_space->link);
+		mb_space = mb_space->link;
+	}
+	if ( mb_space ) {
+		/* 確保後の残りサイズチェック(余りが４以下ならすべてを割り当てる) */
+		uint32_t remain_size = mb_space->mb_size - size;
+		if ( remain_size < (MB_SPACE_INFO_SIZE+4) ) {
+			size = mb_space->mb_size;
+			/* 対象空きブロックを空きブロックリストから外す */
+			*mb_prev = mb_space->link;
+		}
+		else {
+			/* 残りブロックを新たに空きブロックとする */
+			MBSpaceProlog* mb_remain_prolog = (MBSpaceProlog*)(((uint8_t*)mb_space) + size);
+			MBSpaceEpilog* mb_remain_epilog = (MBSpaceEpilog*)(((uint8_t*)mb_remain_prolog) + (remain_size - sizeof(MBSpaceEpilog)));
+			mb_remain_prolog->identify.signature = MB_SIGNATURE;
+			mb_remain_prolog->identify.status = MB_SPACE;
+			mb_remain_prolog->mb_size = mb_remain_epilog->mb_size = remain_size;
+			mb_remain_prolog->link = mb_space->link;
+			*mb_prev = &(mb_remain_prolog->link);
+		}
+
+		/* 確保した領域の初期化 */
+		MBUseProlog* mb_use_prolog = (MBUseProlog*)mb_space;
+		MBUseEpilog* mb_use_epilog = (MBUseEpilog*)(((uint8_t*)mb_space) + size - sizeof(MBUseEpilog));
+		mb_use_epilog->identify.signature = MB_SIGNATURE;
+		mb_use_prolog->identify.status = mb_use_epilog->identify.status = MB_USE;
+		mb_use_prolog->mb_size = size;
+
+		ret = (void*)(((uint8_t*)mb_use_prolog) + sizeof(MBUseProlog));
+	}
+	return ret;
 }
 
 OSAPI void free(void* ptr)
