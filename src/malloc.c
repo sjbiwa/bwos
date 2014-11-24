@@ -118,7 +118,7 @@ OSAPI void* malloc(uint32_t size)
 
 		/* 確保した領域の初期化 */
 		MBUseProlog* mb_use_prolog = (MBUseProlog*)mb_space;
-		MBUseEpilog* mb_use_epilog = (MBUseEpilog*)(((uint8_t*)mb_space) + size - sizeof(MBUseEpilog));
+		MBUseEpilog* mb_use_epilog = (MBUseEpilog*)((uint8_t*)mb_space) + size) - 1;
 		mb_use_epilog->identify.signature = MB_SIGNATURE;
 		mb_use_prolog->identify.status = mb_use_epilog->identify.status = MB_USE;
 		mb_use_prolog->mb_size = size;
@@ -130,5 +130,60 @@ OSAPI void* malloc(uint32_t size)
 
 OSAPI void free(void* ptr)
 {
+	/* シグネチャチェック */
+	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;
+	if ( (mb_use_prolog->identify.signature != MB_SIGNATURE) || (mb_use_prolog->identify.status != MB_USE) ) {
+		goto err_ret;
+	}
+	MBUseEpilog* mb_use_epilog = (MBUseEpilog*)((uint8_t*)mb_use_prolog + mb_use_prolog->mb_size) - 1;
+	if ( (mb_use_epilog->identify.signature != MB_SIGNATURE) || (mb_use_epilog->identify.status != MB_USE) ) {
+		goto err_ret;
+	}
+
+	MBIdentify* mb_front_id = (MBIdentify*)mb_use_prolog - 1;
+	MBIdentify* mb_back_id = (MBIdentify*)(mb_use_epilog + 1);
+	/* 対象ブロック前後のブロックのシグネチャチェック */
+	if ( (mb_front_id->signature != MB_SIGNATURE) || (mb_back_id->signature != MB_SIGNATURE) ) {
+		goto err_ret;
+	}
+
+	MBSpaceProlog* mb_space_prolog = NULL;
+	MBSpaceEpilog* mb_space_epilog = NULL;
+	/* 対象ブロックの前方ブロックチェック */
+	if ( mb_front_id->status == MB_SPACE ) {
+		/* 前方ブロックは空きブロックなので対象ブロックと連結する */
+		mb_space_epilog = (MBSpaceEpilog*)(mb_front_id + 1) - 1; /* 前方ブロックのepilog */
+		mb_space_prolog = (MBSpaceProlog*)((uint8_t*)mb_use_prolog - mb_space_epilog->mb_size);
+		mb_space_epilog = (MBSpaceEpilog*)mb_back_id - 1; /* 対象ブロックのepilog(新しいepilog) */
+		mb_space_prolog->identify.status = mb_space_epilog->identify.status = MB_SPACE;
+		mb_space_prolog->mb_size += mb_use_prolog->mb_size;
+		mb_space_epilog->mb_size = mb_space_prolog->mb_size;
+	}
+	else {
+		/* 前方ブロックは使用中なので対象ブロックの空きブロック先頭にする */
+		/* signatureとmb_sizeは変わらないので書き換えない */
+		mb_space_prolog = (MBSpaceProlog*)mb_use_prolog;
+		mb_space_epilog = (MBSpaceEpilog*)((uint8_t*)mb_space_prolog + mb_space_prolog->mb_size) - 1;
+		mb_space_prolog->identify.status = mb_space_epilog->identify.status = MB_SPACE;
+		mb_space_epilog->mb_size = mb_space_prolog->mb_size;
+		/* 空きリンクリストに追加 */
+		link_add_last(&mb_space_link, &(mb_space_prolog->link));
+	}
+
+	/* 対象ブロックの後方ブロックチェック */
+	if ( mb_back_id->status == MB_SPACE ) {
+		/* 後方ブロックが空きブロックならブロックを連結する */
+		MBSpaceProlog* mb_back_prolog = (MBSpaceProlog*)mb_back_id;
+		MBSpaceEpilog* mb_back_epilog = (MBSpaceEpilog*)((uint8_t*)mb_back_prolog + mb_back_prolog->mb_size) - 1;
+		mb_space_prolog->mb_size += mb_back_prolog->mb_size;
+		mb_back_epilog->mb_size = mb_space_prolog->mb_size;
+		/* 後方ブロックは対象ブロックに連結するので空きリンクリストから外す */
+		link_remove(&(mb_back_prolog->link));
+	}
+	else {
+		/* 後方ブロックが使用中なら処理は無し */
+	}
+
+err_ret:
 	return;
 }
