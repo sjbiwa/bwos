@@ -32,4 +32,7 @@ OSAPI int mutex_create(MutexStruct* mtx);
 OSAPI int mutex_unlock(MutexStruct* mtx);
 OSAPI int mutex_lock(MutexStruct* mtx, uint32_t tmout);
 
+OSAPI void* sys_malloc(uint32_t size);
+OSAPI void sys_free(void* ptr);
+
 #endif /* INC_API_H_ */

@@ -51,15 +51,15 @@ typedef	struct {
 /* 空きメモリブロック先頭 */
 static 	Link	mb_space_link;
 
-void malloc_init(void)
+void sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
 }
 
-void malloc_add_block(void* addr, uint32_t size)
+void sys_malloc_add_block(void* addr, uint32_t size)
 {
 	/* 最低限必要なメモリ容量のチェック */
-	if ( (sizeof(MBIdentify)*2 + sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog)) < size ) {
+	if ( size < (sizeof(MBIdentify)*2 + sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog)) ) {
 		return;
 	}
 
@@ -81,7 +81,7 @@ void malloc_add_block(void* addr, uint32_t size)
 	link_add_last(&mb_space_link, &(mb_prolog->link));
 }
 
-OSAPI void* malloc(uint32_t size)
+OSAPI void* sys_malloc(uint32_t size)
 {
 	void* ret = NULL;
 	Link* find_link = NULL;
@@ -118,7 +118,7 @@ OSAPI void* malloc(uint32_t size)
 
 		/* 確保した領域の初期化 */
 		MBUseProlog* mb_use_prolog = (MBUseProlog*)mb_space;
-		MBUseEpilog* mb_use_epilog = (MBUseEpilog*)((uint8_t*)mb_space) + size) - 1;
+		MBUseEpilog* mb_use_epilog = (MBUseEpilog*)((uint8_t*)mb_space + size) - 1;
 		mb_use_epilog->identify.signature = MB_SIGNATURE;
 		mb_use_prolog->identify.status = mb_use_epilog->identify.status = MB_USE;
 		mb_use_prolog->mb_size = size;
@@ -128,7 +128,7 @@ OSAPI void* malloc(uint32_t size)
 	return ret;
 }
 
-OSAPI void free(void* ptr)
+OSAPI void sys_free(void* ptr)
 {
 	/* シグネチャチェック */
 	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;

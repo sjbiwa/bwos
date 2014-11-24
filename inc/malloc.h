@@ -11,7 +11,4 @@
 #include <stdint.h>
 #include "common.h"
 
-OSAPI void* malloc(uint32_t size);
-OSAPI void free(void* ptr);
-
 #endif /* MALLOC_H_ */
