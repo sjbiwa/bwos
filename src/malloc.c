@@ -65,14 +65,13 @@ void sys_malloc_add_block(void* addr, uint32_t size)
 
 	/* メモリブロックの先頭と最終に「使用中」識別子を書き込んで */
 	/* 空きブロックを挟み込む。これで空き領域の境界を確保 */
-	((MBIdentify*)addr)->signature = ((MBIdentify*)((uint8_t*)addr+size))->signature = MB_SIGNATURE;
-	((MBIdentify*)addr)->status = ((MBIdentify*)((uint8_t*)addr+size))->status = MB_USE;
+	((MBIdentify*)addr)->signature = ((MBIdentify*)((uint8_t*)addr+size)-1)->signature = MB_SIGNATURE;
+	((MBIdentify*)addr)->status = ((MBIdentify*)((uint8_t*)addr+size)-1)->status = MB_USE;
 
 	/* 空きメモリブロック初期化 */
+	size -= sizeof(MBIdentify) * 2; /* 前後の使用中識別子分だけ減らす */
 	MBSpaceProlog* mb_prolog = (MBSpaceProlog*)((uint8_t*)addr + sizeof(MBIdentify));
-	MBSpaceProlog* mb_epilog = (MBSpaceProlog*)((uint8_t*)addr + sizeof(MBIdentify));
-	size -= sizeof(MBIdentify) * 2;
-
+	MBSpaceEpilog* mb_epilog = (MBSpaceEpilog*)((uint8_t*)mb_prolog + size) - 1;
 	mb_prolog->identify.signature = mb_epilog->identify.signature = MB_SIGNATURE;
 	mb_prolog->identify.status = mb_epilog->identify.status = MB_SPACE;
 	mb_prolog->mb_size = mb_epilog->mb_size = size;
@@ -186,4 +185,34 @@ OSAPI void sys_free(void* ptr)
 
 err_ret:
 	return;
+}
+
+void dump_space()
+{
+	printf("DUMP_SPACE\n");
+	Link* link = mb_space_link.next;
+	while ( link != &mb_space_link ) {
+		MBSpaceProlog* mb_prolog = containerof(link, MBSpaceProlog, link);
+		MBSpaceEpilog* mb_epilog = (MBSpaceEpilog*)((uint8_t*)mb_prolog + mb_prolog->mb_size) - 1;
+		if ( (mb_prolog->identify.signature != MB_SIGNATURE) ||  (mb_epilog->identify.signature != MB_SIGNATURE) ||
+				(mb_prolog->identify.status != MB_SPACE) || (mb_epilog->identify.status != MB_SPACE) ||
+				(mb_prolog->mb_size != mb_epilog->mb_size) ) {
+			printf("error\n");
+			break;
+		}
+		printf("SPACE:%08X-%08X (len=%08X)\n", mb_prolog, mb_epilog+1, mb_prolog->mb_size);
+		link =link->next;
+	}
+}
+
+void dump_use(void* ptr)
+{
+	printf("DUMP_USE\n");
+	MBUseProlog* mb_prolog = (MBUseProlog*)ptr - 1;
+	MBUseEpilog* mb_epilog = (MBUseEpilog*)((uint8_t*)(mb_prolog) + mb_prolog->mb_size) - 1;
+	if ( (mb_prolog->identify.signature != MB_SIGNATURE) ||  (mb_epilog->identify.signature != MB_SIGNATURE) ||
+			(mb_prolog->identify.status != MB_USE) || (mb_epilog->identify.status != MB_USE) ) {
+		printf("error\n");
+	}
+	printf("USE:%08X (len=%08X)\n", mb_prolog, mb_prolog->mb_size);
 }
