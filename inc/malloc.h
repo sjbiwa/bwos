@@ -11,4 +11,7 @@
 #include <stdint.h>
 #include "common.h"
 
+extern void sys_malloc_init(void);
+extern void sys_malloc_add_block(void* addr, uint32_t size);
+
 #endif /* MALLOC_H_ */

@@ -13,6 +13,7 @@
 #include "task.h"
 #include "flag.h"
 #include "mutex.h"
+#include "malloc.h"
 
 #define	RT_OK				(0)
 #define	RT_ERR				(-1)

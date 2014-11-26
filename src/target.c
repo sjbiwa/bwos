@@ -20,26 +20,23 @@ static void delay(void)
 
 void task1(void)
 {
+static void* ptr[100];
 	for (;;) {
-		int32_t ret = task_tsleep(1);
-		lprintf("task1 : wakeup=%d\n", ret);
+		for (ix=0; ix<100; ix++) {
+		void* ptr = sys_malloc(128);
+		printf("")
 	}
 }
 
 void task2(void)
 {
 	for (;;) {
-		task_tsleep(1);
-		task_wakeup(&task_info[0]);
-		lprintf("task2 : wakeup\n");
 	}
 }
 
 void task3(void)
 {
 	for (;;) {
-		lprintf("task3 : time-out\n");
-		task_tsleep(1);
 	}
 }
 
@@ -47,6 +44,7 @@ static FlagStruct	wait_flag;
 
 void task4(void)
 {
+	task_sleep();
 	flag_create(&wait_flag);
 	lprintf("start task4\n");
 	for (;;) {
@@ -58,6 +56,7 @@ void task4(void)
 
 void task5(void)
 {
+	task_sleep();
 	lprintf("start task5\n");
 
 	for (;;) {

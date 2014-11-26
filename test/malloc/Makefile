@@ -21,7 +21,7 @@ VPATH = $(TARGET_DIR)/src
 C_SRCS = main.c malloc.c
 OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 
-CFLAGS = -g $(INC) -O0
+CFLAGS = -g $(INC) -O0 -DTEST_MODE
 
 all: $(TARGET)
 
