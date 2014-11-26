@@ -6,9 +6,12 @@
  */
 #include "common.h"
 #include "task.h"
+#include "malloc.h"
 
 extern TaskStruct	task_info[];
 extern uint32_t		task_info_num;
+
+static uint8_t mem_block[0x100000] __attribute__((aligned(16)));
 
 int main(void)
 {
@@ -21,5 +24,7 @@ int main(void)
 	irq_init();
 	timer_init();
 	lprintf_init();
+	sys_malloc_init();
+	sys_malloc_add_block(mem_block, sizeof(mem_block));
 	schedule();
 }

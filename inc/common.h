@@ -9,7 +9,7 @@
 #define COMMON_H_
 #include "config.h"
 #include "types.h"
-#include "arm.h"
+#include "arch.h"
 
 #define	NULL			(0)
 

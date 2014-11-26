@@ -13,6 +13,7 @@
 #include "task.h"
 #include "flag.h"
 #include "mutex.h"
+#include "malloc.h"
 
 #define	RT_OK				(0)
 #define	RT_ERR				(-1)
@@ -31,5 +32,8 @@ OSAPI int flag_wait(FlagStruct* flag, uint32_t tmout);
 OSAPI int mutex_create(MutexStruct* mtx);
 OSAPI int mutex_unlock(MutexStruct* mtx);
 OSAPI int mutex_lock(MutexStruct* mtx, uint32_t tmout);
+
+OSAPI void* sys_malloc(uint32_t size);
+OSAPI void sys_free(void* ptr);
 
 #endif /* INC_API_H_ */
