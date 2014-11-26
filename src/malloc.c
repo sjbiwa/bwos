@@ -17,6 +17,8 @@
 #define	MB_SPACE_INFO_SIZE		(sizeof(MBSpaceProlog)+sizeof(MBSpaceEpilog))
 #define	MB_USE_INFO_SIZE		(sizeof(MBUseProlog)+sizeof(MBUseEpilog))
 
+#define	ALIGN8(a)				(((a)+7)&~0x00000007)
+
 /* メモリブロック状態 */
 typedef	struct {
 	uint16_t	signature;		/* 管理ブロックシグネチャ */
@@ -59,18 +61,26 @@ void sys_malloc_init(void)
 void sys_malloc_add_block(void* addr, uint32_t size)
 {
 	/* 最低限必要なメモリ容量のチェック */
-	if ( size < (sizeof(MBIdentify)*2 + sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog)) ) {
+	/* 空きブロック前後の使用中フラグと空きブロック管理領域とアラインメントを */
+	/* とったときの余白(16バイト) */
+	if ( size < (sizeof(MBIdentify)*2 + sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog) + 16) ) {
 		return;
 	}
+	void* end_addr = (uint8_t*)addr + size;
+	/* 空きブロックの先頭アドレスを8バイトアラインメントに調整 */
+	addr = (void*)(((uint32_t)addr + sizeof(MBIdentify) + 7) & ~0x00000007);
+	/* 空きブロックの最終アドレスを8バイトアラインメントに調整 */
+	end_addr = (void*)(((uint32_t)end_addr - sizeof(MBIdentify)) & ~0x00000007);
+	size = (uint8_t*)end_addr - (uint8_t*)addr;
 
+	printf("Block:%08X-%08X:%d\n", addr, end_addr, size);
 	/* メモリブロックの先頭と最終に「使用中」識別子を書き込んで */
 	/* 空きブロックを挟み込む。これで空き領域の境界を確保 */
-	((MBIdentify*)addr)->signature = ((MBIdentify*)((uint8_t*)addr+size)-1)->signature = MB_SIGNATURE;
-	((MBIdentify*)addr)->status = ((MBIdentify*)((uint8_t*)addr+size)-1)->status = MB_USE;
+	((MBIdentify*)addr-1)->signature = ((MBIdentify*)((uint8_t*)addr+size))->signature = MB_SIGNATURE;
+	((MBIdentify*)addr-1)->status = ((MBIdentify*)((uint8_t*)addr+size))->status = MB_USE;
 
 	/* 空きメモリブロック初期化 */
-	size -= sizeof(MBIdentify) * 2; /* 前後の使用中識別子分だけ減らす */
-	MBSpaceProlog* mb_prolog = (MBSpaceProlog*)((uint8_t*)addr + sizeof(MBIdentify));
+	MBSpaceProlog* mb_prolog = (MBSpaceProlog*)addr;
 	MBSpaceEpilog* mb_epilog = (MBSpaceEpilog*)((uint8_t*)mb_prolog + size) - 1;
 	mb_prolog->identify.signature = mb_epilog->identify.signature = MB_SIGNATURE;
 	mb_prolog->identify.status = mb_epilog->identify.status = MB_SPACE;
@@ -86,8 +96,9 @@ OSAPI void* sys_malloc(uint32_t size)
 	Link* find_link = NULL;
 	MBSpaceProlog* mb_space = NULL;
 
-	/* サイズを4バイトアラインに適用し、管理領域サイズを足しておく */
-	size = ((size + 3) & ~0x00000003u) + MB_USE_INFO_SIZE;
+	/* サイズと管理領域の合計(本当のブロックサイズ)を */
+	/* 8バイトアラインに適用(合計以上で8バイトアラインメント) */
+	size = (size + MB_USE_INFO_SIZE + 7) & ~0x00000007;
 
 	/* 指定サイズ以上の空きブロックを探す */
 	find_link = mb_space_link.next;
@@ -187,6 +198,7 @@ err_ret:
 	return;
 }
 
+#if defined(TEST_MODE)
 void dump_space()
 {
 	printf("DUMP_SPACE\n");
@@ -216,3 +228,4 @@ void dump_use(void* ptr)
 	}
 	printf("USE:%08X (len=%08X)\n", mb_prolog, mb_prolog->mb_size);
 }
+#endif
