@@ -20,29 +20,31 @@ void dump_use(void* ptr);
 
 uint8_t mem_block[65536] __attribute__((aligned(16)));
 
+void* mem_ptr[100];
+
 int main()
 {
+	int ix;
 	sys_malloc_init();
 	sys_malloc_add_block(mem_block, 65536);
-	dump_space();
 
-	void* ptr1 = sys_malloc(128);
-	dump_space();
-	dump_use(ptr1);
-	void* ptr2 = sys_malloc(128);
-	void* ptr3 = sys_malloc(128);
-	void* ptr4 = sys_malloc(128);
-	void* ptr5 = sys_malloc(128);
-	sys_free(ptr2);
-	dump_space();
-	sys_free(ptr4);
-	dump_space();
-	sys_free(ptr3);
-	dump_space();
-	sys_free(ptr5);
-	dump_space();
-	sys_free(ptr1);
-	dump_space();
+	for (;;) {
+		for (ix=0; ix<100; ix++) {
+			mem_ptr[ix] = sys_malloc(128+ix*4);
+			memset(mem_ptr[ix], ix, 128+ix*4);
+		}
+
+		for (ix=0; ix<100; ix+=2) {
+			sys_free(mem_ptr[ix]);
+			dump_space();
+		}
+		for (ix=1; ix<100; ix+=2) {
+			sys_free(mem_ptr[ix]);
+			dump_space();
+		}
+		dump_space();
+		sleep(3);
+	}
 
 	return 0;
 }
