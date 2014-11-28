@@ -26,38 +26,44 @@ static void* ptr[100];
 		for (ix=0; ix<100; ix++) {
 			ptr[ix] = sys_malloc(128);
 			lprintf("malloc1[%d]=%08X\n", ix, ptr[ix]);
-			memset(ptr[ix], 0x11, 128);
-			task_tsleep(5);
+			if ( ptr[ix] ) {
+				memset(ptr[ix], 0x11, 128);
+			}
+			task_tsleep(1);
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free1[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(5);
+			task_tsleep(1);
 		}
+		dump_space();
 	}
 }
 
 void task2(void)
 {
-	static void* ptr[100];
-		int	ix;
-		for (;;) {
-			for (ix=0; ix<100; ix++) {
-				ptr[ix] = sys_malloc(256);
-				lprintf("malloc2[%d]=%08X\n", ix, ptr[ix]);
+static void* ptr[100];
+	int	ix;
+	for (;;) {
+		for (ix=0; ix<100; ix++) {
+			ptr[ix] = sys_malloc(256);
+			lprintf("malloc2[%d]=%08X\n", ix, ptr[ix]);
+			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x44, 256);
-				task_tsleep(8);
 			}
-			for (ix=0; ix<100; ix++) {
-				if ( ptr[ix] ) {
-					lprintf("free2[%d]=%08X\n", ix, ptr[ix]);
-					sys_free(ptr[ix]);
-				}
-				task_tsleep(8);
-			}
+			task_tsleep(2);
 		}
+		for (ix=0; ix<100; ix++) {
+			if ( ptr[ix] ) {
+				lprintf("free2[%d]=%08X\n", ix, ptr[ix]);
+				sys_free(ptr[ix]);
+			}
+			task_tsleep(2);
+		}
+		dump_space();
+	}
 }
 
 void task3(void)
@@ -68,16 +74,19 @@ static void* ptr[100];
 		for (ix=0; ix<100; ix++) {
 			ptr[ix] = sys_malloc(512);
 			lprintf("malloc3[%d]=%08X\n", ix, ptr[ix]);
-			memset(ptr[ix], 0x77, 512);
-			task_tsleep(11);
+			if ( ptr[ix] ) {
+				memset(ptr[ix], 0x77, 512);
+			}
+			task_tsleep(3);
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free3[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(11);
+			task_tsleep(3);
 		}
+		dump_space();
 	}
 }
 

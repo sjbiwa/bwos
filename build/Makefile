@@ -28,7 +28,7 @@ OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 
 LDSCRIPT = link.lds
 
-CFLAGS = $(ARCH) -mno-thumb-interwork -mthumb -g $(INC) -D__QEMU__ -O2
+CFLAGS = $(ARCH) -mno-thumb-interwork -mthumb -g $(INC) -D__QEMU__ -O2 -DTEST_MODE
 AFLAGS = $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__ -D__QEMU__
 LDFLAGS = -v -mcpu=cortex-a9 -mno-thumb-interwork -g -T $(LDSCRIPT) -Wl,-Ttext=0x10000 -static -nostdlib
 
