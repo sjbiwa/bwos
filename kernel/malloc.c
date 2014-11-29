@@ -14,8 +14,10 @@
 #define	MB_ALIGN				(4)	/* 空きブロック/使用中ブロックのアラインメント */
 
 /* アラインメント演算用マクロ */
-#define	PRE_ALIGN(x)			((uint32_t)(x) & ~((uint32_t)(MB_ALIGN-1)))
-#define	POST_ALIGN(x)			(((uint32_t)(x)+(uint32_t)(MB_ALIGN-1)) & ~((uint32_t)(MB_ALIGN-1)))
+#define	PRE_ALIGN_BY(x,n)		((uint32_t)(x) & ~((uint32_t)((n)-1)))
+#define	POST_ALIGN_BY(x,n)		(((uint32_t)(x)+(uint32_t)((n)-1)) & ~((uint32_t)((n)-1)))
+#define	PRE_ALIGN(x)			PRE_ALIGN_BY(x,MB_ALIGN)
+#define	POST_ALIGN(x)			POST_ALIGN_BY(x,MB_ALIGN)
 
 /* ポインタ演算用マクロ */
 #define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
@@ -110,6 +112,100 @@ void sys_malloc_add_block(void* start_addr, uint32_t size)
 	link_add_last(&mb_space_link, &(mb_prolog->link));
 }
 
+static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
+{
+	void* ret = NULL;
+
+	/* サイズ(実データ部+管理部)をアラインメント */
+	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
+
+	/* 確保後の残りサイズチェック(余りが管理領域サイズ以下ならすべてを割り当てる) */
+	uint32_t remain_size = mb_space_prolog->mb_size - size;
+	if ( MB_SPACE_INFO_SIZE <= remain_size ) {
+		/* 残りブロックを新たに空きブロックとする */
+		MBSpaceProlog* mb_remain_prolog = (MBSpaceProlog*)(PTRVAR(mb_space_prolog) + size);
+		MBSpaceEpilog* mb_remain_epilog = (MBSpaceEpilog*)(PTRVAR(mb_remain_prolog) + remain_size) - 1;
+		mb_remain_prolog->identify.signature = MB_SIGNATURE;
+		mb_remain_prolog->identify.status = MB_SPACE;
+		mb_remain_prolog->mb_size = mb_remain_epilog->mb_size = remain_size;
+		link_add_last(&mb_space_link, &(mb_remain_prolog->link));
+	}
+	else {
+		/* 残りが少ないので確保領域に含めてしまう */
+		size = mb_space_prolog->mb_size;
+	}
+
+	/* 確保した領域の初期化 */
+	MBUseProlog* mb_use_prolog = (MBUseProlog*)mb_space_prolog;
+	MBUseEpilog* mb_use_epilog = (MBUseEpilog*)(PTRVAR(mb_use_prolog) + size) - 1;
+	mb_use_epilog->identify.signature = MB_SIGNATURE;
+	mb_use_prolog->identify.status = mb_use_epilog->identify.status = MB_USE;
+	mb_use_prolog->mb_size = size;
+
+	ret = (void*)(mb_use_prolog + 1);
+
+	return ret;
+}
+
+OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
+{
+	void* ret = NULL;
+
+	mutex_lock(&mutex);
+
+	/* 指定サイズ以上の空きブロックを探す */
+	MBSpaceProlog* mb_space = NULL;
+	Link* find_link = NULL;
+	for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
+		MBSpaceProlog* mb_space_prolog = containerof(find_link, MBSpaceProlog, link);
+		/* 空きブロックの実データがalignに合うかチェック */
+		if ( ((uint32_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
+			/* 指定サイズが確保できればそのまま使う */
+			if ( size <= mb_space_prolog->mb_size ) {
+				mb_space = mb_space_prolog;
+				/* 空きリンクから外しておく */
+				link_remove(&(mb_space->link));
+				break;
+			}
+		}
+		else {
+			uint32_t f_size = PTRVAR(POST_ALIGN_BY((PTRVAR(mb_space_prolog+1)+sizeof(MBSpaceEpilog)), align)) -
+					PTRVAR(mb_space_prolog);
+			uint32_t b_size = POST_ALIGN(size + MB_USE_INFO_SIZE);
+			if ( mb_space_prolog->mb_size <= (f_size + b_size) ) {
+				/* 領域分割してアラインド領域を確保 */
+				uint32_t second_mb_size = mb_space_prolog->mb_size - f_size;
+				/* 最初のブロック */
+				MBSpaceEpilog* mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_temp) + f_size) - 1;
+				mb_space_epilog->identify.signature = MB_SIGNATURE;
+				mb_space_epilog->identify.status = MB_SPACE;
+				mb_space_prolog->mb_size = mb_space_epilog->mb_size = f_size;
+				/* ２番目のブロック (とりあえず空きブロックにする) */
+				mb_space_prolog = (MBSpaceProlog*)(mb_space_epilog + 1);
+				mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + second_mb_size) - 1;
+				mb_space_prolog->identify.signature = MB_SIGNATURE;
+				mb_space_prolog->identify.status = MB_USE;
+				mb_space_prolog->mb_size = mb_space_epilog->mb_size = second_mb_size;
+				mb_space = mb_space_prolog;
+				break;
+			}
+		}
+	}
+	if ( mb_space ) {
+		/* 指定の空きブロックからメモリ割り当て */
+		ret = mb_alloc(mb_space, size);
+		if ( !ret ) {
+			lprintf("system error.(malloc\n");
+		}
+	}
+
+	mutex_unlock(&mutex);
+
+	return ret;
+
+}
+
+
 OSAPI void* sys_malloc(uint32_t size)
 {
 	void* ret = NULL;
@@ -133,30 +229,11 @@ OSAPI void* sys_malloc(uint32_t size)
 		/* 対象空きブロックをリンクリストから外す */
 		link_remove(&(mb_space->link));
 
-		/* 確保後の残りサイズチェック(余りが管理領域サイズ以下ならすべてを割り当てる) */
-		uint32_t remain_size = mb_space->mb_size - size;
-		if ( MB_SPACE_INFO_SIZE <= remain_size ) {
-			/* 残りブロックを新たに空きブロックとする */
-			MBSpaceProlog* mb_remain_prolog = (MBSpaceProlog*)(PTRVAR(mb_space) + size);
-			MBSpaceEpilog* mb_remain_epilog = (MBSpaceEpilog*)(PTRVAR(mb_remain_prolog) + remain_size) - 1;
-			mb_remain_prolog->identify.signature = MB_SIGNATURE;
-			mb_remain_prolog->identify.status = MB_SPACE;
-			mb_remain_prolog->mb_size = mb_remain_epilog->mb_size = remain_size;
-			link_add_last(&mb_space_link, &(mb_remain_prolog->link));
+		/* 指定の空きブロックからメモリ割り当て */
+		ret = mb_alloc(mb_space, size);
+		if ( !ret ) {
+			lprintf("system error.(malloc\n");
 		}
-		else {
-			/* 残りが少ないので確保領域に含めてしまう */
-			size = mb_space->mb_size;
-		}
-
-		/* 確保した領域の初期化 */
-		MBUseProlog* mb_use_prolog = (MBUseProlog*)mb_space;
-		MBUseEpilog* mb_use_epilog = (MBUseEpilog*)(PTRVAR(mb_use_prolog) + size) - 1;
-		mb_use_epilog->identify.signature = MB_SIGNATURE;
-		mb_use_prolog->identify.status = mb_use_epilog->identify.status = MB_USE;
-		mb_use_prolog->mb_size = size;
-
-		ret = (void*)(mb_use_prolog + 1);
 	}
 
 	mutex_unlock(&mutex);
