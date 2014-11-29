@@ -19,11 +19,15 @@ RM = rm
 
 ARCH = -march=armv7-a -mcpu=cortex-a9
 
-INC = -I../inc
-VPATH = ../src
+INC = -I../include
+VPATH = ../kernel ../driver ../util ../application
 
-C_SRCS = main.c printf.c task.c irq.c timer.c idle.c resource.c target.c flag.c mutex.c malloc.c memory.c
 A_SRCS = boot.S dispatch.S handler.S
+KERNEL_SRCS = main.c task.c irq.c timer.c idle.c flag.c mutex.c malloc.c
+DRIVER_SRCS =
+UTIL_SRCS = printf.c memory.c
+APP_SRCS = resource.c target.c
+C_SRCS = $(KERNEL_SRCS) $(DRIVER_SRCS) $(UTIL_SRCS) $(APP_SRCS)
 OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 
 LDSCRIPT = link.lds
