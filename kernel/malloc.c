@@ -112,12 +112,10 @@ void sys_malloc_add_block(void* start_addr, uint32_t size)
 	link_add_last(&mb_space_link, &(mb_prolog->link));
 }
 
+/* sizeは使用中ヘッダ部を含めた必要サイズ */
 static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 {
 	void* ret = NULL;
-
-	/* サイズ(実データ部+管理部)をアラインメント */
-	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 	/* 確保後の残りサイズチェック(余りが管理領域サイズ以下ならすべてを割り当てる) */
 	uint32_t remain_size = mb_space_prolog->mb_size - size;
@@ -131,7 +129,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 		link_add_last(&mb_space_link, &(mb_remain_prolog->link));
 	}
 	else {
-		/* 残りが少ないので確保領域に含めてしまう */
+		/* 残りが少ないのでブロック全体を割り当て */
 		size = mb_space_prolog->mb_size;
 	}
 
@@ -150,6 +148,9 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 {
 	void* ret = NULL;
+
+	/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
+	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 	mutex_lock(&mutex);
 
@@ -174,9 +175,7 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 			aligned_addr = PTRVAR(POST_ALIGN_BY(aligned_addr, align));
 			/* 新たに空きブロックとなる領域のサイズ */
 			uint32_t f_size = (PTRVAR(aligned_addr) - sizeof(MBUseProlog)) - PTRVAR(mb_space_prolog);
-			/* 使用中ブロックとして確保すべきサイズ */
-			uint32_t b_size = POST_ALIGN(size + MB_USE_INFO_SIZE);
-			if ( (f_size + b_size) <= mb_space_prolog->mb_size ) {
+			if ( (f_size + size) <= mb_space_prolog->mb_size ) {
 				/* 領域分割してアラインド領域を確保 */
 				uint32_t second_mb_size = mb_space_prolog->mb_size - f_size;
 				/* 最初のブロック */
@@ -195,6 +194,7 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 			}
 		}
 	}
+
 	if ( mb_space ) {
 		/* 指定の空きブロックからメモリ割り当て */
 		ret = mb_alloc(mb_space, size);
@@ -214,7 +214,7 @@ OSAPI void* sys_malloc(uint32_t size)
 {
 	void* ret = NULL;
 
-	/* サイズ(実データ部+管理部)をアラインメント */
+	/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
 	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 	mutex_lock(&mutex);
