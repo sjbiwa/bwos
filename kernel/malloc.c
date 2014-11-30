@@ -218,7 +218,7 @@ OSAPI void* sys_malloc(uint32_t size)
 	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 	mutex_lock(&mutex);
-	lprintf("mb_lock\n");
+
 	/* 指定サイズ以上の空きブロックを探す */
 	MBSpaceProlog* mb_space = NULL;
 	Link* find_link = NULL;
@@ -240,7 +240,6 @@ OSAPI void* sys_malloc(uint32_t size)
 		}
 	}
 
-	lprintf("mb_unlock\n");
 	mutex_unlock(&mutex);
 
 	return ret;

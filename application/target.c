@@ -22,7 +22,8 @@ void task1(void)
 {
 static void* ptr[100];
 	int	ix;
-	for (;;) {
+	int count;
+	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
 			//ptr[ix] = sys_malloc_align(128, 4);
 			ptr[ix] = sys_malloc(128);
@@ -41,13 +42,15 @@ static void* ptr[100];
 		}
 		dump_space();
 	}
+	task_sleep();
 }
 
 void task2(void)
 {
 static void* ptr[100];
 	int	ix;
-	for (;;) {
+	int count;
+	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
 			//ptr[ix] = sys_malloc_align(256, 4);
 			ptr[ix] = sys_malloc(256);
@@ -66,13 +69,15 @@ static void* ptr[100];
 		}
 		dump_space();
 	}
+	task_sleep();
 }
 
 void task3(void)
 {
 static void* ptr[100];
 	int	ix;
-	for (;;) {
+	int count;
+	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
 			//ptr[ix] = sys_malloc_align(512, 4);
 			ptr[ix] = sys_malloc(512);
@@ -91,6 +96,7 @@ static void* ptr[100];
 		}
 		dump_space();
 	}
+	task_sleep();
 }
 
 static FlagStruct	wait_flag;
