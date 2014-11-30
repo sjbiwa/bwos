@@ -15,8 +15,8 @@ TARGET_DIR = ../..
 CC = gcc
 RM = rm
 
-INC = -I$(TARGET_DIR)/inc
-VPATH = $(TARGET_DIR)/src
+INC = -I$(TARGET_DIR)/include
+VPATH = $(TARGET_DIR)/kernel
 
 C_SRCS = main.c malloc.c
 OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)

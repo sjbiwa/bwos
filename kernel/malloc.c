@@ -158,7 +158,7 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 	Link* find_link = NULL;
 	for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
 		MBSpaceProlog* mb_space_prolog = containerof(find_link, MBSpaceProlog, link);
-		/* 空きブロックの実データがalignに合うかチェック */
+		/* 空きブロックを使用ブロックにしたときに実データがalignに合うかチェック */
 		if ( ((uint32_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
 			/* 指定サイズが確保できればそのまま使う */
 			if ( size <= mb_space_prolog->mb_size ) {
@@ -169,14 +169,18 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 			}
 		}
 		else {
-			uint32_t f_size = PTRVAR(POST_ALIGN_BY((PTRVAR(mb_space_prolog+1)+sizeof(MBSpaceEpilog)), align)) -
-					PTRVAR(mb_space_prolog);
+			/* alignされた使用中ブロックとなる実データ領域のアドレスを求める */
+			uint8_t* aligned_addr = PTRVAR(mb_space_prolog+1)+sizeof(MBSpaceEpilog)+sizeof(MBUseProlog);
+			aligned_addr = PTRVAR(POST_ALIGN_BY(aligned_addr, align));
+			/* 新たに空きブロックとなる領域のサイズ */
+			uint32_t f_size = (PTRVAR(aligned_addr) - sizeof(MBUseProlog)) - PTRVAR(mb_space_prolog);
+			/* 使用中ブロックとして確保すべきサイズ */
 			uint32_t b_size = POST_ALIGN(size + MB_USE_INFO_SIZE);
-			if ( mb_space_prolog->mb_size <= (f_size + b_size) ) {
+			if ( (f_size + b_size) <= mb_space_prolog->mb_size ) {
 				/* 領域分割してアラインド領域を確保 */
 				uint32_t second_mb_size = mb_space_prolog->mb_size - f_size;
 				/* 最初のブロック */
-				MBSpaceEpilog* mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_temp) + f_size) - 1;
+				MBSpaceEpilog* mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + f_size) - 1;
 				mb_space_epilog->identify.signature = MB_SIGNATURE;
 				mb_space_epilog->identify.status = MB_SPACE;
 				mb_space_prolog->mb_size = mb_space_epilog->mb_size = f_size;
@@ -214,7 +218,7 @@ OSAPI void* sys_malloc(uint32_t size)
 	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 	mutex_lock(&mutex);
-
+	lprintf("mb_lock\n");
 	/* 指定サイズ以上の空きブロックを探す */
 	MBSpaceProlog* mb_space = NULL;
 	Link* find_link = NULL;
@@ -236,6 +240,7 @@ OSAPI void* sys_malloc(uint32_t size)
 		}
 	}
 
+	lprintf("mb_unlock\n");
 	mutex_unlock(&mutex);
 
 	return ret;

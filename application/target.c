@@ -24,8 +24,9 @@ static void* ptr[100];
 	int	ix;
 	for (;;) {
 		for (ix=0; ix<100; ix++) {
+			//ptr[ix] = sys_malloc_align(128, 4);
 			ptr[ix] = sys_malloc(128);
-			lprintf("malloc1[%d]=%08X\n", ix, ptr[ix]);
+			lprintf("malloc1(8)[%d]=%08X\n", ix, ptr[ix]);
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x11, 128);
 			}
@@ -48,8 +49,9 @@ static void* ptr[100];
 	int	ix;
 	for (;;) {
 		for (ix=0; ix<100; ix++) {
+			//ptr[ix] = sys_malloc_align(256, 4);
 			ptr[ix] = sys_malloc(256);
-			lprintf("malloc2[%d]=%08X\n", ix, ptr[ix]);
+			lprintf("malloc2(16)[%d]=%08X\n", ix, ptr[ix]);
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x44, 256);
 			}
@@ -72,8 +74,9 @@ static void* ptr[100];
 	int	ix;
 	for (;;) {
 		for (ix=0; ix<100; ix++) {
+			//ptr[ix] = sys_malloc_align(512, 4);
 			ptr[ix] = sys_malloc(512);
-			lprintf("malloc3[%d]=%08X\n", ix, ptr[ix]);
+			lprintf("malloc3(64)[%d]=%08X\n", ix, ptr[ix]);
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x77, 512);
 			}

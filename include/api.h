@@ -35,5 +35,6 @@ OSAPI int mutex_lock(MutexStruct* mtx, uint32_t tmout);
 
 OSAPI void* sys_malloc(uint32_t size);
 OSAPI void sys_free(void* ptr);
+OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
 
 #endif /* INC_API_H_ */
