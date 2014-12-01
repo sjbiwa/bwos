@@ -25,8 +25,8 @@ static void* ptr[100];
 	int count;
 	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
-			//ptr[ix] = sys_malloc_align(128, 4);
-			ptr[ix] = sys_malloc(128);
+			ptr[ix] = sys_malloc_align(128, 8);
+			//ptr[ix] = sys_malloc(128);
 			lprintf("malloc1(8)[%d]=%08X\n", ix, ptr[ix]);
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x11, 128);
@@ -52,8 +52,8 @@ static void* ptr[100];
 	int count;
 	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
-			//ptr[ix] = sys_malloc_align(256, 4);
-			ptr[ix] = sys_malloc(256);
+			ptr[ix] = sys_malloc_align(256, 16);
+			//ptr[ix] = sys_malloc(256);
 			lprintf("malloc2(16)[%d]=%08X\n", ix, ptr[ix]);
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x44, 256);
@@ -79,8 +79,8 @@ static void* ptr[100];
 	int count;
 	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
-			//ptr[ix] = sys_malloc_align(512, 4);
-			ptr[ix] = sys_malloc(512);
+			ptr[ix] = sys_malloc_align(512, 64);
+			//ptr[ix] = sys_malloc(512);
 			lprintf("malloc3(64)[%d]=%08X\n", ix, ptr[ix]);
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x77, 512);
