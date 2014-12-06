@@ -35,6 +35,8 @@ _start:
 	.thumb_func
 	.text
 	.balign	32
+
+	.type   _vector, %function
 _vector:
 	ldr		pc, _reset_vector
 	ldr		pc, _undef_vector
@@ -46,25 +48,26 @@ _vector:
 	ldr		pc, _fiq_vector
 
 _reset_vector:
-	.word	_reset_entry+1
+	.word	_reset_entry
 _undef_vector:
-	.word	_undef_entry+1
+	.word	_undef_entry
 _swi_vector:
-	.word	_swi_entry+1
+	.word	_swi_entry
 _pref_vector:
-	.word	_pref_entry+1
+	.word	_pref_entry
 _dabort_vector:
-	.word	_dabort_entry+1
+	.word	_dabort_entry
 _non_vector:
 	.word	0
 _irq_vector:
-	.word	_irq_entry+1
+	.word	_irq_entry
 _fiq_vector:
-	.word	_fiq_entry+1
+	.word	_fiq_entry
 
 
 	.text
 /* Reset Handler */
+	.type   _reset_entry, %function
 _reset_entry:
 	/* VectorBase setting */
 	ldr		r0, =_vector

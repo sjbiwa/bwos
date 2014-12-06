@@ -21,6 +21,6 @@ A_SRCS += boot.S dispatch.S handler.S
 C_SRCS += timer.c
 LDSCRIPT = $(ARCHDIR)/link.lds
 
-CFLAGS  =  -march=armv7-a -mcpu=cortex-a9 -mno-thumb-interwork -mthumb -D__QEMU__
-AFLAGS  = $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__ -D__QEMU__
+CFLAGS  =  -march=armv7-a -mcpu=cortex-a9 -mno-thumb-interwork -mthumb
+AFLAGS  = $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
 LDFLAGS = -v -mcpu=cortex-a9 -mno-thumb-interwork -g -T $(LDSCRIPT) -Wl,-Ttext=0x10000 -static -nostdlib

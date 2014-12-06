@@ -25,6 +25,7 @@ VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
 OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 
 DEFS += -DTEST_MODE
+# -D__QEMU__
 
 all: $(TARGET)
 

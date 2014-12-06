@@ -153,6 +153,7 @@ _nodispatch_irq:
 /*
 **	_idle_loop
 */
+	.type   _idle_loop, %function
 _idle_loop:
 	cps		#MODE_SVC
 	ldr		sp, =stack_idle
