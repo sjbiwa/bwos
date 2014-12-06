@@ -2,7 +2,7 @@
 #
 #
 include config.mk
-export ARCH CPU BOARD
+export ARCH CPU BOARD APPLICATION TOPDIR
 
 PROJECT = bwos
 TARGET = $(PROJECT).bin
@@ -13,33 +13,24 @@ MAKE = make
 RM = rm
 
 TOPDIR = ..
+ARCHDIR = $(TOPDIR)/arch/$(ARCH)
+APPDIR  = $(TOPDIR)/application
+KERNDIR = $(TOPDIR)/kernel
+UTILDIR = $(TOPDIR)/util
 DRVDIR  = $(TOPDIR)/driver
 
-INC = -I$(TOPDIR)/include
-VPATH = $(TOPDIR)/kernel $(TOPDIR)/util
+INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
+VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
 
-KERNEL_SRCS = main.c task.c irq.c timer.c idle.c flag.c mutex.c malloc.c
-DRIVER_SRCS =
-UTIL_SRCS = printf.c memory.c
-
-C_SRCS = $(KERNEL_SRCS) $(DRIVER_SRCS) $(UTIL_SRCS) $(APP_SRCS)
 OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
+
+DEFS += -DTEST_MODE
 
 all: $(TARGET)
 
-.c.o:
-	$(CC) -c $(CFLAGS) -v $<
-
-.S.o:
-	$(AS) -c $(AFLAGS) -v $<
-	
-$(TARGET_BIN): $(OBJS) $(HEADER)
-	$(LD) $(LDFLAGS) -o $(TARGET_ELF) $(OBJS)
-	$(OBJCOPY) -O binary $(TARGET_ELF) $(TARGET_BIN)
-
-clean:
-	$(RM) -f $(TARGET) $(TARGET_BIN) $(TARGET_ELF) $(OBJS)
-
-include $(ARCH)/config.mk
-include $(APPLICATION)/config.mk
-	
+include $(ARCHDIR)/config.mk
+include $(APPDIR)/config.mk
+include $(KERNDIR)/config.mk
+include $(UTILDIR)/config.mk
+include $(DRVDIR)/config.mk
+include rule.mk
