@@ -14,8 +14,6 @@
 #define	MB_ALIGN				(4)	/* 空きブロック/使用中ブロックのアラインメント */
 
 /* アラインメント演算用マクロ */
-#define	PRE_ALIGN_BY(x,n)		((uint32_t)(x) & ~((uint32_t)((n)-1)))
-#define	POST_ALIGN_BY(x,n)		(((uint32_t)(x)+(uint32_t)((n)-1)) & ~((uint32_t)((n)-1)))
 #define	PRE_ALIGN(x)			PRE_ALIGN_BY(x,MB_ALIGN)
 #define	POST_ALIGN(x)			POST_ALIGN_BY(x,MB_ALIGN)
 
