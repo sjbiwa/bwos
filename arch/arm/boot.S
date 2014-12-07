@@ -8,7 +8,9 @@
 
 #define	STACK_INIT(cpu_mode,mode_sp)		cps #(cpu_mode);ldr sp, =(mode_sp)
 
-
+#define	SCTLR_TE	(0x01<<30)		/* thumb exception enable */
+#define	SCTLR_I		(0x01<<12)		/* instruction cache enable */
+#define	SCTLR_Z		(0x01<<11)		/* brunch prediction enable */
 /* Vector */
 	.arm
 	.text
@@ -20,7 +22,7 @@
 _start:
 	/* set SCTLR.TE */
 	SCTLR_get(r0)
-	mov		r1, #(0x01<<30)
+	ldr		r1, =(SCTLR_TE|SCTLR_I|SCTLR_Z)
 	orr		r0, r0, r1
 	SCTLR_set(r0)
 	isb

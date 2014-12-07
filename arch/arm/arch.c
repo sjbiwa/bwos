@@ -8,6 +8,10 @@
 #include "common.h"
 #include "task.h"
 #include "arm.h"
+#include "my_board.h"
+
+extern char __heap_start;
+void* heap_start_addr = &__heap_start;
 
 void arch_task_create(TaskStruct* task)
 {
@@ -29,8 +33,8 @@ void arch_system_preinit(void)
 
 void arch_system_postinit(void)
 {
-	extern char __heap_start;
-	uint32_t size = (uint8_t*)0x01000000 - (uint8_t*)(&__heap_start);
+	mmgr_init();
+	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
 	size &= ~0x0000000fu;
 	tprintf("mblock addr=%08X size=%08X\n", &__heap_start, size);
 	sys_malloc_add_block(&__heap_start, size);

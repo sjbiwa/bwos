@@ -27,4 +27,8 @@
 #define	iowrite32(a,d)		(*((volatile uint32_t*)(a))=(d))
 #define	ioread32(a)			(*((volatile uint32_t*)(a)))
 
+/* アラインメント演算用マクロ */
+#define	PRE_ALIGN_BY(x,n)		((uint32_t)(x) & ~((uint32_t)((n)-1)))
+#define	POST_ALIGN_BY(x,n)		(((uint32_t)(x)+(uint32_t)((n)-1)) & ~((uint32_t)((n)-1)))
+
 #endif /* COMMON_H_ */

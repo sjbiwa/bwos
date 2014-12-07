@@ -15,6 +15,7 @@ static void
 debug_print(uint8_t* str)
 {
 	for (;*str;str++) {
+		while ( *((volatile uint32_t*)0x10009018) & (0x01<<5) );
 		*((volatile uint32_t*)0x10009000) = *str;
 	}
 }
@@ -254,6 +255,9 @@ static MutexStruct printf_mutex;
 void lprintf_init(void)
 {
 	mutex_create(&printf_mutex);
+	*((volatile uint32_t*)0x1000902C) = (0x07<<4); /* UARTLCR_H */
+	*((volatile uint32_t*)0x10009030) = (0x03<<8)|(0x01); /* UARTCR */
+
 }
 
 int tprintf(char* fmt, ...)

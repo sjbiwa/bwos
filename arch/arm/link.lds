@@ -7,6 +7,7 @@ SECTIONS
 {
 	.text :
 	{
+		__text_start = . ;
 		*(.vector)
 		*(.text.unlikely .text.*_unlikely)
 		*(.text.exit .text.exit.*)
@@ -17,9 +18,10 @@ SECTIONS
 		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 		*(.rodata1)
+		__text_end = . ;
 	}
 
-	.data           :
+	.data ALIGN(0x1000) :
 	{
 		__data_start = . ;
 		__idata_start = . ;
@@ -45,13 +47,15 @@ SECTIONS
 	. = ALIGN(32 / 8);
 	. = ALIGN(32 / 8);
 
-	.stack :
+	.stack ALIGN(0x1000) :
 	{
 		*(.stack)
 	}
 	__end__ = . ;
 	_end = .; PROVIDE (end = .);
-	. = ALIGN(16);
+
+	. = ALIGN(0x1000);
+
 	__heap_start = .;
 
 	/* Stabs debugging sections.  */
