@@ -18,7 +18,7 @@ OBJCOPY = arm-unknown-linux-gnueabi-objcopy
 RM = rm
 
 A_SRCS += boot.S dispatch.S handler.S
-C_SRCS += timer.c
+C_SRCS += timer.c arch.c
 LDSCRIPT = $(ARCHDIR)/link.lds
 
 CFLAGS  =  -march=armv7-a -mcpu=cortex-a9 -mno-thumb-interwork -mthumb

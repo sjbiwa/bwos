@@ -3,7 +3,6 @@
 /*
 ** emos boot.S
 */
-#include "common.h"
 #include "arm.h"
 #include "cp15reg.h"
 
@@ -37,14 +36,22 @@ _start:
 	.balign	32
 
 	.type   _vector, %function
+	.balign 4
 _vector:
 	ldr		pc, _reset_vector
+	.balign 4
 	ldr		pc, _undef_vector
+	.balign 4
 	ldr		pc, _swi_vector
+	.balign 4
 	ldr		pc, _pref_vector
+	.balign 4
 	ldr		pc, _dabort_vector
+	.balign 4
 	ldr		pc, _non_vector
+	.balign 4
 	ldr		pc, _irq_vector
+	.balign 4
 	ldr		pc, _fiq_vector
 
 _reset_vector:

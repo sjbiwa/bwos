@@ -6,9 +6,7 @@
 // dispatch.S
 //
 
-#include "common.h"
 #include "arm.h"
-#include "task.h"
 #include "cp15reg.h"
 
 	.text

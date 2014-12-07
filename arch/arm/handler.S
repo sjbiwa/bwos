@@ -10,7 +10,6 @@
  *      Author: biwa
  */
 
-#include "common.h"
 #include "arm.h"
 
 	.global _undef_entry

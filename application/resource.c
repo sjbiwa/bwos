@@ -18,11 +18,11 @@ extern void task5(void);
 static uint8_t		stack[15][1024] __attribute__((aligned(16)));
 
 TaskStruct		task_info[] = {
-		{{0,0}, task1, stack[0], 1024, "TASK1", 1},
-		{{0,0}, task2, stack[1], 1024, "TASK2", 1},
-		{{0,0}, task3, stack[2], 1024, "TASK3", 1},
-		{{0,0}, task4, stack[3], 1024, "TASK4", 1},
-		{{0,0}, task5, stack[4], 1024, "TASK5", 2},
+		{TASK_RESERVE, "TASK1", task1, stack[0], 1024, 1},
+		{TASK_RESERVE, "TASK2", task2, stack[1], 1024, 1},
+		{TASK_RESERVE, "TASK3", task3, stack[2], 1024, 1},
+		{TASK_RESERVE, "TASK4", task4, stack[3], 1024, 1},
+		{TASK_RESERVE, "TASK5", task5, stack[4], 1024, 2},
 };
 
 const uint32_t task_info_num = arrayof(task_info);

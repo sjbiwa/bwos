@@ -20,6 +20,12 @@
 #define	FLAG_F			(0x40)
 #define	FLAG_T			(0x20)
 
+#define	TASK_FRAME_SIZE		(4*18)	/* タスク情報退避エリアのサイズ(スタック上) */
+#define	TASK_FRAME_PC		(16)	/* タスク情報退避エリアのPC位置 */
+#define	TASK_FRAME_PSR		(17)	/* タスク情報退避エリアのCPSR位置 */
+#define	TASK_FRAME_STUB		(9)		/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
+#define	SAVE_SP				(8)		/* タスク構造体内にあるsave_spのオフセット */
+
 #ifndef __ASM__
 
 #define	__dmb()				__asm__ volatile ("dmb":::"memory")
@@ -28,12 +34,6 @@
 #define	__swi()				__asm__ volatile ("swi 0":::"memory")
 #define	__wfi()				__asm__ volatile ("dsb;wfi":::"memory")
 #define	__wfe()				__asm__ volatile ("dsb;wfe":::"memory")
-
-#define	irq_enable()		__asm__ volatile ("cpsie i":::"memory")
-#define	irq_disable()		__asm__ volatile ("cpsid i":::"memory")
-
-#define	irq_save(reg)		__asm__ volatile ("mrs %0, cpsr;cpsid i":"=r"(reg)::"memory")
-#define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) __asm__ volatile ("cpsie i":::"memory"); } while(0)
 
 #else
 #endif

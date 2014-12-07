@@ -51,7 +51,8 @@ SECTIONS
 	}
 	__end__ = . ;
 	_end = .; PROVIDE (end = .);
-
+	. = ALIGN(16);
+	__heap_start = .;
 
 	/* Stabs debugging sections.  */
 	.stab          0 : { *(.stab) }

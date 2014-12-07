@@ -173,19 +173,11 @@ void task_init(void)
 
 OSAPI int task_create(TaskStruct* task)
 {
-	extern void	_entry_stub(void);
-	uint32_t*		ptr;
-
 	link_clear(&task->link);
 	link_clear(&task->tlink);
-	/* setup stack pointer */
-	ptr = (uint32_t*)((uint32_t)(task->save_sp) + task->stack_size - TASK_FRAME_SIZE);
-	task->save_sp = (void*)ptr;
-	/* setup task-context */
-	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
-	ptr[TASK_FRAME_PC] = (uint32_t)task->start_entry;
-	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
+
 	/* setup TaskStruct */
+	arch_task_create(task); /* ARCH depend create */
 	task->task_state = TASK_READY;
 
 	task_add_queue(task);
