@@ -7,6 +7,7 @@
 #include "common.h"
 #include "task.h"
 #include "malloc.h"
+#include "version.h"
 
 extern TaskStruct	task_info[];
 extern uint32_t		task_info_num;
@@ -15,7 +16,7 @@ int main(void)
 {
 	int ix;
 	arch_system_preinit();
-	tprintf("main start\n");
+	tprintf("Booting BWOS Ver " OS_VERSION  "\n");
 	task_init();
 	for (ix=0; ix<task_info_num; ix++) {
 		task_create(&task_info[ix]);

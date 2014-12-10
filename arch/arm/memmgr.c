@@ -27,7 +27,7 @@
 #define	NORM_PAGE_ENTRY(addr)		(0)
 #define	PAGE_TABLE_ENTRY(addr)		((uint32_t)addr | 0x33)
 #define	SECT_ENTRY(addr)			((uint32_t)addr | 0x11)
-#define	PAGE_ENTRY(addr,attr)		((uint32_t)addr | 0x22)
+#define	PAGE_ENTRY(addr,attr)		((uint32_t)addr | attr)
 
 
 /* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
@@ -51,7 +51,7 @@ static uint32_t* tbl_alloc(void)
 
 void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 {
-	uint32_t st_addr = PRE_ALIGN_BY(addr, PAGE_TABLE_SIZE);
+	uint32_t st_addr = PRE_ALIGN_BY(addr, PAGE_SIZE);
 	size = ((uint32_t)addr + size) - st_addr;
 	while ( 0 < size ) {
 		/* アドレスが1MBアライン/sectionが割り当てられていない/残りサイズ1MB以上ならsection割り当て */
@@ -68,9 +68,12 @@ void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 				section_tbl[ADDR2SECT(st_addr)] = PAGE_TABLE_ENTRY(page_tbl);
 			}
 			else {
-				page_tbl = section_tbl[ADDR2SECT(st_addr)] & (PAGE_SIZE-1);
+				page_tbl = section_tbl[ADDR2SECT(st_addr)] & ~(PAGE_TABLE_SIZE-1);
 			}
 			/* ページエントリ設定 */
+			if ( page_tbl[ADDR2PAGE(st_addr)] != 0 ) {
+				lprintf("Warnning: multiple define addr=%08X ptbl=%08X index=%d\n", st_addr, page_tbl, ADDR2PAGE(st_addr));
+			}
 			page_tbl[ADDR2PAGE(st_addr)] = PAGE_ENTRY(st_addr, attr);
 			st_addr += PAGE_SIZE;
 			if ( size <= PAGE_SIZE ) {
@@ -80,11 +83,6 @@ void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 				size -= PAGE_SIZE;
 			}
 		}
-	}
-	/* セクションが登録済みかチェック */
-	if ( section_tbl[ADDR2SECT(st_addr)] == 0 ) {
-		void* ptr = tbl_alloc();
-		section_tbl[ADDR2SECT(st_addr)] = PAGE_TABLE_ENTRY(ptr);
 	}
 }
 
@@ -107,11 +105,11 @@ extern char __data_start;
 	mmgr_add_entry((void*)(&__data_start), END_MEM_ADDR - (uint32_t)(&__data_start), ATTR_DATA);
 	mmgr_add_entry((void*)0xE0000000, 0x1000, ATTR_DEV);
 
-#if 0
+#if 1
 	for ( ix=0; ix < arrayof(section_tbl); ix++ ) {
 		lprintf("sect[%d] = %08X\n", ix, section_tbl[ix]);
 		if ( (section_tbl[ix] & 0xff) == 0x33 ) {
-			uint32_t* page_tbl = (uint32_t*)(section_tbl[ix] & 0xff);
+			uint32_t* page_tbl = (uint32_t*)(section_tbl[ix] & ~0x3ff);
 			for ( iy=0; iy < 256; iy++ ) {
 				lprintf("    page[%d] = %08X\n", iy, page_tbl[iy]);
 			}

@@ -8,6 +8,7 @@
 #include "common.h"
 #include "task.h"
 #include "arm.h"
+#include "cp15reg.h"
 #include "my_board.h"
 
 extern char __heap_start;
@@ -29,6 +30,11 @@ void arch_task_create(TaskStruct* task)
 
 void arch_system_preinit(void)
 {
+	int ix;
+	for (ix=0; ix<7; ix++) {
+		CSSELR_set(ix<<1);
+		lprintf("Cache:%d:%08X\n", ix, CCSIDR_get());
+	}
 }
 
 void arch_system_postinit(void)
