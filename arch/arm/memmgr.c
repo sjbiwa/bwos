@@ -25,9 +25,9 @@
 #define	DEV_PAGE_ENTRY(addr)		(0)
 #define	NORM_SECT_ENTRY(addr)		(0)
 #define	NORM_PAGE_ENTRY(addr)		(0)
-#define	PAGE_TABLE_ENTRY(addr)		((uint32_t)addr | 0x33)
-#define	SECT_ENTRY(addr)			((uint32_t)addr | 0x11)
-#define	PAGE_ENTRY(addr,attr)		((uint32_t)addr | attr)
+#define	PAGE_TABLE_ENTRY(addr)		((uint32_t)addr | 0x01)				/* ページテーブルを指すエントリ */
+#define	SECT_ENTRY(addr,attr)		((uint32_t)(addr) | (attr) | 0x02)	/* セクションを指すエントリ */
+#define	PAGE_ENTRY(addr,attr)		((uint32_t)(addr) | (attr) | 0x01)	/* ページを指すエントリ */
 
 
 /* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
@@ -53,10 +53,11 @@ void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 {
 	uint32_t st_addr = PRE_ALIGN_BY(addr, PAGE_SIZE);
 	size = ((uint32_t)addr + size) - st_addr;
+	size = POST_ALIGN_BY(size, PAGE_SIZE);
 	while ( 0 < size ) {
 		/* アドレスが1MBアライン/sectionが割り当てられていない/残りサイズ1MB以上ならsection割り当て */
 		if ( ((st_addr & (SECT_SIZE-1)) == 0) && (section_tbl[ADDR2SECT(st_addr)] == 0) && (SECT_SIZE <= size) ) {
-			section_tbl[ADDR2SECT(st_addr)] = SECT_ENTRY(st_addr);
+			section_tbl[ADDR2SECT(st_addr)] = SECT_ENTRY(st_addr, attr);
 			st_addr += SECT_SIZE;
 			size -= SECT_SIZE;
 		}
@@ -102,7 +103,7 @@ extern char __data_start;
 	/****************************************************/
 
 	mmgr_add_entry((void*)(&__text_start), (uint32_t)(&__text_end)-(uint32_t)(&__text_start), ATTR_TEXT);
-	mmgr_add_entry((void*)(&__data_start), END_MEM_ADDR - (uint32_t)(&__data_start), ATTR_DATA);
+	mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
 	mmgr_add_entry((void*)0xE0000000, 0x1000, ATTR_DEV);
 
 #if 1
@@ -115,5 +116,6 @@ extern char __data_start;
 			}
 		}
 	}
+	for (;;);
 #endif
 }
