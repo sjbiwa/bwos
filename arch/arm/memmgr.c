@@ -14,26 +14,45 @@
 #define	PAGE_SIZE				(0x1000u)	/* １ページのサイズ (4KB) */
 #define	PAGE_TABLE_SIZE			(1024)		/* ページテーブルのサイズ (256エントリ/1KB) */
 
-#define	ATTR_TEXT				(0)
-#define	ATTR_DATA				(1)
-#define	ATTR_DEV				(2)
+/* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
+#define	ADDR2SECT(addr)			(((uint32_t)(addr)) >> 20)
+#define	ADDR2PAGE(addr)			((((uint32_t)(addr)) >> 12) & 0xff)
 
 /* テーブルエントリ生成マクロ */
-#define	INST_SECT_ENTRY(addr)		(0)
-#define	INST_PAGE_ENTRY(addr)		(0)
-#define	DEV_SECT_ENTRY(addr)		(0)
-#define	DEV_PAGE_ENTRY(addr)		(0)
-#define	NORM_SECT_ENTRY(addr)		(0)
-#define	NORM_PAGE_ENTRY(addr)		(0)
-#define	PAGE_TABLE_ENTRY(addr)		((uint32_t)addr | 0x01)				/* ページテーブルを指すエントリ */
-#define	SECT_ENTRY(addr,attr)		((uint32_t)(addr) | (attr) | 0x02)	/* セクションを指すエントリ */
-#define	PAGE_ENTRY(addr,attr)		((uint32_t)(addr) | (attr) | 0x01)	/* ページを指すエントリ */
+#define	PAGE_TABLE_ENTRY(addr)	((uint32_t)addr | 0x01)		/* ページテーブルを指すエントリ */
+#define	SECT_ENTRY(addr,attr)	((uint32_t)(addr) | (attr))	/* セクションを指すエントリ */
+#define	PAGE_ENTRY(addr,attr)	((uint32_t)(addr) | (attr))	/* ページを指すエントリ */
 
+/* ページ属性を抽象化レベルから実際レベルに変換するテーブル */
+#define	S_AP(v)		((((v)&0x4)<<13)|(((v)&0x3)<<10))	/* 2-0 -> 15:11:10 */
+#define	S_TEX(v)	((((v)&0x1C)<<10)|(((v)&0x3)<<2))	/* 4-0 -> 14:13:12 3:2(C/B) */
+#define	P_AP(v)		((((v)&0x4)<<7)|(((v)&0x3)<<4))		/* 2-0 -> 9:5:4 */
+#define	P_TEX(v)	((((v)&0x1C)<<4)|(((v)&0x3)<<2))	/* 4-0 -> 8:7:6 3:2(C/B) */
 
-/* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
-#define	ADDR2SECT(addr)				(((uint32_t)(addr)) >> 20)
-#define	ADDR2PAGE(addr)				((((uint32_t)(addr)) >> 12) & 0xff)
+#define	AP_TEXT			(0x3)
+#define	AP_DATA			(0x3)
+#define	AP_DEV			(0x3)
+#define	TEX_TEXT		(0x07)
+#define	TEX_DATA		(0x07)
+#define	TEX_DEV			(0x01)
 
+enum {
+	ATTRL_SECT = 0,
+	ATTRL_PAGE,
+};
+enum {
+	ATTR_TEXT = 0,
+	ATTR_DATA,
+	ATTR_DEV,
+};
+static const uint32_t	attr_conv_tbl[][2] = {
+	.[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT),
+	.[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT),
+	.[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA),
+	.[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA),
+	.[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV),
+	.[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV),
+};
 /* section table */
 static uint32_t section_tbl[4096];
 
@@ -57,7 +76,7 @@ void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 	while ( 0 < size ) {
 		/* アドレスが1MBアライン/sectionが割り当てられていない/残りサイズ1MB以上ならsection割り当て */
 		if ( ((st_addr & (SECT_SIZE-1)) == 0) && (section_tbl[ADDR2SECT(st_addr)] == 0) && (SECT_SIZE <= size) ) {
-			section_tbl[ADDR2SECT(st_addr)] = SECT_ENTRY(st_addr, attr);
+			section_tbl[ADDR2SECT(st_addr)] = SECT_ENTRY(st_addr, attr_conv_tbl[attr][ATTRL_SECT]);
 			st_addr += SECT_SIZE;
 			size -= SECT_SIZE;
 		}
@@ -75,7 +94,7 @@ void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 			if ( page_tbl[ADDR2PAGE(st_addr)] != 0 ) {
 				lprintf("Warnning: multiple define addr=%08X ptbl=%08X index=%d\n", st_addr, page_tbl, ADDR2PAGE(st_addr));
 			}
-			page_tbl[ADDR2PAGE(st_addr)] = PAGE_ENTRY(st_addr, attr);
+			page_tbl[ADDR2PAGE(st_addr)] = PAGE_ENTRY(st_addr, attr_conv_tbl[attr][ATTRL_PAGE]);
 			st_addr += PAGE_SIZE;
 			if ( size <= PAGE_SIZE ) {
 				size = 0;
@@ -116,6 +135,15 @@ extern char __data_start;
 			}
 		}
 	}
-	for (;;);
 #endif
+	/* MMU関連レジスタ初期化 */
+
+	/* キャッシュをdisable */
+
+	/* キャッシュをすべてinvalidate */
+
+	/* MMU/キャッシュenable */
+
+	_DSB();
+	_ISB();
 }
