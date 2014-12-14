@@ -47,6 +47,7 @@ void arch_system_postinit(void)
 	mmgr_init();
 	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
 	size &= ~0x0000000fu;
-	tprintf("mblock addr=%08X size=%08X\n", &__heap_start, size);
-	sys_malloc_add_block(&__heap_start, size);
+	tprintf("mblock addr=%08X size=%08X\n", heap_start_addr, size);
+	sys_malloc_add_block(heap_start_addr, size-0x1000); /* size-4K ? Wh? */
+	tprintf("mblock ok\n");
 }

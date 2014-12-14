@@ -59,6 +59,15 @@ static uint32_t section_tbl[4096] __attribute__((aligned(16*1024)));
 
 extern void* heap_start_addr;
 
+static bool mmgr_is_section(uint32_t entry)
+{
+	bool ret = false;
+	if ( (entry & 0x00000003) == 0x00000001 ) {
+		ret = true;
+	}
+	return ret;
+}
+
 /* ページテーブルの割り当て */
 static uint32_t* tbl_alloc(void)
 {
@@ -144,6 +153,7 @@ extern char __data_start;
 	/* キャッシュをすべてinvalidate */
 	ICIALLUIS_set(0);
 	BPIALLIS_set(0);
+	//DCISW_set(0);
 
 	/* MMU/キャッシュenable */
 	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
@@ -153,7 +163,7 @@ extern char __data_start;
 #if 0
 	for ( ix=0; ix < arrayof(section_tbl); ix++ ) {
 		tprintf("sect[%d] = %08X\n", ix, section_tbl[ix]);
-		if ( (section_tbl[ix] & 0xff) == 0x33 ) {
+		if ( mmgr_is_section(section_tbl[ix]) ) {
 			uint32_t* page_tbl = (uint32_t*)(section_tbl[ix] & ~0x3ff);
 			for ( iy=0; iy < 256; iy++ ) {
 				tprintf("    page[%d] = %08X\n", iy, page_tbl[iy]);
