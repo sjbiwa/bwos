@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "arm.h"
+#include "mpcore.h"
 #include "cp15reg.h"
 #include "my_board.h"
 
@@ -46,15 +47,15 @@ enum {
 	ATTR_DEV,
 };
 static const uint32_t	attr_conv_tbl[][2] = {
-	.[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT),
-	.[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT),
-	.[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA),
-	.[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA),
-	.[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV),
-	.[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV),
+	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT),
+	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT),
+	[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA),
+	[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA),
+	[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV),
+	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV),
 };
 /* section table */
-static uint32_t section_tbl[4096];
+static uint32_t section_tbl[4096] __attribute__((aligned(16*1024)));
 
 extern void* heap_start_addr;
 
@@ -92,7 +93,7 @@ void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
 			}
 			/* ページエントリ設定 */
 			if ( page_tbl[ADDR2PAGE(st_addr)] != 0 ) {
-				lprintf("Warnning: multiple define addr=%08X ptbl=%08X index=%d\n", st_addr, page_tbl, ADDR2PAGE(st_addr));
+				tprintf("Warnning: multiple define addr=%08X ptbl=%08X index=%d\n", st_addr, page_tbl, ADDR2PAGE(st_addr));
 			}
 			page_tbl[ADDR2PAGE(st_addr)] = PAGE_ENTRY(st_addr, attr_conv_tbl[attr][ATTRL_PAGE]);
 			st_addr += PAGE_SIZE;
@@ -121,29 +122,45 @@ extern char __data_start;
 	/*													*/
 	/****************************************************/
 
+	/* TEXT領域 */
 	mmgr_add_entry((void*)(&__text_start), (uint32_t)(&__text_end)-(uint32_t)(&__text_start), ATTR_TEXT);
+	/* DATA/BSS/HEAP領域 */
 	mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
-	mmgr_add_entry((void*)0xE0000000, 0x1000, ATTR_DEV);
+	/* MPCORE領域 */
+	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x2000, ATTR_DEV);
+	/* UART領域 */
+	mmgr_add_entry((void*)(0x10009000), 0x1000, ATTR_DEV);
 
-#if 1
+	/* MMU関連レジスタ初期化 */
+	DACR_set(0xffffffff);
+	TTBCR_set(0x00000000);
+	TTBR0_set((uint32_t)section_tbl);
+	TTBR1_set(0);
+
+	/* いったん命令キャッシュをdisable */
+	uint32_t ctrl = SCTLR_get();
+	SCTLR_set(ctrl & ~((0x1<<12)|(0x1<<11)));
+
+	/* キャッシュをすべてinvalidate */
+	ICIALLUIS_set(0);
+	BPIALLIS_set(0);
+
+	/* MMU/キャッシュenable */
+	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
+	__isb();
+
+	tprintf("SCTLR = %08X\n", SCTLR_get());
+#if 0
 	for ( ix=0; ix < arrayof(section_tbl); ix++ ) {
-		lprintf("sect[%d] = %08X\n", ix, section_tbl[ix]);
+		tprintf("sect[%d] = %08X\n", ix, section_tbl[ix]);
 		if ( (section_tbl[ix] & 0xff) == 0x33 ) {
 			uint32_t* page_tbl = (uint32_t*)(section_tbl[ix] & ~0x3ff);
 			for ( iy=0; iy < 256; iy++ ) {
-				lprintf("    page[%d] = %08X\n", iy, page_tbl[iy]);
+				tprintf("    page[%d] = %08X\n", iy, page_tbl[iy]);
 			}
 		}
 	}
+	for (;;);
 #endif
-	/* MMU関連レジスタ初期化 */
 
-	/* キャッシュをdisable */
-
-	/* キャッシュをすべてinvalidate */
-
-	/* MMU/キャッシュenable */
-
-	_DSB();
-	_ISB();
 }

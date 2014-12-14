@@ -18,8 +18,29 @@ static void delay(void)
 	}
 }
 
+void task0(void)
+{
+static void* ptr[100];
+	int ix;
+	for (ix=0;;ix++) {
+//		ptr[ix%100] = sys_malloc_align(128, 8);
+		ptr[ix%100] = (void*)ix;
+		lprintf("message task0:%08X\n", ptr[ix%100]);
+		task_tsleep(5);
+	}
+}
+
 void task1(void)
 {
+static void* ptr[100];
+	int ix;
+	for (ix=0;;ix++) {
+//		ptr[ix%100] = sys_malloc_align(128, 8);
+		ptr[ix%100] = (void*)ix;
+		lprintf("message task1:%08X\n", ptr[ix%100]);
+		task_tsleep(9);
+	}
+#if 0
 static void* ptr[100];
 	int	ix;
 	int count;
@@ -43,6 +64,7 @@ static void* ptr[100];
 		dump_space();
 	}
 	task_sleep();
+#endif
 }
 
 void task2(void)

@@ -11,6 +11,7 @@
  */
 
 #include "arm.h"
+#include "cp15reg.h"
 
 	.global _undef_entry
 	.global _swi_entry
@@ -43,6 +44,8 @@ _pref_entry:
 	b		_pref_entry
 
 _dabort_entry:
+	DFSR_get(r0)
+	DFAR_get(r1)
 	b		_dabort_entry
 
 /*
