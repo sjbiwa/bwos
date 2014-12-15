@@ -48,6 +48,6 @@ void arch_system_postinit(void)
 	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
 	size &= ~0x0000000fu;
 	tprintf("mblock addr=%08X size=%08X\n", heap_start_addr, size);
-	sys_malloc_add_block(heap_start_addr, size-0x1000); /* size-4K ? Wh? */
+	sys_malloc_add_block(heap_start_addr, size); /* size-4K ? Wh? */
 	tprintf("mblock ok\n");
 }
