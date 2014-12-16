@@ -112,6 +112,7 @@ _irq_entry:
 	tst		r0, #0x07
 	subne	sp, sp, #4
 	push	{r0}
+	mov		lr, r0
 
 	/* INC _nodispatch_level */
 	ldr		r1, =_nodispatch_level
@@ -119,11 +120,10 @@ _irq_entry:
 	add		r0, r0, #1
 	str		r0, [r1]
 
-	mov		r0, lr
-	ldr		r1, [lr,#20]
-	ldr		r2, [lr,#24]
+	ldr		r1, [lr,#24]
+	ldr		r2, [lr,#28]
 
-	bl		c_handler	/* r0:IRQ, r1:Return Address, r2:SPSR */
+	bl		c_handler	/* r0:sp, r1:Return Address, r2:SPSR */
 
 	/* DEC _nodispatch_level */
 	ldr		r1, =_nodispatch_level

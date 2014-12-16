@@ -15,16 +15,20 @@ extern uint32_t		task_info_num;
 int main(void)
 {
 	int ix;
+	/* ハードウェア初期化 */
 	arch_system_preinit();
 	tprintf("Booting BWOS Ver " OS_VERSION  "\n");
-	task_init();
-	for (ix=0; ix<task_info_num; ix++) {
-		task_create(&task_info[ix]);
-	}
 	irq_init();
 	timer_init();
 	lprintf_init();
 	sys_malloc_init();
 	arch_system_postinit();
+
+	/* OSリソース初期化 */
+	task_init();
+	for (ix=0; ix<task_info_num; ix++) {
+		task_create(&task_info[ix]);
+	}
+
 	schedule();
 }

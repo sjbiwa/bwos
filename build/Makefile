@@ -26,7 +26,7 @@ OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 
 DEFS += -DTEST_MODE
 DEFS += -DOS_VER="0.01"
-# -D__QEMU__
+#-D__QEMU__
 
 all: $(TARGET)
 

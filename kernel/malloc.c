@@ -143,14 +143,12 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 	return ret;
 }
 
-OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
+void* __sys_malloc_align(uint32_t size, uint32_t align)
 {
 	void* ret = NULL;
 
 	/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
 	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
-
-	mutex_lock(&mutex);
 
 	/* 指定サイズ以上の空きブロックを探す */
 	MBSpaceProlog* mb_space = NULL;
@@ -201,6 +199,15 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 		}
 	}
 
+	return ret;
+
+
+}
+
+OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
+{
+	mutex_lock(&mutex);
+	void* ret = __sys_malloc_align(size, align);
 	mutex_unlock(&mutex);
 
 	return ret;
@@ -208,14 +215,12 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 }
 
 
-OSAPI void* sys_malloc(uint32_t size)
+void* __sys_malloc(uint32_t size)
 {
 	void* ret = NULL;
 
 	/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
 	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
-
-	mutex_lock(&mutex);
 
 	/* 指定サイズ以上の空きブロックを探す */
 	MBSpaceProlog* mb_space = NULL;
@@ -238,6 +243,13 @@ OSAPI void* sys_malloc(uint32_t size)
 		}
 	}
 
+	return ret;
+}
+
+OSAPI void* sys_malloc(uint32_t size)
+{
+	mutex_lock(&mutex);
+	void* ret = __sys_malloc(size);
 	mutex_unlock(&mutex);
 
 	return ret;

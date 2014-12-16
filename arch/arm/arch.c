@@ -6,6 +6,7 @@
  */
 
 #include "common.h"
+#include "api.h"
 #include "task.h"
 #include "arm.h"
 #include "cp15reg.h"
@@ -20,6 +21,10 @@ void arch_task_create(TaskStruct* task)
 	uint32_t*		ptr;
 
 	/* setup stack pointer */
+	if ( task->init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->init_sp = __sys_malloc_align(task->stack_size, 8);
+	}
 	ptr = (uint32_t*)((uint32_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
 	task->save_sp = (void*)ptr;
 	/* setup task-context */
@@ -48,6 +53,6 @@ void arch_system_postinit(void)
 	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
 	size &= ~0x0000000fu;
 	tprintf("mblock addr=%08X size=%08X\n", heap_start_addr, size);
-	sys_malloc_add_block(heap_start_addr, size); /* size-4K ? Wh? */
+	sys_malloc_add_block(heap_start_addr, size);
 	tprintf("mblock ok\n");
 }
