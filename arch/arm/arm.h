@@ -35,6 +35,11 @@
 #define	__wfi()				__asm__ volatile ("dsb;wfi":::"memory")
 #define	__wfe()				__asm__ volatile ("dsb;wfe":::"memory")
 
+/* VFPレジスタアクセス */
+#define FPSCR_get()     ({uint32_t _reg_;__asm__ volatile ("vmrs %0,FPSCR":"=r"(_reg_)::"memory");_reg_;})
+#define FPSCR_set(reg)  do {__asm__ volatile ("vmsr FPSCR,%0"::"r"(reg):"memory");} while (0)
+
+
 #else
 #endif
 

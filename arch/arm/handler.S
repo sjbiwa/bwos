@@ -22,6 +22,8 @@
 	.global cpsr_get
 	.global cpsr_set
 	.global	call_svc
+	.global FPEXC_get
+	.global FPEXC_set
 	.type   _undef_entry, %function
 	.type   _swi_entry, %function
 	.type   _pref_entry, %function
@@ -31,6 +33,8 @@
 	.type   cpsr_get, %function
 	.type   cpsr_set, %function
 	.type   call_svc, %function
+	.type	FPEXC_get, %function
+	.type	FPEXC_set, %function
 
 	.text
 
@@ -154,4 +158,13 @@ call_svc:
 	push	{lr}
 	svc		#0
 	pop		{lr}
+	bx		lr
+
+
+FPEXC_get:
+	mrs	r0, FPEXC
+	bx		lr
+
+FPEXC_set:
+	msr	FPEXC, r0
 	bx		lr

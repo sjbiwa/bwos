@@ -45,6 +45,15 @@ void arch_system_preinit(void)
 			lprintf("Cache:%d:%08X\n", ix, CCSIDR_get());
 		}
 	}
+
+	/* coprocessor CP10/CP11 有効化 (VFP full access) */
+	uint32_t cpval = CPACR_get();
+	cpval &= 0x0fffffff;
+	cpval |= ((0x3<<(10*2))|(0x3<<(11*2)));
+
+	/* テスト用にVFPレジスタ初期化 */
+	 FPEXC_set(0x40000000);
+	 FPSCR_set(0x00000000);
 }
 
 void arch_system_postinit(void)

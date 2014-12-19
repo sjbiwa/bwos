@@ -23,6 +23,7 @@ void task1(void)
 static void* ptr[100];
 	int	ix;
 	int count;
+	double	a = 1.0;
 	for ( count=20; 0 < count; count-- ) {
 		for (ix=0; ix<100; ix++) {
 			ptr[ix] = sys_malloc_align(128, 8);
@@ -32,6 +33,8 @@ static void* ptr[100];
 				memset(ptr[ix], 0x11, 128);
 			}
 			task_tsleep(1);
+			a += 0.1;
+			lprintf("%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
