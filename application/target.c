@@ -4,11 +4,16 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "common.h"
-#include "task.h"
-#include "flag.h"
+#include "api.h"
 
 extern TaskStruct	task_info[];
+
+typedef	struct {
+	int	value1;
+	int	value2;
+	int	value3;
+	int	value4;
+} TlsValue;
 
 static void delay(void)
 {
@@ -18,6 +23,28 @@ static void delay(void)
 	}
 }
 
+void task1(void)
+{
+	for (;;) {
+		TlsValue* tls = task_get_tls(TASK_SELF);
+		tls->value1 += 1;
+		tls->value2 += 2;
+		tls->value3 += 3;
+		tls->value4 += 4;
+		task_tsleep(10);
+	}
+}
+
+void task2(void)
+{
+	for (;;) {
+		TlsValue* tls = task_get_tls(&task_info[0]);
+		lprintf("%d %d %d %d\n", tls->value1, tls->value2, tls->value3, tls->value4);
+		task_tsleep(30);
+	}
+}
+
+#if 0
 void task1(void)
 {
 static void* ptr[100];
@@ -122,7 +149,8 @@ void task5(void)
 	lprintf("start task5\n");
 
 	for (;;) {
-		flag_wait(&wait_flag);
+		flag_wait(&wait_flag, 0);
 		lprintf("wakeup task5\n");
 	}
 }
+#endif

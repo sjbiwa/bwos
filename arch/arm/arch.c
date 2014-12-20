@@ -27,6 +27,12 @@ void arch_task_create(TaskStruct* task)
 	}
 	ptr = (uint32_t*)((uint32_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
 	task->save_sp = (void*)ptr;
+
+	/* FPU(VFP)退避用領域の確保 (arch_tlsが確保されているタスク=VFP使用タスクとする) */
+	if ( task->task_attr & TASK_FPU ) {
+		task->arch_tls = __sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
+	}
+
 	/* setup task-context */
 	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)task->start_entry;

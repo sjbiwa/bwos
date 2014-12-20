@@ -180,6 +180,13 @@ OSAPI int task_create(TaskStruct* task)
 	arch_task_create(task); /* ARCH depend create */
 	task->task_state = TASK_READY;
 
+#if 1
+/* TLS alloc */
+	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
+		task->tls = __sys_malloc_align(task->tls_size, 8);
+		memset(task->tls, 0, task->tls_size);
+	}
+#endif
 	task_add_queue(task);
 
 	return RT_OK;
@@ -220,4 +227,12 @@ OSAPI int32_t task_tsleep(uint32_t tm)
 	schedule();
 	irq_restore(cpsr);
 	return _ctask->result_code;
+}
+
+OSAPI void* task_get_tls(TaskStruct* task)
+{
+	if ( task == TASK_SELF ) {
+		task = _ctask;
+	}
+	return task->tls;
 }
