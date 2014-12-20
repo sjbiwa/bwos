@@ -162,9 +162,17 @@ call_svc:
 
 
 FPEXC_get:
-	mrs	r0, FPEXC
+#if defined(CYGWIN)
+	vmrs	r0, FPEXC
+#else
+	mrs		r0, FPEXC
+#endif
 	bx		lr
 
 FPEXC_set:
-	msr	FPEXC, r0
+#if defined(CYGWIN)
+	vmsr	FPEXC, r0
+#else
+	msr		FPEXC, r0
+#endif
 	bx		lr
