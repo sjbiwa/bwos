@@ -111,23 +111,36 @@ _irq_entry:
 #endif
 	/* SVC mode */
 
-	/* Adjust SP 8bytes align */
-	mov		r0, sp
-	tst		r0, #0x07
-	subne	sp, sp, #4
-	push	{r0}
-	mov		lr, r0
-
 	/* INC _nodispatch_level */
 	ldr		r1, =_nodispatch_level
 	ldr		r0, [r1]
 	add		r0, r0, #1
 	str		r0, [r1]
 
+	/* FPEXC get and VFP disable */
+	mrs		r1, FPEXC
+	mov		r0, #0
+	msr		FPEXC, r0
+
+	/* Adjust SP 8bytes align */
+	mov		lr, sp
+	tst		lr, #0x07
+	subne	sp, sp, #4
+	push	{lr} /* old SP */
+	push	{r1} /* FPEXC */
+
 	ldr		r1, [lr,#24]
 	ldr		r2, [lr,#28]
+	mov		r0, lr
 
 	bl		c_handler	/* r0:sp, r1:Return Address, r2:SPSR */
+
+	/* restore FPEXC */
+	pop		{r0}
+	msr		FPEXC, r0
+
+	/* restore SP */
+	ldr		sp, [sp]
 
 	/* DEC _nodispatch_level */
 	ldr		r1, =_nodispatch_level
@@ -135,10 +148,10 @@ _irq_entry:
 	sub		r0, r0, #1
 	str		r0, [r1]
 
-	/* restore SP */
-	ldr		sp, [sp]
+	/* check _nodispatch_level (R0 is _nodispatch_level) */
+	cmp		r0, #0
+	bne		_nodispatch_irq
 
-	/* R0 is _nodispatch_level */
 	b		_dispatch_irq
 
 _fiq_entry:
@@ -158,13 +171,4 @@ call_svc:
 	push	{lr}
 	svc		#0
 	pop		{lr}
-	bx		lr
-
-
-FPEXC_get:
-	mrs	r0, FPEXC
-	bx		lr
-
-FPEXC_set:
-	msr	FPEXC, r0
 	bx		lr

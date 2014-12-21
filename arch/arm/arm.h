@@ -25,7 +25,7 @@
 #define	TASK_FRAME_PSR		(17)	/* タスク情報退避エリアのCPSR位置 */
 #define	TASK_FRAME_STUB		(9)		/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
 #define	SAVE_SP				(8)		/* タスク構造体内にあるsave_spのオフセット */
-
+#define	ARCH_TLS			(12)	/* ARCH固有のタスク情報(今はVFPレジスタ退避用アドレス)の位置 */
 #ifndef __ASM__
 
 #define	__dmb()				__asm__ volatile ("dmb":::"memory")
@@ -38,6 +38,8 @@
 /* VFPレジスタアクセス */
 #define FPSCR_get()     ({uint32_t _reg_;__asm__ volatile ("vmrs %0,FPSCR":"=r"(_reg_)::"memory");_reg_;})
 #define FPSCR_set(reg)  do {__asm__ volatile ("vmsr FPSCR,%0"::"r"(reg):"memory");} while (0)
+#define FPEXC_get()     ({uint32_t _reg_;__asm__ volatile ("mrs %0,FPEXC":"=r"(_reg_)::"memory");_reg_;})
+#define FPEXC_set(reg)  do {__asm__ volatile ("msr FPEXC,%0"::"r"(reg):"memory");} while (0)
 
 
 #else

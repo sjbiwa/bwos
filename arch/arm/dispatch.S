@@ -115,12 +115,11 @@ _entry_stub:
 */
 
 	.global _dispatch_irq
+	.global	_nodispatch_irq
 	.type   _dispatch_irq, %function
-_dispatch_irq:
-	/* check _nodispatch_level (R0 is _nodispatch_level) */
-	cmp		r0, #0
-	bne		_nodispatch_irq
+	.type   _nodispatch_irq, %function
 
+_dispatch_irq:
 	/* compare _ctask and _ntask */
 	ldr		r0, =_ctask
 	ldr		r0, [r0]
