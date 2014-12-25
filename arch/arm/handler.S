@@ -118,9 +118,9 @@ _irq_entry:
 	str		r0, [r1]
 
 	/* FPEXC get and VFP disable */
-	mrs		r1, FPEXC
+	vmrs	r1, FPEXC
 	mov		r0, #0
-	msr		FPEXC, r0
+	vmsr	FPEXC, r0
 
 	/* Adjust SP 8bytes align */
 	mov		lr, sp
@@ -137,7 +137,7 @@ _irq_entry:
 
 	/* restore FPEXC */
 	pop		{r0}
-	msr		FPEXC, r0
+	vmsr	FPEXC, r0
 
 	/* restore SP */
 	ldr		sp, [sp]
