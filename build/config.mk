@@ -2,6 +2,6 @@
 # config file
 #
 ARCH = arm
-CPU  = cortex-a9
-BOARD = versatile
+CPU  = cortex-a7
+BOARD = cubietruck
 APPLICATION = application

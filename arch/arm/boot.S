@@ -1,5 +1,5 @@
 	.syntax unified
-	.cpu cortex-a9
+	.cpu cortex-a7
 /*
 ** emos boot.S
 */
