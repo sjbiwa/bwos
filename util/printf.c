@@ -4,6 +4,9 @@
 #include "common.h"
 #include "mutex.h"
 
+//#define	UART_BASE		(0x10009018)
+#define	UART_BASE		(0x01C28000)
+
 static int vtsprintf(char* buff,char* fmt,va_list arg);
 
 static int tsprintf_string(char* ,char* );
@@ -15,8 +18,8 @@ static void
 debug_print(uint8_t* str)
 {
 	for (;*str;str++) {
-		while ( *((volatile uint32_t*)0x10009018) & (0x01<<5) );
-		*((volatile uint32_t*)0x10009000) = *str;
+		while ( (*(volatile uint32_t*)(UART_BASE+0x7C) & (0x01<<2)) == 0 );
+		*((volatile uint32_t*)(UART_BASE+0x00)) = *str;
 	}
 }
 
@@ -255,9 +258,10 @@ static MutexStruct printf_mutex;
 void lprintf_init(void)
 {
 	mutex_create(&printf_mutex);
-	*((volatile uint32_t*)0x1000902C) = (0x07<<4); /* UARTLCR_H */
-	*((volatile uint32_t*)0x10009030) = (0x03<<8)|(0x01); /* UARTCR */
-
+#if 0
+	*(volatile uint32_t*)(UART_BASE+0x2C) = (0x07<<4); /* UARTLCR_H */
+	*(volatile uint32_t*)(UART_BASE+0x30) = (0x03<<8)|(0x01); /* UARTCR */
+#endif
 }
 
 int tprintf(char* fmt, ...)

@@ -13,6 +13,7 @@
 
 #define	SECT_SIZE				(0x100000u)	/* １セクションのサイズ (1MB) */
 #define	PAGE_SIZE				(0x1000u)	/* １ページのサイズ (4KB) */
+#define	SECT_TABLE_SIZE			(4096*4)	/* セクションテーブルのサイズ (4096エントリ) */
 #define	PAGE_TABLE_SIZE			(1024)		/* ページテーブルのサイズ (256エントリ/1KB) */
 
 /* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
@@ -55,7 +56,8 @@ static const uint32_t	attr_conv_tbl[][2] = {
 	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV),
 };
 /* section table */
-static uint32_t section_tbl[4096] __attribute__((aligned(16*1024)));
+//static uint32_t section_tbl[4096] __attribute__((aligned(16*1024)));
+static uint32_t* section_tbl;
 
 extern void* heap_start_addr;
 
@@ -68,10 +70,20 @@ static bool mmgr_is_section(uint32_t entry)
 	return ret;
 }
 
+/* セクションテーブルの割り当て */
+static uint32_t* sectiontbl_alloc(void)
+{
+	/* 16Kバイトアラインメント */
+	uint32_t tbl = POST_ALIGN_BY(heap_start_addr, SECT_TABLE_SIZE);
+	heap_start_addr = (void*)(tbl + SECT_TABLE_SIZE);
+	memset((void*)tbl, 0, SECT_TABLE_SIZE);
+	return (uint32_t*)tbl;
+}
+
 /* ページテーブルの割り当て */
 static uint32_t* tbl_alloc(void)
 {
-	/* 4Kバイトアラインメント */
+	/* 1Kバイトアラインメント */
 	uint32_t tbl = POST_ALIGN_BY(heap_start_addr, PAGE_TABLE_SIZE);
 	heap_start_addr = (void*)(tbl + PAGE_TABLE_SIZE);
 	memset((void*)tbl, 0, PAGE_TABLE_SIZE);
@@ -123,6 +135,10 @@ extern char __text_start;
 extern char __text_end;
 extern char __data_start;
 	int ix, iy;
+
+	/* セクションテーブル初期化 */
+	section_tbl = sectiontbl_alloc();
+
 	/****************************************************/
 	/*	MMUの設定方法									*/
 	/*													*/

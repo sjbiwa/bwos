@@ -43,12 +43,12 @@ void arch_system_preinit(void)
 {
 	/* キャッシュ搭載情報の表示 */
 	uint32_t cid = CLIDR_get();
-	lprintf("CLID=%08X\n", cid);
+	tprintf("CLID=%08X\n", cid);
 	int ix;
 	for (ix=0; ix<7; ix++) {
 		if ( (0x07 << (ix*3)) & cid ) {
 			CSSELR_set(ix<<1);
-			lprintf("Cache:%d:%08X\n", ix, CCSIDR_get());
+			tprintf("Cache:%d:%08X\n", ix, CCSIDR_get());
 		}
 	}
 
@@ -56,6 +56,7 @@ void arch_system_preinit(void)
 	uint32_t cpval = CPACR_get();
 	cpval &= 0x0fffffff;
 	cpval |= ((0x3<<(10*2))|(0x3<<(11*2)));
+	CPACR_set(cpval);
 
 	/* テスト用にVFPレジスタ初期化 */
 	 FPEXC_set(0x40000000);

@@ -78,6 +78,9 @@ _fiq_vector:
 /* Reset Handler */
 	.type   _reset_entry, %function
 _reset_entry:
+
+	/* CBAR read */
+	MRC p15, 4, r0, c15, c0, 0
 	/* VectorBase setting */
 	ldr		r0, =_vector
 	VBAR_set(r0)
