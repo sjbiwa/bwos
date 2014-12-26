@@ -1,3 +1,6 @@
 *.o
 build/bwos.bin
 build/bwos.elf
+.project
+.cproject
+.settings/language.settings.xml

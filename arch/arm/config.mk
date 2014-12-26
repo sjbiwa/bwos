@@ -25,7 +25,7 @@ LDSCRIPT = $(ARCHDIR)/link.lds
 
 #DEFS = -DCYGWIN
 CFLAGS  =  -march=armv7-a -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=vfpv4 -mno-thumb-interwork -mthumb $(DEFS)
-CFLAGS  += -O3
+CFLAGS  += -O3 -fno-builtin
 AFLAGS  = $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
 LDFLAGS = -v -mcpu=cortex-a7 -mno-thumb-interwork -g -T $(LDSCRIPT) -Wl,-Ttext=0x40000000,--build-id=none -static -nostdlib
 

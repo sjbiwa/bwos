@@ -6,8 +6,6 @@
  */
 
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 
 void sys_malloc_init(void);
