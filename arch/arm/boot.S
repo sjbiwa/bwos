@@ -11,6 +11,8 @@
 #define	SCTLR_TE	(0x01<<30)		/* thumb exception enable */
 #define	SCTLR_I		(0x01<<12)		/* instruction cache enable */
 #define	SCTLR_Z		(0x01<<11)		/* brunch prediction enable */
+#define	SCTLR_C		(0x01<<2)		/* data cache */
+#define	SCTLR_M		(0x01<<0)		/* MMU enable */
 /* Vector */
 	.arm
 	.text
@@ -20,10 +22,17 @@
 	.type   _start, %function
 	.globl	_start
 _start:
+	/* invalidate inst/brnch cache */
+	mov		r0, #0
+	ICIALLUIS_set(r0)
+	BPIALLIS_set(r0)
+
 	/* set SCTLR.TE */
 	SCTLR_get(r0)
 	ldr		r1, =(SCTLR_TE|SCTLR_I|SCTLR_Z)
 	orr		r0, r0, r1
+	bic		r0, r0, SCTLR_C
+	bic		r0, r0, SCTLR_M
 	SCTLR_set(r0)
 	isb
 	/* switch to THUMB(Jump to Reset Vector) */

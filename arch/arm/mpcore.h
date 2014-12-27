@@ -13,9 +13,13 @@
 
 #define	MPCORE_SCU_BASE			(MPCORE_BASE)
 #define	MPCORE_GICD_BASE		(MPCORE_BASE+0x1000)
+#if defined(CORTEXA9)
 #define	MPCORE_GICC_BASE		(MPCORE_BASE+0x100)
 #define	MPCORE_GTM_BASE			(MPCORE_BASE+0x200)
 #define	MPCORE_PTM_BASE			(MPCORE_BASE+0x600)
+#else
+#define	MPCORE_GICC_BASE		(MPCORE_BASE+0x2000)
+#endif
 
 /* GIC distributer register */
 #define	GICD_CTLR				(MPCORE_GICD_BASE+0x000)		/* Distributor Control Register */
@@ -52,6 +56,8 @@
 #define	GICC_NSAPR				(MPCORE_GICC_BASE+0x00E0)		/* Non-secure Active Priorities Registers */
 #define	GICC_DIR				(MPCORE_GICC_BASE+0x1000)		/* Deactivate Interrupt Register */
 
+
+#if defined(CORTEXA9)
 /* LocalTimer and WatchDog */
 #define	PTM_LOAD				(MPCORE_PTM_BASE+0x00)			/* Private Timer Load Register */
 #define	PTM_COUNTER				(MPCORE_PTM_BASE+0x04)			/* Private Timer Counter Register */
@@ -72,6 +78,6 @@
 #define	GTM_COMPAREL			(MPCORE_GTM_BASE+0x10)			/* Comparator Value Registers LOW */
 #define	GTM_COMPAREH			(MPCORE_GTM_BASE+0x14)			/* Comparator Value Registers HIGH */
 #define	GTM_AUTOINC				(MPCORE_GTM_BASE+0x18)			/* Auto-increment Register */
-
+#endif
 
 #endif /* MPCORE_H_ */

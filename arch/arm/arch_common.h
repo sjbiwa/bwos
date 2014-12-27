@@ -8,6 +8,7 @@
 #ifndef ARCH_COMMON_H_
 #define ARCH_COMMON_H_
 
+#include "my_board.h"
 #include "arm.h"
 
 #define	irq_enable()		__asm__ volatile ("cpsie i":::"memory")

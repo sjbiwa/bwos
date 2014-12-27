@@ -23,6 +23,7 @@ static void delay(void)
 	}
 }
 
+#if 0
 void task1(void)
 {
 	double	a = 1.0;
@@ -32,10 +33,9 @@ void task1(void)
 		tls->value2 += 2;
 		tls->value3 += 3;
 		tls->value4 += 4;
-		task_wakeup(&task_info[1]);
-		task_sleep();
 		a += 0.1;
 		lprintf("task1::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
+		task_tsleep(5000);
 	}
 }
 
@@ -45,14 +45,13 @@ void task2(void)
 	for (;;) {
 		TlsValue* tls = task_get_tls(&task_info[0]);
 		lprintf("%d %d %d %d\n", tls->value1, tls->value2, tls->value3, tls->value4);
-		task_wakeup(&task_info[0]);
-		task_sleep();
 		a += 0.1;
 		lprintf("task2::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 	}
 }
 
-#if 0
+#else
+
 void task1(void)
 {
 static void* ptr[100];
@@ -67,7 +66,7 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x11, 128);
 			}
-			task_tsleep(1);
+			task_tsleep(100);
 			a += 0.1;
 			lprintf("%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 		}
@@ -76,7 +75,7 @@ static void* ptr[100];
 				lprintf("free1[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(1);
+			task_tsleep(100);
 		}
 		dump_space();
 	}
@@ -96,14 +95,14 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x44, 256);
 			}
-			task_tsleep(2);
+			task_tsleep(200);
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free2[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(2);
+			task_tsleep(200);
 		}
 		dump_space();
 	}
@@ -123,14 +122,14 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x77, 512);
 			}
-			task_tsleep(3);
+			task_tsleep(300);
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free3[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(3);
+			task_tsleep(300);
 		}
 		dump_space();
 	}
@@ -161,4 +160,5 @@ void task5(void)
 		lprintf("wakeup task5\n");
 	}
 }
+
 #endif

@@ -61,6 +61,7 @@ static uint32_t* section_tbl;
 
 extern void* heap_start_addr;
 
+
 static bool mmgr_is_section(uint32_t entry)
 {
 	bool ret = false;
@@ -134,7 +135,6 @@ void mmgr_init(void)
 extern char __text_start;
 extern char __text_end;
 extern char __data_start;
-	int ix, iy;
 
 	/* セクションテーブル初期化 */
 	section_tbl = sectiontbl_alloc();
@@ -152,9 +152,9 @@ extern char __data_start;
 	/* DATA/BSS/HEAP領域 */
 	mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
 	/* MPCORE領域 */
-	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x2000, ATTR_DEV);
+	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
 	/* UART領域 */
-	mmgr_add_entry((void*)(0x10009000), 0x1000, ATTR_DEV);
+	mmgr_add_entry((void*)(0x01C28000), 0x1000, ATTR_DEV);
 
 	/* MMU関連レジスタ初期化 */
 	DACR_set(0xffffffff);
@@ -169,24 +169,14 @@ extern char __data_start;
 	/* キャッシュをすべてinvalidate */
 	ICIALLUIS_set(0);
 	BPIALLIS_set(0);
-	//DCISW_set(0);
+
+	/* TLBをinvalidate */
+	TLBIALLIS_set(0);
 
 	/* MMU/キャッシュenable */
+	__dsb();
 	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
 	__isb();
 
 	tprintf("SCTLR = %08X\n", SCTLR_get());
-#if 0
-	for ( ix=0; ix < arrayof(section_tbl); ix++ ) {
-		tprintf("sect[%d] = %08X\n", ix, section_tbl[ix]);
-		if ( mmgr_is_section(section_tbl[ix]) ) {
-			uint32_t* page_tbl = (uint32_t*)(section_tbl[ix] & ~0x3ff);
-			for ( iy=0; iy < 256; iy++ ) {
-				tprintf("    page[%d] = %08X\n", iy, page_tbl[iy]);
-			}
-		}
-	}
-	for (;;);
-#endif
-
 }

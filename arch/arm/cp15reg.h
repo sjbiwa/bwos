@@ -204,49 +204,49 @@
 #define ICIALLUIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c1,0"::"r"(reg):"memory");} while (0)
 #define BPIALLIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c1,6"::"r"(reg):"memory");} while (0)
 #define PAR_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c7,c4,0":"=r"(_reg_)::"memory");_reg_;})
-#define PAR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c4,0"::"r"(reg):"memory");}
-#define ICIALLU_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,0"::"r"(reg):"memory");}
-#define ICIMVAU_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,1"::"r"(reg):"memory");}
-#define CP15ISB_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,4"::"r"(reg):"memory");}
-#define BPIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,6"::"r"(reg):"memory");}
-#define BPIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,7"::"r"(reg):"memory");}
-#define DCIMVAC_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c6,1"::"r"(reg):"memory");}
-#define DCISW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c6,2"::"r"(reg):"memory");}
-#define ATS1CPR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,0"::"r"(reg):"memory");}
-#define ATS1CPW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,1"::"r"(reg):"memory");}
-#define ATS1CUR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,2"::"r"(reg):"memory");}
-#define ATS1CUW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,3"::"r"(reg):"memory");}
-#define ATS12NSOPR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,4"::"r"(reg):"memory");}
-#define ATS12NSOPW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,5"::"r"(reg):"memory");}
-#define ATS12NSOUR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,6"::"r"(reg):"memory");}
-#define ATS12NSOUW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,7"::"r"(reg):"memory");}
-#define DCCMVAC_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,1"::"r"(reg):"memory");}
-#define DCCSW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,2"::"r"(reg):"memory");}
-#define CP15DSB_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,4"::"r"(reg):"memory");}
-#define CP15DMB_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,5"::"r"(reg):"memory");}
-#define DCCMVAU_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c11,1"::"r"(reg):"memory");}
-#define DCCIMVAC_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c14,1"::"r"(reg):"memory");}
-#define DCCISW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c14,2"::"r"(reg):"memory");}
-#define ATS1HR_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c7,c8,0"::"r"(reg):"memory");}
-#define ATS1HW_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c7,c8,1"::"r"(reg):"memory");}
-#define TLBIALLIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,0"::"r"(reg):"memory");}
-#define TLBIMVAIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,1"::"r"(reg):"memory");}
-#define TLBIASIDIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,2"::"r"(reg):"memory");}
-#define TLBIMVAAIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,3"::"r"(reg):"memory");}
-#define ITLBIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c5,0"::"r"(reg):"memory");}
-#define ITLBIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c5,1"::"r"(reg):"memory");}
-#define ITLBIASID_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c5,2"::"r"(reg):"memory");}
-#define DTLBIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c6,0"::"r"(reg):"memory");}
-#define DTLBIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c6,1"::"r"(reg):"memory");}
-#define DTLBIASID_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c6,2"::"r"(reg):"memory");}
-#define TLBIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,0"::"r"(reg):"memory");}
-#define TLBIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,1"::"r"(reg):"memory");}
-#define TLBIASID_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,2"::"r"(reg):"memory");}
-#define TLBIMVAA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,3"::"r"(reg):"memory");}
-#define TLBIALLHIS_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c3,0"::"r"(reg):"memory");}
-#define TLBIMVAHIS_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c3,1"::"r"(reg):"memory");}
-#define TLBIALLNSNHIS_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c3,4"::"r"(reg):"memory");}
-#define TLBIALLH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,0"::"r"(reg):"memory");}
+#define PAR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c4,0"::"r"(reg):"memory");} while(0)
+#define ICIALLU_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,0"::"r"(reg):"memory");} while(0)
+#define ICIMVAU_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,1"::"r"(reg):"memory");} while(0)
+#define CP15ISB_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,4"::"r"(reg):"memory");} while(0)
+#define BPIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,6"::"r"(reg):"memory");} while(0)
+#define BPIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c5,7"::"r"(reg):"memory");} while(0)
+#define DCIMVAC_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c6,1"::"r"(reg):"memory");} while(0)
+#define DCISW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c6,2"::"r"(reg):"memory");} while(0)
+#define ATS1CPR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,0"::"r"(reg):"memory");} while(0)
+#define ATS1CPW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,1"::"r"(reg):"memory");} while(0)
+#define ATS1CUR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,2"::"r"(reg):"memory");} while(0)
+#define ATS1CUW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,3"::"r"(reg):"memory");} while(0)
+#define ATS12NSOPR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,4"::"r"(reg):"memory");} while(0)
+#define ATS12NSOPW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,5"::"r"(reg):"memory");} while(0)
+#define ATS12NSOUR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,6"::"r"(reg):"memory");} while(0)
+#define ATS12NSOUW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c8,7"::"r"(reg):"memory");} while(0)
+#define DCCMVAC_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,1"::"r"(reg):"memory");} while(0)
+#define DCCSW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,2"::"r"(reg):"memory");} while(0)
+#define CP15DSB_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,4"::"r"(reg):"memory");} while(0)
+#define CP15DMB_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c10,5"::"r"(reg):"memory");} while(0)
+#define DCCMVAU_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c11,1"::"r"(reg):"memory");} while(0)
+#define DCCIMVAC_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c14,1"::"r"(reg):"memory");} while(0)
+#define DCCISW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c7,c14,2"::"r"(reg):"memory");} while(0)
+#define ATS1HR_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c7,c8,0"::"r"(reg):"memory");} while(0)
+#define ATS1HW_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c7,c8,1"::"r"(reg):"memory");} while(0)
+#define TLBIALLIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,0"::"r"(reg):"memory");} while(0)
+#define TLBIMVAIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,1"::"r"(reg):"memory");} while(0)
+#define TLBIASIDIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,2"::"r"(reg):"memory");} while(0)
+#define TLBIMVAAIS_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c3,3"::"r"(reg):"memory");} while(0)
+#define ITLBIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c5,0"::"r"(reg):"memory");} while(0)
+#define ITLBIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c5,1"::"r"(reg):"memory");} while(0)
+#define ITLBIASID_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c5,2"::"r"(reg):"memory");} while(0)
+#define DTLBIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c6,0"::"r"(reg):"memory");} while(0)
+#define DTLBIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c6,1"::"r"(reg):"memory");} while(0)
+#define DTLBIASID_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c6,2"::"r"(reg):"memory");} while(0)
+#define TLBIALL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,0"::"r"(reg):"memory");} while(0)
+#define TLBIMVA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,1"::"r"(reg):"memory");} while(0)
+#define TLBIASID_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,2"::"r"(reg):"memory");} while(0)
+#define TLBIMVAA_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c8,c7,3"::"r"(reg):"memory");} while(0)
+#define TLBIALLHIS_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c3,0"::"r"(reg):"memory");} while(0)
+#define TLBIMVAHIS_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c3,1"::"r"(reg):"memory");} while(0)
+#define TLBIALLNSNHIS_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c3,4"::"r"(reg):"memory");} while(0)
+#define TLBIALLH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,0"::"r"(reg):"memory");} while(0)
 #define TLBIMVAH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,1"::"r"(reg):"memory");} while (0)
 #define TLBIALLNSNH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,4"::"r"(reg):"memory");} while (0)
 #define PRRR_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c10,c2,0":"=r"(_reg_)::"memory");_reg_;})
@@ -276,5 +276,43 @@
 #define TPIDRURO_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c13,c0,3"::"r"(reg):"memory");} while (0)
 #define TPIDRPRW_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c13,c0,4":"=r"(_reg_)::"memory");_reg_;})
 #define TPIDRPRW_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c13,c0,4"::"r"(reg):"memory");} while (0)
+#define CNTFRQ_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c14,c0,0":"=r"(_reg_)::"memory");_reg_;})
+#define CNTFRQ_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c14,c0,0"::"r"(reg):"memory");} while (0)
+#define CNTKCTL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c14,c1,0":"=r"(_reg_)::"memory");_reg_;})
+#define CNTKCTL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c14,c1,0"::"r"(reg):"memory");} while (0)
+#define CNTP_TVAL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c14,c2,0":"=r"(_reg_)::"memory");_reg_;})
+#define CNTP_TVAL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c14,c2,0"::"r"(reg):"memory");} while (0)
+#define CNTP_CTL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c14,c2,1":"=r"(_reg_)::"memory");_reg_;})
+#define CNTP_CTL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c14,c2,1"::"r"(reg):"memory");} while (0)
+#define CNTV_TVAL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c14,c3,0":"=r"(_reg_)::"memory");_reg_;})
+#define CNTV_TVAL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c14,c3,0"::"r"(reg):"memory");} while (0)
+#define CNTV_CTL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c14,c3,1":"=r"(_reg_)::"memory");_reg_;})
+#define CNTV_CTL_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c14,c3,1"::"r"(reg):"memory");} while (0)
+#define CNTHCTL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,4,%0,c14,c1,0":"=r"(_reg_)::"memory");_reg_;})
+#define CNTHCTL_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c14,c1,0"::"r"(reg):"memory");} while (0)
+#define CNTHP_TVAL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,4,%0,c14,c2,0":"=r"(_reg_)::"memory");_reg_;})
+#define CNTHP_TVAL_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c14,c2,0"::"r"(reg):"memory");} while (0)
+#define CNTHP_CTL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,4,%0,c14,c2,1":"=r"(_reg_)::"memory");_reg_;})
+#define CNTHP_CTL_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c14,c2,1"::"r"(reg):"memory");} while (0)
+#define CNTPCT_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,0,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regl_)<<32)|(uint64_t)(_regl_));})
+#define CNTVCT_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,1,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regl_)<<32)|(uint64_t)(_regl_));})
+#define CNTP_CVAL_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,2,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
+#define CNTP_CVAL_set(reg)     do {__asm__ volatile ("mcrr p15,2,%0,%1,c14"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
+#define CNTV_CVAL_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,3,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
+#define CNTV_CVAL_set(reg)     do {__asm__ volatile ("mcrr p15,3,%0,%1,c14"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
+#define CNTVOFF_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,4,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
+#define CNTVOFF_set(reg)     do {__asm__ volatile ("mrrc p15,4,%0,%1,c14"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
+#define CNTHP_CVAL_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,6,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
+#define CNTHP_CVAL_set(reg)     do {__asm__ volatile ("mrrc p15,6,%0,%1,c14"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
+
+
+
+
 #endif
 

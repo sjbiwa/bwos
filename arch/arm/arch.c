@@ -15,6 +15,16 @@
 extern char __heap_start;
 void* heap_start_addr = &__heap_start;
 
+/* 最初に1になるビットを左側から探す */
+static inline int32_t bit_srch_l(uint32_t val)
+{
+	int32_t ret = 31;
+	while ( (0 <= ret) && ((val & (0x01u<<ret)) == 0) ) {
+		ret--;
+	}
+	return ret;
+}
+
 void arch_task_create(TaskStruct* task)
 {
 	extern void	_entry_stub(void);
@@ -41,14 +51,31 @@ void arch_task_create(TaskStruct* task)
 
 void arch_system_preinit(void)
 {
-	/* キャッシュ搭載情報の表示 */
-	uint32_t cid = CLIDR_get();
-	tprintf("CLID=%08X\n", cid);
-	int ix;
-	for (ix=0; ix<7; ix++) {
-		if ( (0x07 << (ix*3)) & cid ) {
+	/* PROC_ID / ASID を初期化 */
+	CONTEXTIDR_set(0);
+
+	/* データキャッシュinvalidate */
+	uint32_t clid = CLIDR_get();
+	int32_t ix;
+	/* 下位キャッシュ層から順番にinvalidate */
+	for (ix=6; 0 <= ix; ix--) {
+		if ( (0x07 << (ix*3)) & clid ) {
 			CSSELR_set(ix<<1);
-			tprintf("Cache:%d:%08X\n", ix, CCSIDR_get());
+			uint32_t ccsid = CCSIDR_get();
+			uint32_t sets = ((ccsid >> 13) & 0x7fff) + 1;
+			uint32_t asos = ((ccsid >> 3) & 0x3ff) + 1;
+			uint32_t sizes_len = (ccsid & 0x7) + 4;
+			int32_t asos_len = bit_srch_l(asos-1) + 1;
+			tprintf("L:%d %d %d %d %d TOTAL=%dbytes\n", ix, sets, asos, sizes_len, asos_len, (0x1<<sizes_len)*sets*asos);
+			if ( (0 < asos_len) && (0 < sizes_len) ) {
+				uint32_t w, s;
+				for (w = 0; w < asos; w++) {
+					for (s = 0; s < sets; s++) {
+						uint32_t val = (w<<(32-asos_len))|(s<<(sizes_len))|(ix<<1);
+						DCISW_set(val);
+					}
+				}
+			}
 		}
 	}
 
