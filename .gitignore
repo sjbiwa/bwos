@@ -4,3 +4,4 @@ build/bwos.elf
 .project
 .cproject
 .settings/language.settings.xml
+.settings/
