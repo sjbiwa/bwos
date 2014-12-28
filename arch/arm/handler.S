@@ -122,7 +122,7 @@ _irq_entry:
 	/* R0 is old _irq_level */
 
 	/* check irq-level */
-	cmp		r0, #0
+	cmp		r0, #1
 	bne		_from_handler
 
 _from_task:

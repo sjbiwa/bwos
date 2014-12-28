@@ -74,8 +74,9 @@ _save_and_restore:
 	/*********************************/
 	tst		r1, #0x40000000
 	beq		_no_save_vfp
-	add		r1, lr, #SAVE_VFP
-	vstmia	r1!, {s0-s31}
+	ldr		r1, [lr, #SAVE_VFP]
+	vstmia	r1!, {d0-d15}
+	vstmia	r1!, {d16-d31}
 	vmrs	r0, FPSCR
 	str		r0, [r1]
 
@@ -98,15 +99,16 @@ _restore_context:
 	/* restore SP (LR is _ntask)*/
 	ldr		sp, [lr,#SAVE_SP]
 	/* restore FPEXC */
-	pop		{r0}
-	vmsr	FPEXC, r0
+	pop		{r1}
+	vmsr	FPEXC, r1
 	/*********************************/
 	/* if FPEXC.EN==1 restore VFP !!!!! */
 	/*********************************/
 	tst		r1, #0x40000000
 	beq		_no_load_vfp
-	add		r1, lr, #SAVE_VFP
-	vldmia	r1!, {s0-s31}
+	ldr		r1, [lr, #SAVE_VFP]
+	vldmia	r1!, {d0-d15}
+	vldmia	r1!, {d16-d31}
 	ldr		r0, [r1]
 	vmsr	FPSCR, r0
 

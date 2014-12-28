@@ -105,6 +105,11 @@ void arch_system_postinit(void)
 
 bool arch_can_dispatch(void)
 {
-	return true;
+extern	uint32_t _irq_level; /* 多重割り込みレベル */
+	bool ret = false;
+	if ( _irq_level == 0 ) {
+		ret = true;
+	}
+	return ret;
 }
 
