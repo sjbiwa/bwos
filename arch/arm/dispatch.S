@@ -19,29 +19,30 @@
 **
 **       TASK_CONTEXT
 **			---------------------
-**			| R0(DUMMY)			|+0
-** SVC_SP->	| R4				|+4
-**			| R5				|+8
-**			| R6				|+12
-**			| R7				|+16
-**			| R8				|+20
-**			| R9				|+24
-**			| R10				|+28
-**			| R11				|+32
-** 			| LR(return address)|+36 <- _dispatch()の戻りアドレス または 割り込み復帰用スタブへのアドレス
+** SVC_SP->	| FPEXC				|+0
+**			| R0				|+4
+** 			| R4				|+8
+**			| R5				|+12
+**			| R6				|+16
+**			| R7				|+20
+**			| R8				|+24
+**			| R9				|+28
+**			| R10				|+32
+**			| R11				|+36
+** 			| LR(return address)|+40 <- _dispatch()の戻りアドレス または 割り込み復帰用スタブへのアドレス
 **			----------------------
 **  	  ** entry/IRQからの復帰 **
 **			----------------------
-**			| R0				|+40
-**			| R1				|+44
-**			| R2				|+48
-**			| R3				|+52
-**			| R12				|+56
-**			| LR				|+60
-**			| PC(return address)|+64  <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+68
+**			| R0				|+44
+**			| R1				|+48
+**			| R2				|+52
+**			| R3				|+56
+**			| R12				|+60
+**			| LR				|+64
+**			| PC(return address)|+68  <- 割り込み発生時の戻りアドレス
+**			| CPSR              |+72
 **			---------------------
-** beforeSP |					|+72
+** beforeSP |					|+76
 **
 **		import _ctask	(current task)
 **		import _ntask	(next task)
@@ -62,8 +63,23 @@ _dispatch:
 	addeq	sp, sp, #4
 	beq		_restore_context
 
+_save_and_restore:
 	/* save _ctask state (LR is _ctask) */
 	push	{r0,r4-r11}
+	/* save FPEXC */
+	vmrs	r1, FPEXC
+	push	{r1}
+	/*********************************/
+	/* if FPEXC.EN==1 save VFP !!!!! */
+	/*********************************/
+	tst		r1, #0x40000000
+	beq		_no_save_vfp
+	add		r1, lr, #SAVE_VFP
+	vstmia	r1!, {s0-s31}
+	vmrs	r0, FPSCR
+	str		r0, [r1]
+
+_no_save_vfp:
 	str		sp, [lr,#SAVE_SP]
 
 _restore_context:
@@ -81,6 +97,20 @@ _restore_context:
 
 	/* restore SP (LR is _ntask)*/
 	ldr		sp, [lr,#SAVE_SP]
+	/* restore FPEXC */
+	pop		{r0}
+	vmsr	FPEXC, r0
+	/*********************************/
+	/* if FPEXC.EN==1 restore VFP !!!!! */
+	/*********************************/
+	tst		r1, #0x40000000
+	beq		_no_load_vfp
+	add		r1, lr, #SAVE_VFP
+	vldmia	r1!, {s0-s31}
+	ldr		r0, [r1]
+	vmsr	FPSCR, r0
+
+_no_load_vfp:
 	/* restore general-regs and return from _dispatch */
 	pop		{r0,r4-r11,pc}
 
@@ -99,7 +129,7 @@ _entry_stub:
 **
 **  MODE:SVC
 **  IRQ:disable
-**	R0: _nodispatch_level
+**	FPEXC: current-TASK FP-MODE
 **
 **			----------------------
 **SVC_SP	| R0				|+40
@@ -131,18 +161,12 @@ _dispatch_irq:
 	/* r0:_ctask r1:_ntask */
 	/* _ctask check */
 	cmp		r0, #0
-	beq		_nosave_ctask /* _ctask is NULL ? */
+	beq		_restore_context /* _ctask is NULL ? */
 
 	/* save current task context */
 	adr		lr, _entry_stub
 	push	{lr}
-	push	{r0,r4-r11}
-
-	/* save _ctask sp */
-	str		sp, [r0,#SAVE_SP]
-
-_nosave_ctask:
-	b		_restore_context
+	b		_save_and_restore
 
 _nodispatch_irq:
 	b		_entry_stub
@@ -157,9 +181,3 @@ _idle_loop:
 1:
 	bl		idle_task
 	b		1b
-
-/* stack for IDLE-TASK */
-	.section .stack
-	.balign 16
-	.space	1024
-stack_idle:

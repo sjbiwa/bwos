@@ -311,8 +311,11 @@
 										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
 #define CNTHP_CVAL_set(reg)     do {__asm__ volatile ("mrrc p15,6,%0,%1,c14"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
 
-
-
-
 #endif
 
+/* SCTLRの各ビット */
+#define	SCTLR_TE	(0x01<<30)		/* thumb exception enable */
+#define	SCTLR_I		(0x01<<12)		/* instruction cache enable */
+#define	SCTLR_Z		(0x01<<11)		/* brunch prediction enable */
+#define	SCTLR_C		(0x01<<2)		/* data cache */
+#define	SCTLR_M		(0x01<<0)		/* MMU enable */

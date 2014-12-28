@@ -6,7 +6,6 @@
  */
 
 #include "common.h"
-#include "arm.h"
 #include "api.h"
 #include "link.h"
 #include "task.h"
@@ -19,7 +18,7 @@
 #define	TASK_PRIORITY_NUM		(32)	/* タスク優先度レベル数 */
 
 #define	EXE_DISPATCH()		\
-				if ( (_ctask != _ntask) && (0 == _nodispatch_level) ) { \
+				if ( can_dispatch() ) { \
 					uint32_t flags = cpsr_get(); \
 					irq_disable(); \
 					_dispatch(); \
@@ -33,13 +32,21 @@ static struct {
 
 TaskStruct*		_ctask = NULL;			/* 現在実行中のタスク */
 TaskStruct*		_ntask = NULL;			/* ディスパッチが要求されたタスク */
-uint32_t		_nodispatch_level = 0;	/* 非ディスパッチレベル */
 
 Link			task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
 extern void schedule(void);
+
+static inline bool can_dispatch(void)
+{
+	bool ret = false;
+	if ( (_ctask != _ntask) && arch_can_dispatch() ) {
+		ret = true;
+	}
+	return ret;
+}
 
 static inline int32_t lowest_bit(uint32_t value)
 {

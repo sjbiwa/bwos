@@ -8,11 +8,6 @@
 
 #define	STACK_INIT(cpu_mode,mode_sp)		cps #(cpu_mode);ldr sp, =(mode_sp)
 
-#define	SCTLR_TE	(0x01<<30)		/* thumb exception enable */
-#define	SCTLR_I		(0x01<<12)		/* instruction cache enable */
-#define	SCTLR_Z		(0x01<<11)		/* brunch prediction enable */
-#define	SCTLR_C		(0x01<<2)		/* data cache */
-#define	SCTLR_M		(0x01<<0)		/* MMU enable */
 /* Vector */
 	.arm
 	.text
@@ -21,6 +16,9 @@
 	.section	.vector
 	.type   _start, %function
 	.globl	_start
+	.globl	stack_idle
+	.globl	stack_intr
+
 _start:
 	/* invalidate inst/brnch cache */
 	mov		r0, #0
@@ -134,25 +132,36 @@ _loop_:
 /* Stack Area */
 	.section	.stack
 	.balign	16
-	.space	1024
+	.space	256
 stack_undef:
 
 	.balign	16
-	.space	1024
+	.space	256
 stack_svc:
 
 	.balign	16
-	.space	1024
+	.space	256
 stack_sys:
 
 	.balign	16
-	.space	1024
+	.space	256
 stack_dabort:
 
 	.balign	16
-	.space	1024
+	.space	256
 stack_irq:
 
 	.balign	16
-	.space	1024
+	.space	256
 stack_fiq:
+
+/* stack for IDLE-TASK */
+	.section .stack
+	.balign 16
+	.space	1024
+stack_idle:
+
+/* 割り込みハンドラで使うスタック */
+	.balign	16
+	.space	1024
+stack_intr:
