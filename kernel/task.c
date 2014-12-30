@@ -116,7 +116,6 @@ static void task_add_timeout_queue(TaskStruct* task)
 {
 	TaskStruct*	q_task;
 	Link*		link;
-
 	/************************************************************/
 	/* パターン													*/
 	/*  1: タイムアウトキューに登録なし -> キューの先頭に登録	*/
@@ -182,9 +181,9 @@ void task_tick(void)
 		if ( tick_count < task->timeout ) {
 			break;
 		}
+		link = link->next;
 		task_wakeup_stub(task, RT_TIMEOUT);
 		req_sched = true;
-		link = link->next;
 	}
 	if ( req_sched ) {
 		schedule();
