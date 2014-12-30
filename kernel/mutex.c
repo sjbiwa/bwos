@@ -45,7 +45,7 @@ OSAPI int mutex_unlock(MutexStruct* mtx)
 	irq_restore(cpsr);
 }
 
-OSAPI int mutex_lock(MutexStruct* mtx, uint32_t tmout)
+OSAPI int mutex_lock(MutexStruct* mtx, TimeSpec tmout)
 {
 	(void)tmout; /* 現在は未実装 */
 	uint32_t		cpsr;

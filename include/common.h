@@ -31,4 +31,7 @@
 #define	PRE_ALIGN_BY(x,n)		((uint32_t)(x) & ~((uint32_t)((n)-1)))
 #define	POST_ALIGN_BY(x,n)		(((uint32_t)(x)+(uint32_t)((n)-1)) & ~((uint32_t)((n)-1)))
 
+/* OS全体での経過時間指定 (単位はtick) */
+typedef	uint64_t	TimeSpec;
+
 #endif /* COMMON_H_ */

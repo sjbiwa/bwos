@@ -37,7 +37,7 @@ typedef	struct tagTaskStruct {
 	/* カーネル使用領域 */
 	TaskState	task_state;			/* Task State */
 	Link		tlink;				/* TimeOut LinkList */
-	uint32_t	timeout;			/* TimeOut Time */
+	TimeSpec	timeout;			/* TimeOut Time */
 	int32_t		result_code;		/* API完了コード */
 } TaskStruct;
 

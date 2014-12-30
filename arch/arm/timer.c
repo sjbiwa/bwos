@@ -10,8 +10,6 @@
 #include "task.h"
 #include "timer.h"
 
-uint32_t		tick_count = 0L;
-
 #if defined(HAVE_CP15_TIMER)
 static uint64_t	compare_reg_value = 0;
 #endif
@@ -25,8 +23,6 @@ timer_handler(uint32_t irqno, void* info)
 	compare_reg_value += (CNTFRQ_VALUE/1000)*TICK_CYCLE;
 	CNTP_CVAL_set(compare_reg_value);
 #endif
-	tick_count++;
-	//lprintf("tick=%d\n", tick_count);
 	task_tick();
 }
 

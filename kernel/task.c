@@ -37,7 +37,19 @@ Link			task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
+static TimeSpec		tick_count;	/* Tick Counter */
+
 extern void schedule(void);
+
+static inline TimeSpec get_tick_count(void)
+{
+	TimeSpec ret;
+	uint32_t cpsr;
+	irq_save(cpsr);
+	ret = tick_count;
+	irq_restore(cpsr);
+	return ret;
+}
 
 static inline bool can_dispatch(void)
 {
@@ -99,12 +111,31 @@ static void task_remove_timeout_queue(TaskStruct* task)
 	link_remove(&(task->tlink));
 }
 
+/* タイムアウトキューにタスクを登録する */
 static void task_add_timeout_queue(TaskStruct* task)
 {
-	Link*		top;
+	TaskStruct*	q_task;
+	Link*		link;
 
-	top = &task_time_out_list;
-	link_add_last(top, &(task->tlink));
+	/************************************************************/
+	/* パターン													*/
+	/*  1: タイムアウトキューに登録なし -> キューの先頭に登録	*/
+	/*	2: タイムアウトキューの途中								*/
+	/*	3: タイムアウトキュー全てより遅い ->　キューの最後尾	*/
+	/************************************************************/
+	link = task_time_out_list.next;
+	while ( link != &task_time_out_list ) {
+		q_task = containerof(link, TaskStruct, tlink);
+		/* 対象タスクの起床時間が検索中キューのタスクより早ければ */
+		/* その直前に登録する */
+		if ( task->timeout <= q_task->timeout ) {
+			/* linkの前が登録位置 */
+			break;
+		}
+		link = link->next;
+	}
+	/* link_add_lastはlinkの直前に入れるので期待通り */
+	link_add_last(link, &(task->tlink));
 }
 
 static void task_rotate_queue(uint32_t pri)
@@ -139,18 +170,26 @@ void task_tick(void)
 	Link*			link;
 	TaskStruct*		task;
 	bool			req_sched = false;
+	uint32_t		cpsr;
+
+	irq_save(cpsr);
+	/* tick_counter更新 */
+	tick_count++;
 	link = task_time_out_list.next;
 	while ( link != &task_time_out_list ) {
 		task = containerof(link, TaskStruct, tlink);
-		link = link->next; /* 次のタスクを取得しておく */
-		if ( task->timeout <= tick_count ) {
-			task_wakeup_stub(task, RT_TIMEOUT);
-			req_sched = true;
+		/* タスクの起床時間が大きかったらそこで終了 */
+		if ( tick_count < task->timeout ) {
+			break;
 		}
+		task_wakeup_stub(task, RT_TIMEOUT);
+		req_sched = true;
+		link = link->next;
 	}
 	if ( req_sched ) {
 		schedule();
 	}
+	irq_restore(cpsr);
 }
 
 void schedule(void)
@@ -223,12 +262,12 @@ OSAPI void task_wakeup(TaskStruct* task)
 	irq_restore(cpsr);
 }
 
-OSAPI int32_t task_tsleep(uint32_t tm)
+OSAPI int32_t task_tsleep(TimeSpec tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
 	task_sleep_stub(_ctask);
-	_ctask->timeout = tick_count + tm;
+	_ctask->timeout = get_tick_count() + tm;
 	_ctask->result_code = RT_TIMEOUT; /* デフォルトはタイムアウトに設定 */
 	task_add_timeout_queue(_ctask);
 	schedule();
