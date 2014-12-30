@@ -17,5 +17,6 @@
 #define	irq_save(reg)		__asm__ volatile ("mrs %0, cpsr;cpsid i":"=r"(reg)::"memory")
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) __asm__ volatile ("cpsie i":::"memory"); } while(0)
 
+extern bool arch_can_dispatch(void);
 
 #endif /* ARCH_COMMON_H_ */

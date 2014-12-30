@@ -38,15 +38,18 @@ void arch_task_create(TaskStruct* task)
 	ptr = (uint32_t*)((uint32_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
 	task->save_sp = (void*)ptr;
 
-	/* FPU(VFP)退避用領域の確保 (arch_tlsが確保されているタスク=VFP使用タスクとする) */
-	if ( task->task_attr & TASK_FPU ) {
-		task->arch_tls = __sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
-	}
-
 	/* setup task-context */
 	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)task->start_entry;
 	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
+
+	uint32_t fpexc = 0x00000000;
+	/* FPU(VFP)退避用領域の確保 */
+	if ( task->task_attr & TASK_FPU ) {
+		task->arch_tls = __sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
+		fpexc = 0x40000000;
+	}
+	ptr[TASK_FRAME_FPEXC] = fpexc;
 }
 
 void arch_system_preinit(void)
@@ -99,3 +102,14 @@ void arch_system_postinit(void)
 	sys_malloc_add_block(heap_start_addr, size);
 	tprintf("mblock ok\n");
 }
+
+bool arch_can_dispatch(void)
+{
+extern	uint32_t _irq_level; /* 多重割り込みレベル */
+	bool ret = false;
+	if ( _irq_level == 0 ) {
+		ret = true;
+	}
+	return ret;
+}
+

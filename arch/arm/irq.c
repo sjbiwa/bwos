@@ -10,6 +10,8 @@
 
 typedef	void (*IRQ_HANDLER)(uint32_t irqno, void* info);
 
+uint32_t _irq_level = 0; /* 多重割り込みレベル */
+
 static struct {
 	IRQ_HANDLER		handler;
 	void*			info;

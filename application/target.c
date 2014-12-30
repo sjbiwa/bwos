@@ -26,27 +26,30 @@ static void delay(void)
 #if 0
 void task1(void)
 {
-	double	a = 1.0;
+//	double	a = 1.0;
 	for (;;) {
-		TlsValue* tls = task_get_tls(TASK_SELF);
-		tls->value1 += 1;
-		tls->value2 += 2;
-		tls->value3 += 3;
-		tls->value4 += 4;
-		a += 0.1;
-		lprintf("task1::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
+//		TlsValue* tls = task_get_tls(TASK_SELF);
+//		tls->value1 += 1;
+//		tls->value2 += 2;
+//		tls->value3 += 3;
+//		tls->value4 += 4;
+//		a += 0.1;
+//		lprintf("task1::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
+		lprintf("task1\n");
 		task_tsleep(5000);
 	}
 }
 
 void task2(void)
 {
-	double	a = 1.0;
+//	double	a = 1.0;
 	for (;;) {
-		TlsValue* tls = task_get_tls(&task_info[0]);
-		lprintf("%d %d %d %d\n", tls->value1, tls->value2, tls->value3, tls->value4);
-		a += 0.1;
-		lprintf("task2::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
+//		TlsValue* tls = task_get_tls(&task_info[0]);
+//		lprintf("%d %d %d %d\n", tls->value1, tls->value2, tls->value3, tls->value4);
+//		a += 0.1;
+//		lprintf("task2::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
+		lprintf("task2\n");
+		task_tsleep(500);
 	}
 }
 

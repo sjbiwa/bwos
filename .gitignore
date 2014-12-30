@@ -5,3 +5,5 @@ build/bwos.elf
 .cproject
 .settings/language.settings.xml
 .settings/
+*.bin
+*.elf

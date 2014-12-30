@@ -48,107 +48,121 @@ _pref_entry:
 	b		_pref_entry
 
 _dabort_entry:
-	DFSR_get(r0)
-	DFAR_get(r1)
 	b		_dabort_entry
 
 /*
 ** _irq_entry
 **
+** タスク処理中の割り込み発生時の処理
+** 8バイトアラインメント
+**			stack_intr
 **			----------------------
-**	R0		| PC(return address)|+0
-**			| CPSR				|+4
-**			| R0				|+8
-**			| R1				|+12
-**			| R2				|+16
-**			---------------------
-** IRQ_SP	|					|+20
-**
-**					↓コピーする
-**
+**SVC_SP	| old_SP(task SP)	|+0
+**			| dummy(for align)	|+4
 **			----------------------
-**SVC_SP	| R0				|+40
-**			| R1				|+44
-**			| R2				|+48
-**			| R3				|+52
-**			| R12				|+56
-**			| LR				|+60
-**			| PC(return address)|+64  <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+68
+** (bottom)
+**
+**			実行中タスクのスタック
+**			----------------------
+**old_SP	| FPEXC				|+0  (全タスク存在する)
+**			| R0				|+4
+**			| R1				|+8
+**			| R2				|+12
+**			| R3				|+16
+**			| R12				|+20
+**			| LR				|+24
+**			| PC(return address)|+28 <- 割り込み発生時の戻りアドレス
+**			| CPSR              |+32
 **			---------------------
-** beforeSP |					|+72
+** beforeSP |					|+36
+**
+**
+**
+** 割り込み処理中の割り込み発生時の処理(多重割り込み)
+** 8バイトアラインメント
+**			stack_intr
+**			----------------------
+**SVC_SP	| old_SP			|+0(+0)
+**			| DUMMY				|+4(+0) SPのアライン用(アライン時は存在しない)
+**old_SP	| FPEXC				|+8(+4)
+**			| R0				|+12(+8)
+**			| R1				|+16(+12)
+**			| R2				|+20(+16)
+**			| R3				|+24(+20)
+**			| R12				|+28(+24)
+**			| LR				|+32(+28)
+**			| PC(return address)|+36(+32)  <- 割り込み発生時の戻りアドレス
+**			| CPSR              |+40(+36)
+**			---------------------
+** beforeSP |					|+44(+40)
+**
 */
 _irq_entry:
 	sub		lr, lr, #4
 
-	/* save PC/CPSR to SVC-stack */
-#if defined(__QEMU__)
-	/* save R0 to irq-stack */
-	stmdb	sp, {r0,r1,r2}
-	sub		r0, sp, #20
-
-	/* save PC/CPSR to temporary */
-	mov		r1, lr
-	mrs		r2, spsr
-	stmia	r0, {r1,r2}
-
-	cps		#MODE_SVC
-
-	/* R0=TEMP_STACK_TOP  R1,R2 is scratch */
-	/* save PC/CPSR to SVC-stack */
-	ldmia	r0!, {r1,r2}
-	push	{r1,r2}
-
-	/* restore R0-R2 */
-	ldmia	r0, {r0,r1,r2}
-
-	/* save R0-R3,R12,LR */
-	push	{r0-r3,r12,lr}
-#else
+	/* 状態をSVCスタックに退避してSVCモードに遷移 */
 	srsdb	sp!, #MODE_SVC
 	cps		#MODE_SVC
 	push	{r0-r3,r12,lr}
-#endif
-	/* SVC mode */
-
-	/* INC _nodispatch_level */
-	ldr		r1, =_nodispatch_level
-	ldr		r0, [r1]
-	add		r0, r0, #1
-	str		r0, [r1]
-
 	/* FPEXC get and VFP disable */
 	vmrs	r1, FPEXC
 	mov		r0, #0
 	vmsr	FPEXC, r0
+	push	{r1} /* FPEXC */
 
+	/* SVC mode */
+
+	/* INC _irq_level */
+	ldr		r1, =_irq_level
+	ldr		r0, [r1]
+	add		r0, r0, #1
+	str		r0, [r1]
+	/* R0 is old _irq_level */
+
+	/* check irq-level */
+	cmp		r0, #1
+	bne		_from_handler
+
+_from_task:
+	/* タスク実行中の割り込み */
+	/* 割り込みハンドラで使うスタックを専用スタックに切り替え */
+	mov		lr, sp
+	ldr		r0, =stack_intr
+	sub		r0, r0, #4		/* 8byte aligned */
+	mov		sp, r0
+	b		_common_ope
+
+_from_handler:
+	/* 割り込みハンドラ内での割り込み時はスタックはそのまま */
 	/* Adjust SP 8bytes align */
 	mov		lr, sp
 	tst		lr, #0x07
 	subne	sp, sp, #4
-	push	{lr} /* old SP */
-	push	{r1} /* FPEXC */
 
-	ldr		r1, [lr,#24]
-	ldr		r2, [lr,#28]
+_common_ope:
+	/* タスク/割り込み 共に以下からは共通処理 */
+	push	{lr} /* old SP */
+
+	ldr		r1, [lr,#28]
+	ldr		r2, [lr,#32]
 	mov		r0, lr
 
 	bl		c_handler	/* r0:sp, r1:Return Address, r2:SPSR */
+
+	/* restore SP */
+	ldr		sp, [sp]
 
 	/* restore FPEXC */
 	pop		{r0}
 	vmsr	FPEXC, r0
 
-	/* restore SP */
-	ldr		sp, [sp]
-
-	/* DEC _nodispatch_level */
-	ldr		r1, =_nodispatch_level
+	/* DEC _irq_level */
+	ldr		r1, =_irq_level
 	ldr		r0, [r1]
 	sub		r0, r0, #1
 	str		r0, [r1]
 
-	/* check _nodispatch_level (R0 is _nodispatch_level) */
+	/* check _irq_level (R0 is _irq_level) */
 	cmp		r0, #0
 	bne		_nodispatch_irq
 
