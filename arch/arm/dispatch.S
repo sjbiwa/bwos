@@ -166,8 +166,9 @@ _dispatch_irq:
 	beq		_restore_context /* _ctask is NULL ? */
 
 	/* save current task context */
-	adr		lr, _entry_stub
+	ldr		lr, =_entry_stub
 	push	{lr}
+	mov		lr, r0
 	b		_save_and_restore
 
 _nodispatch_irq:

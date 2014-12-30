@@ -48,8 +48,6 @@ _pref_entry:
 	b		_pref_entry
 
 _dabort_entry:
-	DFSR_get(r0)
-	DFAR_get(r1)
 	b		_dabort_entry
 
 /*
