@@ -37,19 +37,8 @@ Link			task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
-static TimeSpec		tick_count;	/* Tick Counter */
-
 extern void schedule(void);
 
-static inline TimeSpec get_tick_count(void)
-{
-	TimeSpec ret;
-	uint32_t cpsr;
-	irq_save(cpsr);
-	ret = tick_count;
-	irq_restore(cpsr);
-	return ret;
-}
 
 static inline bool can_dispatch(void)
 {
@@ -135,8 +124,15 @@ static void task_add_timeout_queue(TaskStruct* task)
 	}
 	/* link_add_lastはlinkの直前に入れるので期待通り */
 	link_add_last(link, &(task->tlink));
-}
 
+#if defined(USE_TICKLESS)
+	link = task_time_out_list.next;
+	while ( link != &task_time_out_list ) {
+		q_task = containerof(link, TaskStruct, tlink);
+		update_first_timeout(q_task->timeout);
+	}
+#endif
+}
 static void task_rotate_queue(uint32_t pri)
 {
 	Link*		curr;
@@ -170,10 +166,10 @@ void task_tick(void)
 	TaskStruct*		task;
 	bool			req_sched = false;
 	uint32_t		cpsr;
-
+	TimeSpec		tick_count;
 	irq_save(cpsr);
-	/* tick_counter更新 */
-	tick_count++;
+	/* タイムアウトキューに登録されているタスクの起床処理 */
+	tick_count = get_tick_count();
 	link = task_time_out_list.next;
 	while ( link != &task_time_out_list ) {
 		task = containerof(link, TaskStruct, tlink);
@@ -188,6 +184,13 @@ void task_tick(void)
 	if ( req_sched ) {
 		schedule();
 	}
+#if defined(USE_TICKLESS)
+	link = task_time_out_list.next;
+	while ( link != &task_time_out_list ) {
+		task = containerof(link, TaskStruct, tlink);
+		update_first_timeout(task->timeout);
+	}
+#endif
 	irq_restore(cpsr);
 }
 
@@ -261,7 +264,7 @@ OSAPI void task_wakeup(TaskStruct* task)
 	irq_restore(cpsr);
 }
 
-OSAPI int32_t task_tsleep(TimeSpec tm)
+OSAPI int32_t task_tsleep(TimeOut tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);

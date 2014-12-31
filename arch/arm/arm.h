@@ -45,7 +45,6 @@
 #define FPEXC_get()     ({uint32_t _reg_;__asm__ volatile ("vmrs %0,FPEXC":"=r"(_reg_)::"memory");_reg_;})
 #define FPEXC_set(reg)  do {__asm__ volatile ("vmsr FPEXC,%0"::"r"(reg):"memory");} while (0)
 
-
 #else
 #endif
 

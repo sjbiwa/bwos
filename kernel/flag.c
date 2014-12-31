@@ -36,7 +36,7 @@ OSAPI void flag_set(FlagStruct* flag)
 	irq_restore(cpsr);
 }
 
-OSAPI int flag_wait(FlagStruct* flag, TimeSpec tmout)
+OSAPI int flag_wait(FlagStruct* flag, TimeOut tmout)
 {
 	(void)tmout; /* 現在は未実装 */
 	uint32_t		cpsr;

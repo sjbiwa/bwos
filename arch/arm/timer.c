@@ -10,6 +10,38 @@
 #include "task.h"
 #include "timer.h"
 
+
+/* Tick処理 */
+#if !defined(USE_TICKLESS)
+static TimeSpec		tick_count;	/* Tick Counter */
+#endif
+
+/* TICKカウンタの取得 */
+TimeSpec get_tick_count(void)
+{
+#if defined(USE_TICKLESS)
+	return (TimeSpec)CNTPCT_get();
+#else
+	TimeSpec ret;
+	uint32_t cpsr;
+	irq_save(cpsr);
+	ret = tick_count;
+	irq_restore(cpsr);
+	return ret;
+#endif
+}
+
+/* 最短のタイムアウト時間通知 (tickless対応用) */
+void update_first_timeout(TimeSpec tmout)
+{
+#if defined(USE_TICKLESS)
+	/* tmoutをそのまま設定してみる */
+	CNTP_CVAL_set(tmout);
+#endif
+}
+
+/************************************************/
+
 #if defined(HAVE_CP15_TIMER)
 static uint64_t	compare_reg_value = 0;
 #endif
@@ -17,12 +49,23 @@ static uint64_t	compare_reg_value = 0;
 static void
 timer_handler(uint32_t irqno, void* info)
 {
+#if defined(USE_TICKLESS)
+	/* 64bit最大値を設定してタイムアウト割り込みが発生しないようにする */
+	CNTP_CVAL_set(0xffffffffLL);
+#else
+	/* Tickタイマありの場合はタイマ割り込み設定更新とTickCount更新 */
+	uint32_t cpsr;
+	irq_save(cpsr);
+	tick_count++;
+	irq_restore(cpsr);
 #if defined(HAVE_SCU_LOCAL_TIMER)
 	iowrite32(PTM_INTSTATUS, 0x00000001);
 #elif defined(HAVE_CP15_TIMER)
 	compare_reg_value += (CNTFRQ_VALUE/1000)*TICK_CYCLE;
 	CNTP_CVAL_set(compare_reg_value);
 #endif
+#endif
+	/* OSのタイムアウト処理呼び出し */
 	task_tick();
 }
 
