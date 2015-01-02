@@ -9,7 +9,6 @@
 #include "api.h"
 #include "link.h"
 #include "task.h"
-#include "timer.h"
 
 /* configuration end */
 /***********************/
