@@ -33,7 +33,7 @@ timer_handler(uint32_t irqno, void* info)
 {
 #if defined(USE_TICKLESS)
 	/* 64bit最大値を設定してタイムアウト割り込みが発生しないようにする */
-	CNTP_CVAL_set(0xffffffffLL);
+	CNTP_CVAL_set(0xffffffffffffffffLL);
 #else
 	/* Tickタイマありの場合はタイマ割り込み設定更新とTickCount更新 */
 	uint32_t cpsr;
@@ -80,7 +80,7 @@ timer_init(void)
 {
 #if defined(USE_TICKLESS)
 	/* 64bit最大値を設定してタイムアウト割り込みが発生しないようにする */
-	CNTP_CVAL_set(0xffffffffLL);
+	CNTP_CVAL_set(0xffffffffffffffffLL);
 	CNTP_CTL_set(0x00000001);
 #else
 #if defined(HAVE_SCU_LOCAL_TIMER)
