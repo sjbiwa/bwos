@@ -126,7 +126,7 @@ static void task_add_timeout_queue(TaskStruct* task)
 
 #if defined(USE_TICKLESS)
 	link = task_time_out_list.next;
-	while ( link != &task_time_out_list ) {
+	if ( link != &task_time_out_list ) {
 		q_task = containerof(link, TaskStruct, tlink);
 		update_first_timeout(q_task->timeout);
 	}
@@ -185,7 +185,7 @@ void task_tick(void)
 	}
 #if defined(USE_TICKLESS)
 	link = task_time_out_list.next;
-	while ( link != &task_time_out_list ) {
+	if ( link != &task_time_out_list ) {
 		task = containerof(link, TaskStruct, tlink);
 		update_first_timeout(task->timeout);
 	}

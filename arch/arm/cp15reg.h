@@ -295,9 +295,9 @@
 #define CNTHP_CTL_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,4,%0,c14,c2,1":"=r"(_reg_)::"memory");_reg_;})
 #define CNTHP_CTL_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c14,c2,1"::"r"(reg):"memory");} while (0)
 #define CNTPCT_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,0,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
-										(((uint64_t)(_regl_)<<32)|(uint64_t)(_regl_));})
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
 #define CNTVCT_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,1,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
-										(((uint64_t)(_regl_)<<32)|(uint64_t)(_regl_));})
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
 #define CNTP_CVAL_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,2,%0,%1,c14":"=r"(_regl_),"=r"(_regh_)::"memory"); \
 										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
 #define CNTP_CVAL_set(reg)     do {__asm__ volatile ("mcrr p15,2,%0,%1,c14"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
