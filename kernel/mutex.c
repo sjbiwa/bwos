@@ -45,11 +45,9 @@ OSAPI int mutex_unlock(MutexStruct* mtx)
 	irq_restore(cpsr);
 }
 
-OSAPI int mutex_lock(MutexStruct* mtx, TimeOut tmout)
+OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 {
-	(void)tmout; /* 現在は未実装 */
 	uint32_t		cpsr;
-	_ctask->result_code = RT_OK;
 	irq_save(cpsr);
 	if ( mtx->task == NULL ) {
 		/* lock中のタスクが無ければ自タスクのlockは成功 */
@@ -65,8 +63,17 @@ OSAPI int mutex_lock(MutexStruct* mtx, TimeOut tmout)
 		task_remove_queue(_ctask);
 		_ctask->task_state = TASK_WAIT;
 		link_add_last(&(mtx->link), &(_ctask->link));
+		if ( tmout != TMO_FEVER ) {
+			/* タイムアウトリストに追加 */
+			task_add_timeout(_ctask, tmout);
+		}
 		schedule();
 	}
 	irq_restore(cpsr);
 	return _ctask->result_code;
+}
+
+OSAPI int mutex_lock(MutexStruct* mtx)
+{
+	return mutex_tlock(mtx, TMO_FEVER);
 }

@@ -23,6 +23,7 @@
 /*** Tick管理パラメータ ***/
 typedef	uint64_t	TimeSpec;	/* OS内部での時間単位 */
 typedef	uint32_t	TimeOut;	/* APIで指定するタイムアウト単位 */
+#define	TMO_FEVER	(0xffffffffL)
 
 /* TIME_UNIT値に追従すること */
 #define	SEC(n)		(((n)*(CNTFRQ_VALUE/100))/TIME_UNIT_VALUE)

@@ -46,5 +46,6 @@ extern	TaskStruct*			_ntask;
 
 extern void task_remove_queue(TaskStruct* task);
 extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
+extern void task_add_timeout(TaskStruct* task, TimeOut tm);
 
 #endif /* TASK_H_ */

@@ -159,7 +159,7 @@ void task5(void)
 	lprintf("start task5\n");
 
 	for (;;) {
-		flag_wait(&wait_flag, 0);
+		flag_wait(&wait_flag);
 		lprintf("wakeup task5\n");
 	}
 }

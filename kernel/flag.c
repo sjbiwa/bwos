@@ -36,22 +36,30 @@ OSAPI void flag_set(FlagStruct* flag)
 	irq_restore(cpsr);
 }
 
-OSAPI int flag_wait(FlagStruct* flag, TimeOut tmout)
+OSAPI int flag_twait(FlagStruct* flag, TimeOut tmout)
 {
-	(void)tmout; /* 現在は未実装 */
 	uint32_t		cpsr;
 	irq_save(cpsr);
-	_ctask->result_code = RT_WAKEUP;
 	if ( (flag->value != 0) && link_is_empty(&(flag->link)) ) {
 		/* flag==WAKEUPで待ちタスクが無い場合は待たないで復帰する */
 		flag->value = 0;
 	}
 	else {
+		/* 待ちリストに追加 */
 		task_remove_queue(_ctask);
 		_ctask->task_state = TASK_WAIT;
 		link_add_last(&(flag->link), &(_ctask->link));
+		if ( tmout != TMO_FEVER ) {
+			/* タイムアウトリストに追加 */
+			task_add_timeout(_ctask, tmout);
+		}
 		schedule();
 	}
 	irq_restore(cpsr);
 	return _ctask->result_code;
+}
+
+OSAPI int flag_wait(FlagStruct* flag)
+{
+	return flag_twait(flag, TMO_FEVER);
 }

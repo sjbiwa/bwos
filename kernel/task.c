@@ -132,6 +132,7 @@ static void task_add_timeout_queue(TaskStruct* task)
 	}
 #endif
 }
+
 static void task_rotate_queue(uint32_t pri)
 {
 	Link*		curr;
@@ -143,16 +144,34 @@ static void task_rotate_queue(uint32_t pri)
 	}
 }
 
+static void task_sleep_stub(TaskStruct* task)
+{
+	task_remove_queue(task);
+	task->task_state = TASK_WAIT;
+}
+
+void task_add_timeout(TaskStruct* task, TimeOut tm)
+{
+	task->timeout = get_tick_count() + tm;
+	task_add_timeout_queue(task);
+}
+
 void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 {
 	uint32_t		cpsr;
 
 	if ( task->task_state == TASK_WAIT ) {
-		/* remove timeout queue */
+		/* 待ちリストに登録されている場合はリストから削除 */
+		if ( !link_is_empty(&(task->link)) ) {
+			link_remove(&(task->link));
+		}
+
+		/* タイムアウトキューに登録されている場合はリストから削除 */
 		if ( !link_is_empty(&(task->tlink)) ) {
 			task_remove_timeout_queue(task);
 			link_clear(&(task->tlink));
 		}
+
 		task->result_code = result_code;
 		task->task_state = TASK_READY;
 		task_add_queue(task);
@@ -239,12 +258,6 @@ OSAPI int task_create(TaskStruct* task)
 	return RT_OK;
 }
 
-void task_sleep_stub(TaskStruct* task)
-{
-	task_remove_queue(task);
-	task->task_state = TASK_WAIT;
-}
-
 OSAPI void task_sleep(void)
 {
 	uint32_t		cpsr;
@@ -269,7 +282,6 @@ OSAPI int32_t task_tsleep(TimeOut tm)
 	irq_save(cpsr);
 	task_sleep_stub(_ctask);
 	_ctask->timeout = get_tick_count() + tm;
-	_ctask->result_code = RT_TIMEOUT; /* デフォルトはタイムアウトに設定 */
 	task_add_timeout_queue(_ctask);
 	schedule();
 	irq_restore(cpsr);
