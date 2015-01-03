@@ -32,7 +32,7 @@ static struct {
 TaskStruct*		_ctask = NULL;			/* 現在実行中のタスク */
 TaskStruct*		_ntask = NULL;			/* ディスパッチが要求されたタスク */
 
-Link			task_time_out_list = {&task_time_out_list, &task_time_out_list};
+static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
@@ -147,6 +147,7 @@ static void task_rotate_queue(uint32_t pri)
 static void task_sleep_stub(TaskStruct* task)
 {
 	task_remove_queue(task);
+	link_clear(&(task->link));
 	task->task_state = TASK_WAIT;
 }
 
@@ -164,11 +165,12 @@ void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 		/* 待ちリストに登録されている場合はリストから削除 */
 		if ( !link_is_empty(&(task->link)) ) {
 			link_remove(&(task->link));
+			link_clear(&(task->link));
 		}
 
 		/* タイムアウトキューに登録されている場合はリストから削除 */
 		if ( !link_is_empty(&(task->tlink)) ) {
-			task_remove_timeout_queue(task);
+			link_remove(&(task->tlink));
 			link_clear(&(task->tlink));
 		}
 

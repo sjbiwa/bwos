@@ -294,7 +294,7 @@ static char		buff[1024];
 	len = 0;
 	va_start(arg, fmt);
 
-	mutex_lock(&printf_mutex, 0);
+	mutex_lock(&printf_mutex);
 	vtsprintf(buff,fmt,arg);
 
 	va_end(arg);

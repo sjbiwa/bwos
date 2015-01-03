@@ -43,6 +43,7 @@ OSAPI int mutex_unlock(MutexStruct* mtx)
 		ret = RT_ERR;
 	}
 	irq_restore(cpsr);
+	return ret;
 }
 
 OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)

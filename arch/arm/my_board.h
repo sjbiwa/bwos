@@ -26,7 +26,7 @@ typedef	uint32_t	TimeOut;	/* APIで指定するタイムアウト単位 */
 #define	TMO_FEVER	(0xffffffffL)
 
 /* TIME_UNIT値に追従すること */
-#define	SEC(n)		(((n)*(CNTFRQ_VALUE/100))/TIME_UNIT_VALUE)
+#define	SEC(n)		(((n)*(CNTFRQ_VALUE))/TIME_UNIT_VALUE)
 #define	MSEC(n)		(((n)*(CNTFRQ_VALUE/1000))/TIME_UNIT_VALUE)
 #define	USEC(n)		(1)
 #define	NSEC(n)		(1)
