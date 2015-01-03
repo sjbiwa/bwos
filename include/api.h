@@ -40,7 +40,14 @@ OSAPI int mutex_unlock(MutexStruct* mtx);
 OSAPI int mutex_lock(MutexStruct* mtx);
 OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout);
 
-/* ヒープメモリ関連API (名前は再検討) */
+/* セマフォ関連API */
+OSAPI int sem_create(SemStruct* sem, uint32_t max, uint32_t init);
+OSAPI int sem_request(SemStruct* sem);
+OSAPI int sem_request2(SemStruct* sem, uint32_t num);
+OSAPI int sem_release(SemStruct* sem);
+OSAPI int sem_release2(SemStruct* sem, uint32_t num);
+
+/* ヒープメモリ関連API */
 OSAPI void* sys_malloc(uint32_t size);
 OSAPI void sys_free(void* ptr);
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
