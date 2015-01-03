@@ -64,12 +64,12 @@ typedef	struct {
 static 	Link	mb_space_link;
 
 /* 排他用mutex */
-static MutexStruct	mutex;
+static MutexStruct	malloc_mutex;
 
 void sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
-	mutex_create(&mutex);
+	mutex_create(&malloc_mutex);
 }
 
 #if defined(TEST_MODE)
@@ -206,9 +206,9 @@ void* __sys_malloc_align(uint32_t size, uint32_t align)
 
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
 {
-	mutex_lock(&mutex);
+	mutex_lock(&malloc_mutex);
 	void* ret = __sys_malloc_align(size, align);
-	mutex_unlock(&mutex);
+	mutex_unlock(&malloc_mutex);
 
 	return ret;
 
@@ -248,16 +248,16 @@ void* __sys_malloc(uint32_t size)
 
 OSAPI void* sys_malloc(uint32_t size)
 {
-	mutex_lock(&mutex);
+	mutex_lock(&malloc_mutex);
 	void* ret = __sys_malloc(size);
-	mutex_unlock(&mutex);
+	mutex_unlock(&malloc_mutex);
 
 	return ret;
 }
 
 OSAPI void sys_free(void* ptr)
 {
-	mutex_lock(&mutex);
+	mutex_lock(&malloc_mutex);
 
 	/* シグネチャチェック */
 	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;
@@ -314,7 +314,7 @@ OSAPI void sys_free(void* ptr)
 	}
 
 err_ret:
-	mutex_unlock(&mutex);
+	mutex_unlock(&malloc_mutex);
 
 	return;
 }
@@ -323,15 +323,15 @@ err_ret:
 
 void dump_mbinfo()
 {
-	mutex_lock(&mutex);
+	mutex_lock(&malloc_mutex);
 
-	mutex_unlock(&mutex);
+	mutex_unlock(&malloc_mutex);
 }
 
 void dump_space()
 {
 	lprintf("DUMP_SPACE\n");
-	mutex_lock(&mutex);
+	mutex_lock(&malloc_mutex);
 	Link* link = mb_space_link.next;
 	while ( link != &mb_space_link ) {
 		MBSpaceProlog* mb_prolog = containerof(link, MBSpaceProlog, link);
@@ -345,13 +345,13 @@ void dump_space()
 		lprintf("SPACE:%08X-%08X (len=%08X)\n", mb_prolog, mb_epilog+1, mb_prolog->mb_size);
 		link =link->next;
 	}
-	mutex_unlock(&mutex);
+	mutex_unlock(&malloc_mutex);
 }
 
 void dump_use(void* ptr)
 {
 	lprintf("DUMP_USE\n");
-	mutex_lock(&mutex);
+	mutex_lock(&malloc_mutex);
 	MBUseProlog* mb_prolog = (MBUseProlog*)ptr - 1;
 	MBUseEpilog* mb_epilog = (MBUseEpilog*)((uint8_t*)(mb_prolog) + mb_prolog->mb_size) - 1;
 	if ( (mb_prolog->identify.signature != MB_SIGNATURE) ||  (mb_epilog->identify.signature != MB_SIGNATURE) ||
@@ -359,6 +359,6 @@ void dump_use(void* ptr)
 		lprintf("error\n");
 	}
 	lprintf("USE:%08X (len=%08X)\n", mb_prolog, mb_prolog->mb_size);
-	mutex_unlock(&mutex);
+	mutex_unlock(&malloc_mutex);
 }
 #endif

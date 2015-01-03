@@ -36,7 +36,7 @@ void task1(void)
 //		a += 0.1;
 //		lprintf("task1::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 		lprintf("task1\n");
-		task_tsleep(5000);
+		task_tsleep(MSEC(50));
 	}
 }
 
@@ -49,7 +49,7 @@ void task2(void)
 //		a += 0.1;
 //		lprintf("task2::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 		lprintf("task2\n");
-		task_tsleep(500);
+		task_tsleep(MSEC(70));
 	}
 }
 
@@ -69,7 +69,7 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x11, 128);
 			}
-			task_tsleep(100);
+			task_tsleep(MSEC(100));
 			a += 0.1;
 			lprintf("%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 		}
@@ -78,7 +78,7 @@ static void* ptr[100];
 				lprintf("free1[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(100);
+			task_tsleep(MSEC(100));
 		}
 		dump_space();
 	}
@@ -98,14 +98,14 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x44, 256);
 			}
-			task_tsleep(200);
+			task_tsleep(MSEC(200));
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free2[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(200);
+			task_tsleep(MSEC(200));
 		}
 		dump_space();
 	}
@@ -125,14 +125,14 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x77, 512);
 			}
-			task_tsleep(300);
+			task_tsleep(MSEC(300));
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free3[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(300);
+			task_tsleep(MSEC(300));
 		}
 		dump_space();
 	}
@@ -143,11 +143,10 @@ static FlagStruct	wait_flag;
 
 void task4(void)
 {
-	task_sleep();
 	flag_create(&wait_flag);
 	lprintf("start task4\n");
 	for (;;) {
-		task_tsleep(50);
+		task_tsleep(MSEC(700));
 		flag_set(&wait_flag);
 		lprintf("set_flag task4\n");
 	}
@@ -155,12 +154,11 @@ void task4(void)
 
 void task5(void)
 {
-	task_sleep();
 	lprintf("start task5\n");
 
 	for (;;) {
-		flag_wait(&wait_flag, 0);
-		lprintf("wakeup task5\n");
+		int ret = flag_twait(&wait_flag, MSEC(500));
+		lprintf("wakeup task5:%d\n", ret);
 	}
 }
 

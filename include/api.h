@@ -25,18 +25,20 @@
 OSAPI int task_create(TaskStruct* task);
 OSAPI void task_sleep(void);
 OSAPI void task_wakeup(TaskStruct* task);
-OSAPI int32_t task_tsleep(uint32_t tm);
+OSAPI int32_t task_tsleep(TimeOut tm);
 OSAPI void* task_get_tls(TaskStruct* task);
 
 /* フラグ関連API */
 OSAPI int flag_create(FlagStruct* flag);
 OSAPI void flag_set(FlagStruct* flag);
-OSAPI int flag_wait(FlagStruct* flag, uint32_t tmout);
+OSAPI int flag_wait(FlagStruct* flag);
+OSAPI int flag_twait(FlagStruct* flag, TimeOut tmout);
 
 /* ミューテックス関連API */
 OSAPI int mutex_create(MutexStruct* mtx);
 OSAPI int mutex_unlock(MutexStruct* mtx);
-OSAPI int mutex_lock(MutexStruct* mtx, uint32_t tmout);
+OSAPI int mutex_lock(MutexStruct* mtx);
+OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout);
 
 /* ヒープメモリ関連API (名前は再検討) */
 OSAPI void* sys_malloc(uint32_t size);

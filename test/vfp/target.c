@@ -22,7 +22,7 @@ void task1(void)
 		a += 1.0;
 		b += 2.0;
 		c += 3.0;
-		task_tsleep(1);
+		task_tsleep(MSEC(1));
 	}
 		lprintf("%d %d %d\n", (int)a, (int)b, (int)c);
 	flag = 1;
@@ -38,7 +38,7 @@ void task2(void)
 		a += 1.0;
 		b += 2.0;
 		c += 3.0;
-		task_tsleep(2);
+		task_tsleep(MSEC(2));
 	}
 		lprintf("%d %d %d\n", (int)a, (int)b, (int)c);
 	flag = 1;
@@ -54,7 +54,7 @@ void task3(void)
 		a += 1.0;
 		b += 2.0;
 		c += 3.0;
-		task_tsleep(3);
+		task_tsleep(MSEC(3));
 	}
 	lprintf("%d %d %d\n", (int)a, (int)b, (int)c);
 	flag = 1;
@@ -68,7 +68,7 @@ void task4(void)
 	flag_create(&wait_flag);
 	lprintf("start task4\n");
 	while ( flag == 0 ) {
-		task_tsleep(5);
+		task_tsleep(MSEC(5));
 		flag_set(&wait_flag);
 		lprintf("set_flag task4\n");
 	}

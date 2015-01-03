@@ -37,7 +37,7 @@ typedef	struct tagTaskStruct {
 	/* カーネル使用領域 */
 	TaskState	task_state;			/* Task State */
 	Link		tlink;				/* TimeOut LinkList */
-	uint32_t	timeout;			/* TimeOut Time */
+	TimeSpec	timeout;			/* TimeOut Time */
 	int32_t		result_code;		/* API完了コード */
 } TaskStruct;
 
@@ -46,5 +46,6 @@ extern	TaskStruct*			_ntask;
 
 extern void task_remove_queue(TaskStruct* task);
 extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
+extern void task_add_timeout(TaskStruct* task, TimeOut tm);
 
 #endif /* TASK_H_ */

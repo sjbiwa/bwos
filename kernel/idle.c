@@ -7,7 +7,7 @@
 #include "common.h"
 #include "arm.h"
 #include "task.h"
-
+#include "cp15reg.h"
 /*
  * 	idle_task
  * 	  call in DISABLE_IRQ
@@ -18,6 +18,8 @@ idle_task(void)
 	for (;;) {
 		irq_disable();
 		__wfi();
+		CNTPCT_get();
+		CNTP_CVAL_get();
 		irq_enable();
 	}
 }

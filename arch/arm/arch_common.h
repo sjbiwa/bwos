@@ -18,5 +18,7 @@
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) __asm__ volatile ("cpsie i":::"memory"); } while(0)
 
 extern bool arch_can_dispatch(void);
+extern TimeSpec get_tick_count(void);
+extern void update_first_timeout(TimeSpec tmout);
 
 #endif /* ARCH_COMMON_H_ */
