@@ -148,6 +148,8 @@ static void task_sleep_stub(TaskStruct* task)
 {
 	task_remove_queue(task);
 	link_clear(&(task->link));
+	task->wait_obj = 0;
+	task->wait_func = 0;
 	task->task_state = TASK_WAIT;
 }
 
@@ -177,6 +179,11 @@ void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 		task->result_code = result_code;
 		task->task_state = TASK_READY;
 		task_add_queue(task);
+
+		/* タスク起床時にコールバック関数呼び出し */
+		if ( task->wait_func != 0 ) {
+			(task->wait_func)(task);
+		}
 	}
 }
 
@@ -190,14 +197,14 @@ void task_tick(void)
 	irq_save(cpsr);
 	/* タイムアウトキューに登録されているタスクの起床処理 */
 	tick_count = get_tick_count();
-	link = task_time_out_list.next;
-	while ( link != &task_time_out_list ) {
+	/* キューは昇順に登録されているので先頭のみチェックしていれば良い */
+	/* 先頭タスクが起床されたら次のタスクが先頭タスクになるため */
+	while ( (link = task_time_out_list.next) != &task_time_out_list ) {
 		task = containerof(link, TaskStruct, tlink);
 		/* タスクの起床時間が大きかったらそこで終了 */
 		if ( tick_count < task->timeout ) {
 			break;
 		}
-		link = link->next;
 		task_wakeup_stub(task, RT_TIMEOUT);
 		req_sched = true;
 	}

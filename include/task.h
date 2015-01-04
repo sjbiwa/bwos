@@ -38,6 +38,8 @@ typedef	struct tagTaskStruct {
 	TaskState	task_state;			/* Task State */
 	Link		tlink;				/* TimeOut LinkList */
 	TimeSpec	timeout;			/* TimeOut Time */
+	void*		wait_obj;			/* 待ち状態となった対象オブジェクト */
+	void		(*wait_func)(struct tagTaskStruct* task); /* 待ち状態解除時コールバック */
 	int32_t		result_code;		/* API完了コード */
 } TaskStruct;
 

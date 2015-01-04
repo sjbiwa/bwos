@@ -50,6 +50,10 @@ OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
+
+	/* リターンコード設定 */
+	_ctask->result_code = RT_OK;
+
 	if ( mtx->task == NULL ) {
 		/* lock中のタスクが無ければ自タスクのlockは成功 */
 		mtx->task = _ctask;
@@ -61,8 +65,10 @@ OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 	}
 	else {
 		/* 他タスクlock中なので待ち状態に遷移 */
-		task_remove_queue(_ctask);
+		_ctask->wait_obj = 0;
+		_ctask->wait_func = 0;
 		_ctask->task_state = TASK_WAIT;
+		task_remove_queue(_ctask);
 		link_add_last(&(mtx->link), &(_ctask->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */

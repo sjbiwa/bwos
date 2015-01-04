@@ -26,7 +26,7 @@ OSAPI void flag_set(FlagStruct* flag)
 		Link* link = flag->link.next;
 		link_remove(link);
 		TaskStruct* task = containerof(link, TaskStruct, link);
-		task_wakeup_stub(task, RT_EVENT);
+		task_wakeup_stub(task, RT_OK);
 		flag->value = 0;
 		schedule();
 	}
@@ -40,14 +40,20 @@ OSAPI int flag_twait(FlagStruct* flag, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
+
+	/* リターンコード設定 */
+	_ctask->result_code = RT_OK;
+
 	if ( (flag->value != 0) && link_is_empty(&(flag->link)) ) {
 		/* flag==WAKEUPで待ちタスクが無い場合は待たないで復帰する */
 		flag->value = 0;
 	}
 	else {
 		/* 待ちリストに追加 */
-		task_remove_queue(_ctask);
+		_ctask->wait_obj = 0;
+		_ctask->wait_func = 0;
 		_ctask->task_state = TASK_WAIT;
+		task_remove_queue(_ctask);
 		link_add_last(&(flag->link), &(_ctask->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */

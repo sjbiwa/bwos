@@ -15,7 +15,6 @@ typedef	struct tagSemStruct {
 	Link		link;
 	uint32_t	max;			/* 全リソース個数 */
 	uint32_t	remain;			/* リソース残数 */
-	uint32_t	insufficient;	/* 足りないリソース数(先頭オブジェクト) */
 } SemStruct;
 
 
