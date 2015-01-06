@@ -14,6 +14,7 @@
 #include "flag.h"
 #include "mutex.h"
 #include "sem.h"
+#include "msgq.h"
 #include "malloc.h"
 
 #define	RT_OK				(0)
@@ -46,6 +47,13 @@ OSAPI int sem_create(SemStruct* sem, uint32_t max);
 OSAPI int sem_request(SemStruct* sem, uint32_t num);
 OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout);
 OSAPI int sem_release(SemStruct* sem, uint32_t num);
+
+/* メッセージキュー関連API */
+OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length);
+OSAPI int msgq_send(MsgqStruct* msgq, void* ptr);
+OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout);
+OSAPI int msgq_recv(MsgqStruct* msgq, void** ptr);
+OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout);
 
 /* ヒープメモリ関連API */
 OSAPI void* sys_malloc(uint32_t size);
