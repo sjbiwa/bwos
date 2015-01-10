@@ -25,14 +25,15 @@
 
 /* タスク関連API */
 OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);
-OSAPI void task_sleep(void);
-OSAPI void task_wakeup(TaskStruct* task);
-OSAPI int32_t task_tsleep(TimeOut tm);
+OSAPI int task_active(TaskStruct* task);
+OSAPI int task_sleep(void);
+OSAPI int task_wakeup(TaskStruct* task);
+OSAPI int task_tsleep(TimeOut tm);
 OSAPI void* task_get_tls(TaskStruct* task);
 
 /* フラグ関連API */
 OSAPI int flag_create(FlagStruct* flag);
-OSAPI void flag_set(FlagStruct* flag);
+OSAPI int flag_set(FlagStruct* flag);
 OSAPI int flag_wait(FlagStruct* flag);
 OSAPI int flag_twait(FlagStruct* flag, TimeOut tmout);
 

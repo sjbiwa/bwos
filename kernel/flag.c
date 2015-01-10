@@ -14,10 +14,10 @@ OSAPI int flag_create(FlagStruct* flag)
 {
 	link_clear(&flag->link);
 	flag->value = 0;
-	return 0;
+	return RT_OK;
 }
 
-OSAPI void flag_set(FlagStruct* flag)
+OSAPI int flag_set(FlagStruct* flag)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -34,6 +34,7 @@ OSAPI void flag_set(FlagStruct* flag)
 		flag->value = 1;
 	}
 	irq_restore(cpsr);
+	return RT_OK;
 }
 
 OSAPI int flag_twait(FlagStruct* flag, TimeOut tmout)

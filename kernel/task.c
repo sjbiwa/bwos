@@ -312,32 +312,52 @@ OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info)
 	arch_task_create(task); /* ARCH depend create */
 
 	if ( task->task_attr & TASK_ACT ) {
+		uint32_t		cpsr;
+		irq_save(cpsr);
 		task->task_state = TASK_READY;
 		task_add_queue(task);
+		schedule();
+		irq_restore(cpsr);
 	}
 
 	return RT_OK;
 }
 
-OSAPI void task_sleep(void)
+OSAPI int task_active(TaskStruct* task)
+{
+	uint32_t		cpsr;
+	irq_save(cpsr);
+	if ( task->task_state == TASK_STANDBY ) {
+		task->task_state = TASK_READY;
+		task_add_queue(task);
+		schedule();
+	}
+	irq_restore(cpsr);
+
+	return RT_OK;
+}
+
+OSAPI int task_sleep(void)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
 	task_sleep_stub(_ctask);
 	schedule();
 	irq_restore(cpsr);
+	return RT_OK;
 }
 
-OSAPI void task_wakeup(TaskStruct* task)
+OSAPI int task_wakeup(TaskStruct* task)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
 	task_wakeup_stub(task, RT_WAKEUP);
 	schedule();
 	irq_restore(cpsr);
+	return RT_OK;
 }
 
-OSAPI int32_t task_tsleep(TimeOut tm)
+OSAPI int task_tsleep(TimeOut tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
