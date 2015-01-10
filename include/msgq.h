@@ -14,11 +14,11 @@
 #include "msgq.h"
 
 typedef	struct tagMsgqStruct {
-	Link		link;
-	void**		data;
-	uint32_t	length;
-	uint32_t	data_top;
-	uint32_t	data_num;
+	Link			link;
+	void**			data;
+	uint32_t		length;
+	uint32_t		data_top;
+	uint32_t		data_num;
 } MsgqStruct;
 
 #endif /* MSGQ_H_ */

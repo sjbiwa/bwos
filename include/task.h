@@ -15,7 +15,9 @@
 #define	TASK_RESERVE		{0,0},0,0
 
 /* タスク属性定義 */
-#define	TASK_FPU			(0x00000001u<<0)
+#define	TASK_ACT			(0x00000001u<<0)	/* タスク生成時にレディーキューに登録する */
+#define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
+
 
 typedef	enum { TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
 typedef	struct tagTaskStruct {
