@@ -19,7 +19,7 @@
 #define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
 
 
-typedef	enum { TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
+typedef	enum { TASK_STANDBY, TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
 typedef	struct tagTaskStruct {
 	/* Fixed Position */
 	Link		link;				/* ReadQueue/EventQueue LinkList */
@@ -29,7 +29,7 @@ typedef	struct tagTaskStruct {
 	/* ユーザー定義領域 */
 	uint8_t		name[32];			/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
-	void*		start_entry;		/* Start Entry */
+	void		(*entry)(void);		/* Start Entry */
 	void*		init_sp;			/* Initialize SP */
 	uint32_t	stack_size;			/* Stack Size */
 	uint32_t	priority;			/* Task Priority */
@@ -44,6 +44,16 @@ typedef	struct tagTaskStruct {
 	void		(*wait_func)(struct tagTaskStruct* task); /* 待ち状態解除時コールバック */
 	int32_t		result_code;		/* API完了コード */
 } TaskStruct;
+
+typedef	struct {
+	uint8_t*	name;				/* Task Name */
+	uint32_t	task_attr;			/* Task属性 */
+	void		(*entry)(void);		/* Start Entry */
+	void*		init_sp;			/* Initialize SP */
+	uint32_t	stack_size;			/* Stack Size */
+	uint32_t	tls_size;			/* TLS size */
+	uint32_t	priority;			/* Task Priority */
+} TaskCreateInfo;
 
 extern	TaskStruct*			_ctask;
 extern	TaskStruct*			_ntask;

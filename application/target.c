@@ -6,15 +6,6 @@
  */
 #include "api.h"
 
-extern TaskStruct	task_info[];
-
-typedef	struct {
-	int	value1;
-	int	value2;
-	int	value3;
-	int	value4;
-} TlsValue;
-
 static void delay(void)
 {
 	volatile int		ix, iy;
@@ -165,3 +156,24 @@ void task5(void)
 }
 
 #endif
+
+
+/* configuration task */
+TaskStruct		task_struct[16];
+
+TaskCreateInfo	task_info[] = {
+		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
+		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 5},
+		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
+		{"TASK4",          TASK_ACT, task4, 0, 1024, 1024, 5},
+		{"TASK5",          TASK_ACT, task5, 0, 1024, 1024, 5},
+};
+
+void init_task(void)
+{
+	int ix;
+	for ( ix=0; ix<arrayof(task_info); ix++ ) {
+		task_create(&task_struct[ix], &task_info[ix]);
+	}
+	task_sleep();
+}

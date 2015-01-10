@@ -24,7 +24,7 @@
 #define	RT_EVENT			(-4)
 
 /* タスク関連API */
-OSAPI int task_create(TaskStruct* task);
+OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);
 OSAPI void task_sleep(void);
 OSAPI void task_wakeup(TaskStruct* task);
 OSAPI int32_t task_tsleep(TimeOut tm);

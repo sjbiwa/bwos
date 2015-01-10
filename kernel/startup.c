@@ -1,5 +1,5 @@
 /*
- * main.c
+ * startup.c
  *
  *  Created on: 2012/12/01
  *      Author: biwa
@@ -9,10 +9,7 @@
 #include "malloc.h"
 #include "version.h"
 
-extern TaskStruct	task_info[];
-extern uint32_t		task_info_num;
-
-int main(void)
+void startup(void)
 {
 	int ix;
 	/* ハードウェア初期化 */
@@ -22,13 +19,8 @@ int main(void)
 	timer_init();
 	lprintf_init();
 	sys_malloc_init();
-	arch_system_postinit();
-
-	/* OSリソース初期化 */
 	task_init();
-	for (ix=0; ix<task_info_num; ix++) {
-		task_create(&task_info[ix]);
-	}
+	arch_system_postinit();
 
 	schedule();
 }

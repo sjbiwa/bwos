@@ -12,6 +12,7 @@
 #include "cp15reg.h"
 #include "my_board.h"
 
+extern void	_entry_stub(void);
 extern char __heap_start;
 void* heap_start_addr = &__heap_start;
 
@@ -25,31 +26,35 @@ static inline int32_t bit_srch_l(uint32_t val)
 	return ret;
 }
 
-void arch_task_create(TaskStruct* task)
+static inline void arch_init_task(TaskStruct* task)
 {
-	extern void	_entry_stub(void);
 	uint32_t*		ptr;
-
-	/* setup stack pointer */
-	if ( task->init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->init_sp = __sys_malloc_align(task->stack_size, 8);
-	}
 	ptr = (uint32_t*)((uint32_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
-	task->save_sp = (void*)ptr;
+	ptr = (void*)PRE_ALIGN_BY(ptr, 8);
+	task->save_sp = ptr;
 
 	/* setup task-context */
-	ptr[TASK_FRAME_STUB] = (void*)_entry_stub;
-	ptr[TASK_FRAME_PC] = (uint32_t)task->start_entry;
+	ptr[TASK_FRAME_STUB] = (uint32_t)_entry_stub;
+	ptr[TASK_FRAME_PC] = (uint32_t)task->entry;
 	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
+	ptr[TASK_FRAME_FPEXC] = 0x00000000;
+}
 
-	uint32_t fpexc = 0x00000000;
+void arch_init_task_create(TaskStruct* task)
+{
+	arch_init_task(task);
+}
+
+void arch_task_create(TaskStruct* task)
+{
+	arch_init_task(task);
+
 	/* FPU(VFP)退避用領域の確保 */
 	if ( task->task_attr & TASK_FPU ) {
-		task->arch_tls = __sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
-		fpexc = 0x40000000;
+		uint32_t*		ptr = task->save_sp;
+		task->arch_tls = sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
+		ptr[TASK_FRAME_FPEXC] = 0x40000000;
 	}
-	ptr[TASK_FRAME_FPEXC] = fpexc;
 }
 
 void arch_system_preinit(void)

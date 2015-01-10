@@ -32,12 +32,14 @@ static struct {
 TaskStruct*		_ctask = NULL;			/* 現在実行中のタスク */
 TaskStruct*		_ntask = NULL;			/* ディスパッチが要求されたタスク */
 
+static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
+static uint32_t		init_task_stack[1024];
 static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
 extern void schedule(void);
-
+extern void init_task(void);
 
 static inline bool can_dispatch(void)
 {
@@ -235,6 +237,34 @@ void schedule(void)
 	irq_restore(cpsr);
 }
 
+static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t task_attr, void* entry,
+					void* init_sp, uint32_t stack_size, uint32_t priority)
+{
+	link_clear(&task->link);
+	task->save_sp = 0;
+	task->arch_tls = 0;
+	if ( name ) {
+		strncpy(task->name, name, sizeof(task->name)-1);
+	}
+	else {
+		task->name[0] = '\0';
+	}
+	task->task_attr = task_attr;
+	task->entry = entry;
+	task->init_sp = init_sp;
+	task->stack_size = stack_size;
+	task->priority = priority;
+	task->tls = 0;
+	task->tls_size = 0;
+	task->task_state = TASK_STANDBY;
+	link_clear(&task->tlink);
+	task->timeout = 0;
+	task->wait_obj = 0;
+	task->wait_func = 0;
+	task->result_code = 0;
+}
+
+
 void task_init(void)
 {
 	int			ix;
@@ -244,25 +274,47 @@ void task_init(void)
 	}
 	_ctask = NULL;
 	_ntask = NULL;
+
+	/* 初期タスクの生成 */
+	task_init_struct(&init_task_struct,
+						"INIT_TASK",
+						TASK_ACT,
+						init_task,
+						init_task_stack,
+						sizeof(init_task_stack),
+						0);
+	arch_init_task_create(&init_task_struct);
+	init_task_struct.task_state = TASK_READY;
+	task_add_queue(&init_task_struct);
 }
 
-OSAPI int task_create(TaskStruct* task)
+OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info)
 {
-	link_clear(&task->link);
-	link_clear(&task->tlink);
+	task_init_struct(task,
+						info->name,
+						info->task_attr,
+						info->entry,
+						info->init_sp,
+						info->stack_size,
+						info->priority);
 
-	/* setup TaskStruct */
-	arch_task_create(task); /* ARCH depend create */
-	task->task_state = TASK_READY;
-
-#if 1
-/* TLS alloc */
+	/* setup stack pointer */
+	if ( task->init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->init_sp = sys_malloc_align(task->stack_size, 8);
+	}
+	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
-		task->tls = __sys_malloc_align(task->tls_size, 8);
+		task->tls = sys_malloc_align(task->tls_size, 8);
 		memset(task->tls, 0, task->tls_size);
 	}
-#endif
-	task_add_queue(task);
+
+	arch_task_create(task); /* ARCH depend create */
+
+	if ( task->task_attr & TASK_ACT ) {
+		task->task_state = TASK_READY;
+		task_add_queue(task);
+	}
 
 	return RT_OK;
 }
