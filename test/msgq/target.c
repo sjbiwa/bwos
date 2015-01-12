@@ -29,8 +29,8 @@ void task2(void)
 	void* ptr;
 	for ( ix=0;; ix++ ) {
 		msgq_recv(&msgq1, &ptr);
-		msgq_send(&msgq2, ptr);
 		lprintf("TASK2:MSG1:recv:%d\n", ix);
+		msgq_send(&msgq2, ptr);
 	}
 }
 
