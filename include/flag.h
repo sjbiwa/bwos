@@ -8,6 +8,9 @@
 #ifndef FLAG_H_
 #define FLAG_H_
 
+#include <stdint.h>
+#include "link.h"
+
 typedef	struct tagFlagStruct {
 	Link		link;
 	uint32_t	value;

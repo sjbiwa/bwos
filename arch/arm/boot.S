@@ -124,7 +124,7 @@ _bss_loop:
 	b		_bss_loop
 _bss_done:
 
-	bl		main
+	bl		startup
 
 _loop_:
 	b		_loop_

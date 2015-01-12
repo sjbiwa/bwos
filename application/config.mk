@@ -2,4 +2,4 @@
 #
 #
 
-C_SRCS += resource.c target.c
+C_SRCS += target.c

@@ -6,15 +6,6 @@
  */
 #include "api.h"
 
-extern TaskStruct	task_info[];
-
-typedef	struct {
-	int	value1;
-	int	value2;
-	int	value3;
-	int	value4;
-} TlsValue;
-
 static void delay(void)
 {
 	volatile int		ix, iy;
@@ -69,7 +60,7 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x11, 128);
 			}
-			task_tsleep(MSEC(100));
+			task_tsleep(MSEC(10));
 			a += 0.1;
 			lprintf("%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
 		}
@@ -78,7 +69,7 @@ static void* ptr[100];
 				lprintf("free1[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(MSEC(100));
+			task_tsleep(MSEC(10));
 		}
 		dump_space();
 	}
@@ -98,20 +89,21 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x44, 256);
 			}
-			task_tsleep(MSEC(200));
+			task_tsleep(MSEC(20));
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free2[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(MSEC(200));
+			task_tsleep(MSEC(20));
 		}
 		dump_space();
 	}
 	task_sleep();
 }
 
+static volatile bool flags = false;
 void task3(void)
 {
 static void* ptr[100];
@@ -125,17 +117,18 @@ static void* ptr[100];
 			if ( ptr[ix] ) {
 				memset(ptr[ix], 0x77, 512);
 			}
-			task_tsleep(MSEC(300));
+			task_tsleep(MSEC(30));
 		}
 		for (ix=0; ix<100; ix++) {
 			if ( ptr[ix] ) {
 				lprintf("free3[%d]=%08X\n", ix, ptr[ix]);
 				sys_free(ptr[ix]);
 			}
-			task_tsleep(MSEC(300));
+			task_tsleep(MSEC(30));
 		}
 		dump_space();
 	}
+	flags = true;
 	task_sleep();
 }
 
@@ -145,8 +138,8 @@ void task4(void)
 {
 	flag_create(&wait_flag);
 	lprintf("start task4\n");
-	for (;;) {
-		task_tsleep(MSEC(700));
+	while (!flags) {
+		task_tsleep(MSEC(70));
 		flag_set(&wait_flag);
 		lprintf("set_flag task4\n");
 	}
@@ -156,10 +149,31 @@ void task5(void)
 {
 	lprintf("start task5\n");
 
-	for (;;) {
-		int ret = flag_twait(&wait_flag, MSEC(500));
+	while (!flags) {
+		int ret = flag_twait(&wait_flag, MSEC(50));
 		lprintf("wakeup task5:%d\n", ret);
 	}
 }
 
 #endif
+
+
+/* configuration task */
+TaskStruct		task_struct[16];
+
+TaskCreateInfo	task_info[] = {
+		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
+		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 5},
+		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
+		{"TASK4",          TASK_ACT, task4, 0, 1024, 1024, 5},
+		{"TASK5",          TASK_ACT, task5, 0, 1024, 1024, 5},
+};
+
+void init_task(void)
+{
+	int ix;
+	for ( ix=0; ix<arrayof(task_info); ix++ ) {
+		task_create(&task_struct[ix], &task_info[ix]);
+	}
+	task_sleep();
+}

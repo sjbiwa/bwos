@@ -8,6 +8,7 @@
 #ifndef MUTEX_H_
 #define MUTEX_H_
 
+#include <stdint.h>
 #include "task.h"
 #include "link.h"
 
