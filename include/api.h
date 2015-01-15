@@ -15,6 +15,7 @@
 #include "mutex.h"
 #include "sem.h"
 #include "msgq.h"
+#include "fixmb.h"
 #include "malloc.h"
 
 #define	RT_OK				(0)
@@ -55,6 +56,12 @@ OSAPI int msgq_send(MsgqStruct* msgq, void* ptr);
 OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout);
 OSAPI int msgq_recv(MsgqStruct* msgq, void** ptr);
 OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout);
+
+/* 固定長メモリブロック関連API */
+OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);
+OSAPI int fixmb_request(FixmbStruct* fixmb, void** ptr);
+OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
+OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);
 
 /* ヒープメモリ関連API */
 OSAPI void* sys_malloc(uint32_t size);
