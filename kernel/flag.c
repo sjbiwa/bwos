@@ -72,10 +72,11 @@ OSAPI int flag_set(FlagStruct* flag, uint32_t pattern)
 	link = flag->link.next;
 	while ( (link != &(flag->link)) && (flag->value != 0) ) {
 		TaskStruct* task = containerof(link, TaskStruct, link);
+		link = link->next; /* 現エントリがリストから外される可能性があるので先に次のエントリを取得しておく */
 		FlagInfoStruct* flag_info = (FlagInfoStruct*)(task->wait_obj);
 		if ( check_and_result(flag, flag_info->pattern, flag_info->wait_mode, flag_info->ret_pattern) ) {
 			/* カレントタスクがcomplate */
-			link_remove(link);
+			link_remove(&(task->link));
 			task_wakeup_stub(task, RT_OK);
 		}
 	}

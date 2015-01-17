@@ -54,6 +54,10 @@ OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout)
 			((void**)msgq->data)[(msgq->data_top + msgq->data_num) % msgq->length] = ptr;
 			msgq->data_num++;
 		}
+		_ctask->result_code = RT_TIMEOUT;
+	}
+	else if ( tmout == TMO_POLL ) {
+		/* ポーリングなのでタイムアウトエラーとする */
 		_ctask->result_code = RT_OK;
 	}
 	else {
@@ -106,6 +110,10 @@ OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout)
 			msgq->data_num++;
 			schedule();
 		}
+		_ctask->result_code = RT_OK;
+	}
+	else if ( tmout == TMO_POLL ) {
+		/* ポーリングなのでタイムアウトエラーとする */
 		_ctask->result_code = RT_OK;
 	}
 	else {
