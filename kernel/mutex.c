@@ -65,7 +65,7 @@ OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 	}
 	else if ( tmout == TMO_POLL ) {
 		/* ポーリングなのでタイムアウトエラーとする */
-		_ctask->result_code = RT_OK;
+		_ctask->result_code = RT_TIMEOUT;
 	}
 	else {
 		/* 他タスクlock中なので待ち状態に遷移 */
