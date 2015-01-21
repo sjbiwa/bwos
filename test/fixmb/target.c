@@ -6,50 +6,56 @@
  */
 #include "api.h"
 
-static FixmbStruct	fixmb;
+typedef	struct {
+	uint32_t id;
+	uint32_t count;
+} Message;
 
-static volatile void* alloc_ptr[32];
+static FixmbStruct	fixmb;
+static MsgqStruct	msgq;
 
 void task1(void)
 {
-	int ix;
-	void* ptr;
-	for ( ix=0; ix<32; ix++ ) {
-		task_tsleep(SEC(1));
-		if ( fixmb_request(&fixmb, &ptr) == RT_OK ) {
-			alloc_ptr[ix] = ptr;
+	Message* ptr;
+	uint32_t ix;
+	for ( ix=0;; ix++ ) {
+		if ( fixmb_request(&fixmb, (void**)(&ptr)) == RT_OK ) {
 			lprintf("TASK1:FIXMB:%08X\n", ptr);
+			ptr->id = 1;
+			ptr->count = ix;
+			msgq_send(&msgq, ptr);
+			task_tsleep(MSEC(15));
 		}
-		else {
-			lprintf("TASK1:FIXMB:ERROR\n");
-		}
-
 	}
-	task_sleep();
 }
 
 void task2(void)
 {
-	int ix;
-	task_tsleep(SEC(20));
-	for ( ix=0; ix<32; ix++ ) {
-		while ( !alloc_ptr[ix] ) {
-			task_tsleep(SEC(1));
+	Message* ptr;
+	uint32_t ix;
+	for ( ix=0;; ix++ ) {
+		if ( fixmb_request(&fixmb, (void**)(&ptr)) == RT_OK ) {
+			lprintf("TASK2:FIXMB:%08X\n", ptr);
+			ptr->id = 2;
+			ptr->count = ix*10000;
+			msgq_send(&msgq, ptr);
+			task_tsleep(MSEC(50));
 		}
-		if ( fixmb_release(&fixmb, alloc_ptr[ix]) == RT_OK ) {
-			lprintf("TASK2:FIXMB:%08X\n", alloc_ptr[ix]);
-			alloc_ptr[ix] = 0;
-		}
-		else {
-			lprintf("TASK2:FIXMB:ERROR\n");
-		}
-
 	}
-	task_sleep();
 }
 
 void task3(void)
 {
+	Message* ptr;
+	for (;;) {
+		if ( msgq_recv(&msgq, (void**)(&ptr)) == RT_OK ) {
+			lprintf("TASK3:RECV(%d)/(%d):\n", ptr->id, ptr->count);
+			fixmb_release(&fixmb, (void*)ptr);
+		}
+		else {
+			lprintf("TASK3:RECV:ERROR:\n");
+		}
+	}
 	task_sleep();
 }
 
@@ -71,6 +77,6 @@ void init_task(void)
 
 	/* 共有リソース初期化 */
 	fixmb_create(&fixmb, 128, 16);
-
+	msgq_create(&msgq, 4);
 	task_sleep();
 }
