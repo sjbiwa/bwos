@@ -8,6 +8,6 @@
 #ifndef VERSION_H_
 #define VERSION_H_
 
-#define	OS_VERSION		"0.01a"
+#define	OS_VERSION		"0.01b"
 
 #endif /* VERSION_H_ */
