@@ -60,6 +60,10 @@ OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 		/* すぐに確保できる場合 */
 		sem->remain -= num;
 	}
+	else if ( tmout == TMO_POLL ) {
+		/* ポーリングなのでタイムアウトエラーとする */
+		_ctask->result_code = RT_TIMEOUT;
+	}
 	else {
 		/* 先に待ちタスクがいるか数が足りない場合は待ちに入る */
 		SemInfoStruct sem_info;

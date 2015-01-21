@@ -15,13 +15,24 @@
 #include "mutex.h"
 #include "sem.h"
 #include "msgq.h"
+#include "fixmb.h"
 #include "malloc.h"
 
-#define	RT_OK				(0)
-#define	RT_ERR				(-1)
-#define	RT_TIMEOUT			(-2)
-#define	RT_WAKEUP			(-3)
-#define	RT_EVENT			(-4)
+#define	RT_OK			(0)
+#define	RT_ERR			(-1)
+#define	RT_TIMEOUT		(-2)
+#define	RT_WAKEUP		(-3)
+#define	RT_EVENT		(-4)
+
+/* タイムアウト指定 */
+#define	TMO_POLL		((TimeOut)0)
+#define	TMO_FEVER		((TimeOut)(-1))
+
+/* フラグ関連API wait_mode */
+#define	FLAG_OR			(0x00000001u<<0)
+#define	FLAG_AND		(0x00000001u<<1)
+#define	FLAG_CLR		(0x00000001u<<2)
+#define	FLAG_BITCLR		(0x00000001u<<3)
 
 /* タスク関連API */
 OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);
@@ -33,9 +44,10 @@ OSAPI void* task_get_tls(TaskStruct* task);
 
 /* フラグ関連API */
 OSAPI int flag_create(FlagStruct* flag);
-OSAPI int flag_set(FlagStruct* flag);
-OSAPI int flag_wait(FlagStruct* flag);
-OSAPI int flag_twait(FlagStruct* flag, TimeOut tmout);
+OSAPI int flag_set(FlagStruct* flag, uint32_t pattern);
+OSAPI int flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern);
+OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);
+OSAPI int flag_clear(FlagStruct* flag, uint32_t pattern);
 
 /* ミューテックス関連API */
 OSAPI int mutex_create(MutexStruct* mtx);
@@ -55,6 +67,12 @@ OSAPI int msgq_send(MsgqStruct* msgq, void* ptr);
 OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout);
 OSAPI int msgq_recv(MsgqStruct* msgq, void** ptr);
 OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout);
+
+/* 固定長メモリブロック関連API */
+OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);
+OSAPI int fixmb_request(FixmbStruct* fixmb, void** ptr);
+OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
+OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);
 
 /* ヒープメモリ関連API */
 OSAPI void* sys_malloc(uint32_t size);

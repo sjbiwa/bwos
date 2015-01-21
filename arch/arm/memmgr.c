@@ -153,6 +153,9 @@ extern char __data_start;
 	mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
 	/* MPCORE領域 */
 	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
+
+	/* Allwinner A20 CCU/interrupt/PIO/Timer */
+	mmgr_add_entry((void*)(0x01C20000), 0x1000, ATTR_DEV);
 	/* UART領域 */
 	mmgr_add_entry((void*)(0x01C28000), 0x1000, ATTR_DEV);
 
