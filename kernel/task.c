@@ -251,8 +251,10 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	}
 	task->task_attr = task_attr;
 	task->entry = entry;
-	task->init_sp = init_sp;
-	task->stack_size = stack_size;
+	task->init_sp = 0;
+	task->stack_size = 2048; /* SVCスタック */
+	task->usr_init_sp = init_sp;
+	task->usr_stack_size = stack_size;
 	task->priority = priority;
 	task->tls = 0;
 	task->tls_size = 0;
@@ -302,6 +304,10 @@ OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info)
 	if ( task->init_sp == 0 ) {
 		/* stackをヒープから確保 */
 		task->init_sp = sys_malloc_align(task->stack_size, 8);
+	}
+	if ( task->usr_init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->usr_init_sp = sys_malloc_align(task->usr_stack_size, 8);
 	}
 	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {

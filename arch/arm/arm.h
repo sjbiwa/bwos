@@ -21,11 +21,15 @@
 #define	FLAG_T			(0x20)
 
 /* タスクスタック上の位置(スタックに退避する情報に依存) */
-#define	TASK_FRAME_SIZE		(4*19)	/* タスク情報退避エリアのサイズ(スタック上) */
-#define	TASK_FRAME_FPEXC	(0)		/* タスク情報退避エリアのFPEXC位置 */
-#define	TASK_FRAME_PC		(17)	/* タスク情報退避エリアのPC位置 */
-#define	TASK_FRAME_PSR		(18)	/* タスク情報退避エリアのCPSR位置 */
-#define	TASK_FRAME_STUB		(10)		/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
+#define	TASK_FRAME_SIZE		(4*22)	/* タスク情報退避エリアのサイズ(スタック上) */
+#define	TASK_FRAME_FPEXC	(1)		/* タスク情報退避エリアのFPEXC位置 */
+#define	TASK_FRAME_PC		(20)	/* タスク情報退避エリアのPC位置 */
+#define	TASK_FRAME_PSR		(21)	/* タスク情報退避エリアのCPSR位置 */
+#define	TASK_FRAME_STUB		(13)	/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
+#define	TASK_FRAME_SPSR		(0)		/* タスク情報退避エリアのSPSR_svc */
+#define	TASK_FRAME_SP_USR	(1)		/* タスク情報退避エリアのSP_usr */
+#define	TASK_FRAME_LR_USR	(2)		/* タスク情報退避エリアのLR_usr */
+
 /* task_struct上の位置(task_structの構造に依存 */
 #define	SAVE_SP				(8)		/* タスク構造体内にあるsave_spのオフセット */
 #define	ARCH_TLS			(12)	/* ARCH固有のタスク情報(今はVFPレジスタ退避用アドレス)の位置 */

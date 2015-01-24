@@ -29,15 +29,23 @@ static inline int32_t bit_srch_l(uint32_t val)
 static inline void arch_init_task(TaskStruct* task)
 {
 	uint32_t*		ptr;
+	uint32_t*		usr_stack;
+	/* SVC stack */
 	ptr = (uint32_t*)((uint32_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
 	ptr = (void*)PRE_ALIGN_BY(ptr, 8);
 	task->save_sp = ptr;
+	/* USR/SYS stack */
+	usr_stack = (uint32_t*)((uint32_t)(task->usr_init_sp) + task->usr_stack_size);
+	usr_stack = (void*)PRE_ALIGN_BY(usr_stack, 8);
 
 	/* setup task-context */
 	ptr[TASK_FRAME_STUB] = (uint32_t)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)task->entry;
-	ptr[TASK_FRAME_PSR] = (cpsr_get() | FLAG_T ) & ~FLAG_I;
+	ptr[TASK_FRAME_PSR] = FLAG_T | MODE_SVC ;
 	ptr[TASK_FRAME_FPEXC] = 0x00000000;
+	ptr[TASK_FRAME_SPSR] = FLAG_T | ((task->task_attr&TASK_SYS)?MODE_SYS:MODE_USR);
+	ptr[TASK_FRAME_SP_USR] = (uint32_t)usr_stack;
+	ptr[TASK_FRAME_LR_USR] = 0x00000000;
 }
 
 void arch_init_task_create(TaskStruct* task)
