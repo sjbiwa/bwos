@@ -71,6 +71,7 @@ void sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
 	__mutex_create(&malloc_mutex);
+	arch_malloc_init();
 }
 
 #if defined(TEST_MODE)
@@ -144,7 +145,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 	return ret;
 }
 
-static void* sys_malloc_align_body(uint32_t size, uint32_t align)
+void* sys_malloc_align_body(uint32_t size, uint32_t align)
 {
 	void* ret = NULL;
 
@@ -216,7 +217,7 @@ OSAPISTUB void* __sys_malloc_align(uint32_t size, uint32_t align)
 }
 
 
-static void* sys_malloc_body(uint32_t size)
+void* sys_malloc_body(uint32_t size)
 {
 	void* ret = NULL;
 

@@ -106,7 +106,7 @@ void arch_system_preinit(void)
 	 FPSCR_set(0x00000000);
 }
 
-void arch_system_postinit(void)
+void arch_malloc_init(void)
 {
 	mmgr_init();
 	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
@@ -114,6 +114,10 @@ void arch_system_postinit(void)
 	tprintf("mblock addr=%08X size=%08X\n", heap_start_addr, size);
 	sys_malloc_add_block(heap_start_addr, size);
 	tprintf("mblock ok\n");
+}
+
+void arch_system_postinit(void)
+{
 }
 
 bool arch_can_dispatch(void)

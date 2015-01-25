@@ -33,12 +33,9 @@ TaskStruct*		_ctask = NULL;			/* 現在実行中のタスク */
 TaskStruct*		_ntask = NULL;			/* ディスパッチが要求されたタスク */
 
 static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
-static uint32_t		init_task_stack[2048];
-static uint32_t		usr_init_task_stack[1024];
 
 static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
-static TaskStruct*	task_obj_cnv_tbl[TASK_MAX_NUM+1];
 
 extern void schedule(void);
 extern void init_task(void);
@@ -96,11 +93,6 @@ static void task_add_queue(TaskStruct* task)
 		link_add_last(top, &(task->link));
 		run_queue.pri_bits |= (0x00000001u << pri);
 	}
-}
-
-static void task_remove_timeout_queue(TaskStruct* task)
-{
-	link_remove(&(task->tlink));
 }
 
 /* タイムアウトキューにタスクを登録する */
@@ -240,7 +232,7 @@ void schedule(void)
 }
 
 static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t task_attr, void* entry,
-					void* init_sp, uint32_t stack_size, uint32_t priority)
+					void* usr_init_sp, uint32_t usr_stack_size, uint32_t priority)
 {
 	link_clear(&task->link);
 	task->save_sp = 0;
@@ -255,8 +247,8 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->entry = entry;
 	task->init_sp = 0;
 	task->stack_size = 2048; /* SVCスタックサイズ */
-	task->usr_init_sp = init_sp;
-	task->usr_stack_size = stack_size;
+	task->usr_init_sp = usr_init_sp;
+	task->usr_stack_size = usr_stack_size;
 	task->priority = priority;
 	task->tls = 0;
 	task->tls_size = 0;
@@ -266,20 +258,6 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->wait_obj = 0;
 	task->wait_func = 0;
 	task->result_code = 0;
-}
-
-static void task_init_stack(TaskStruct* task)
-{
-	/* SVC_stack */
-	if ( task->init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->init_sp = __sys_malloc_align(task->stack_size, 8);
-	}
-	/* USR stack */
-	if ( task->usr_init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, 8);
-	}
 }
 
 void task_init(void)
@@ -297,11 +275,12 @@ void task_init(void)
 						"INIT_TASK",
 						TASK_ACT,
 						init_task,
-						usr_init_task_stack,
-						sizeof(usr_init_task_stack),
+						0,
+						1024, /* USRスタックサイズ */
 						0);
-	init_task_struct.init_sp = init_task_stack;
-	init_task_struct.stack_size = sizeof(init_task_stack);
+	/* STACK */
+	init_task_struct.init_sp = sys_malloc_align_body(init_task_struct.stack_size, 8);
+	init_task_struct.usr_init_sp = sys_malloc_align_body(init_task_struct.usr_stack_size, 8);
 
 	arch_init_task_create(&init_task_struct);
 	init_task_struct.task_state = TASK_READY;
@@ -314,11 +293,19 @@ OSAPISTUB int __task_create(TaskStruct* task, TaskCreateInfo* info)
 						info->name,
 						info->task_attr,
 						info->entry,
-						info->init_sp,
-						info->stack_size,
+						info->usr_init_sp,
+						info->usr_stack_size,
 						info->priority);
-	/* STACK */
-	task_init_stack(task);
+	/* SVC_stack */
+	if ( task->init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->init_sp = __sys_malloc_align(task->stack_size, 8);
+	}
+	/* USR stack */
+	if ( task->usr_init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, 8);
+	}
 
 	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {

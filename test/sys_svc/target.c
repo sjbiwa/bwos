@@ -33,9 +33,10 @@ void task3(void)
 }
 
 /* configuration task */
-TaskStruct		task_struct[16];
+#define	MAX_TASK				(3)
+TaskStruct		task_struct[MAX_TASK];
 
-TaskCreateInfo	task_info[] = {
+TaskCreateInfo	task_info[MAX_TASK] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
 		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 6},
 		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 7},
