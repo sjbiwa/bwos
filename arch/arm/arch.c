@@ -41,11 +41,11 @@ static inline void arch_init_task(TaskStruct* task)
 	/* setup task-context */
 	ptr[TASK_FRAME_STUB] = (uint32_t)_entry_stub;
 	ptr[TASK_FRAME_PC] = (uint32_t)task->entry;
-	ptr[TASK_FRAME_PSR] = FLAG_T | MODE_SVC ;
+	ptr[TASK_FRAME_PSR] = FLAG_T | ((task->task_attr&TASK_SYS)?MODE_SYS:MODE_USR);
 	ptr[TASK_FRAME_FPEXC] = 0x00000000;
-	ptr[TASK_FRAME_SPSR] = FLAG_T | ((task->task_attr&TASK_SYS)?MODE_SYS:MODE_USR);
+	ptr[TASK_FRAME_SPSR] = 0xDDDDDDDD;
 	ptr[TASK_FRAME_SP_USR] = (uint32_t)usr_stack;
-	ptr[TASK_FRAME_LR_USR] = 0x00000000;
+	ptr[TASK_FRAME_LR_USR] = 0x33333333;
 }
 
 void arch_init_task_create(TaskStruct* task)
@@ -60,7 +60,7 @@ void arch_task_create(TaskStruct* task)
 	/* FPU(VFP)退避用領域の確保 */
 	if ( task->task_attr & TASK_FPU ) {
 		uint32_t*		ptr = task->save_sp;
-		task->arch_tls = sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
+		task->arch_tls = __sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
 		ptr[TASK_FRAME_FPEXC] = 0x40000000;
 	}
 }

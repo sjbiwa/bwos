@@ -9,17 +9,17 @@
 #include "task.h"
 #include "msgq.h"
 #include "link.h"
-#include "api.h"
+#include "api_stub.h"
 
 typedef	struct {
 	void*			ptr;
 } MsgqInfoStruct;
 
-OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length)
+OSAPISTUB int __msgq_create(MsgqStruct* msgq, uint32_t length)
 {
 	int ret = RT_ERR;
 	if ( 0 < length ) {
-		msgq->data = sys_malloc_align(sizeof(void*) * length, sizeof(void*));
+		msgq->data = __sys_malloc_align(sizeof(void*) * length, sizeof(void*));
 		if ( msgq->data ) {
 			link_clear(&msgq->link);
 			msgq->length = length;
@@ -31,7 +31,7 @@ OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length)
 	return ret;
 }
 
-OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout)
+OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout)
 {
 	uint32_t		cpsr;
 
@@ -81,12 +81,12 @@ OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPI int msgq_send(MsgqStruct* msgq, void* ptr)
+OSAPISTUB int __msgq_send(MsgqStruct* msgq, void* ptr)
 {
-	return msgq_tsend(msgq, ptr, TMO_FEVER);
+	return __msgq_tsend(msgq, ptr, TMO_FEVER);
 }
 
-OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout)
+OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout)
 {
 	uint32_t cpsr;
 
@@ -139,8 +139,8 @@ OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPI int msgq_recv(MsgqStruct* msgq, void** ptr)
+OSAPISTUB int __msgq_recv(MsgqStruct* msgq, void** ptr)
 {
-	return msgq_trecv(msgq, ptr, TMO_FEVER);
+	return __msgq_trecv(msgq, ptr, TMO_FEVER);
 }
 

@@ -14,7 +14,7 @@
 #include "cp15reg.h"
 
 	.global _undef_entry
-	.global _swi_entry
+	.global _svc_entry
 	.global _pref_entry
 	.global _dabort_entry
 	.global _irq_entry
@@ -25,7 +25,7 @@
 	.global FPEXC_get
 	.global FPEXC_set
 	.type   _undef_entry, %function
-	.type   _swi_entry, %function
+	.type   _svc_entry, %function
 	.type   _pref_entry, %function
 	.type   _dabort_entry, %function
 	.type   _irq_entry, %function
@@ -40,9 +40,6 @@
 
 _undef_entry:
 	b		_undef_entry
-
-_swi_entry:
-	b		_swi_entry
 
 _pref_entry:
 	b		_pref_entry
@@ -172,6 +169,18 @@ _fiq_entry:
 	b		_fiq_entry
 
 
+_svc_entry:
+	push	{r4,lr}
+	ldrh	r4, [lr,-2]
+	and		r4, r4, #0xff
+	lsl		r4, r4, #2
+	ldr		lr, =svc_entry_table
+	ldr		r4, [lr, r4]
+	blx		r4
+	pop		{r4,lr}
+	subs	pc, lr, #0
+
+
 cpsr_get:
 	mrs		r0, cpsr
 	bx		lr
@@ -179,10 +188,4 @@ cpsr_get:
 
 cpsr_set:
 	msr		cpsr_fsxc, r0
-	bx		lr
-
-call_svc:
-	push	{lr}
-	svc		#0
-	pop		{lr}
 	bx		lr

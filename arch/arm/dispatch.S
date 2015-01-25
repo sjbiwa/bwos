@@ -85,6 +85,12 @@ _save_and_restore:
 	str		r0, [r1]
 
 _no_save_vfp:
+	/* save USR/SYS info */
+	mrs		r0, SPSR_svc
+	mrs		r1, SP_usr
+	mrs		r2, LR_usr
+	push	{r0,r1,r2}
+
 	str		sp, [lr,#SAVE_SP]
 
 _restore_context:
@@ -102,6 +108,13 @@ _restore_context:
 
 	/* restore SP (LR is _ntask)*/
 	ldr		sp, [lr,#SAVE_SP]
+
+	/* restore USR/SYS info */
+	pop		{r0,r1,r2}
+	msr		SPSR_svc, r0
+	msr		SP_usr, r1
+	msr		LR_usr, r2
+
 	/* restore FPEXC */
 	pop		{r1}
 	vmsr	FPEXC, r1

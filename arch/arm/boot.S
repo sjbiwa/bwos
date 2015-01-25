@@ -51,7 +51,7 @@ _vector:
 	.balign 4
 	ldr		pc, _undef_vector
 	.balign 4
-	ldr		pc, _swi_vector
+	ldr		pc, _svc_vector
 	.balign 4
 	ldr		pc, _pref_vector
 	.balign 4
@@ -67,8 +67,8 @@ _reset_vector:
 	.word	_reset_entry
 _undef_vector:
 	.word	_undef_entry
-_swi_vector:
-	.word	_swi_entry
+_svc_vector:
+	.word	_svc_entry
 _pref_vector:
 	.word	_pref_entry
 _dabort_vector:

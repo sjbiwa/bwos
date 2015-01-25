@@ -17,6 +17,8 @@
 
 /* OS固有定義マクロ */
 #define	OSAPI
+#define	OSAPISTUB
+
 #ifndef NULL
 #define	NULL			(0)
 #endif
