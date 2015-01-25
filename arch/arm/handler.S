@@ -171,6 +171,15 @@ _fiq_entry:
 
 _svc_entry:
 	push	{r4,lr}
+	/* 呼び出し時のI_FLAGSを継承する */
+	mrs		r4, SPSR
+	tst		r4, #FLAG_I
+	bne		_not_change_irq
+	mrs		r4, CPSR
+	bic		r4, r4, #FLAG_I
+	msr		CPSR, r4
+
+_not_change_irq:
 	ldrh	r4, [lr,-2]
 	and		r4, r4, #0xff
 	lsl		r4, r4, #2
