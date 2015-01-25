@@ -1,12 +1,15 @@
 	.syntax unified
 	.cpu cortex-a7
+	.thumb
+	.thumb_func
+
 /*
 ** emos boot.S
 */
 #include "arm.h"
 #include "cp15reg.h"
 
-#define	STACK_INIT(cpu_mode,mode_sp)		cps #(cpu_mode);ldr sp, =(mode_sp)
+#define	STACK_INIT(cpu_mode,mode_sp)		ldr r0, =(mode_sp);msr SP_##cpu_mode, r0
 
 /* Vector */
 	.arm
@@ -93,12 +96,12 @@ _reset_entry:
 	VBAR_set(r0)
 
 	/* Initialize StackPointer */
-	STACK_INIT(MODE_UND, stack_undef)
-	STACK_INIT(MODE_ABT, stack_dabort)
-	STACK_INIT(MODE_IRQ, stack_irq)
-	STACK_INIT(MODE_FIQ, stack_fiq)
-	STACK_INIT(MODE_SYS, stack_sys)
-	STACK_INIT(MODE_SVC, stack_svc)
+	STACK_INIT(und, stack_undef)
+	STACK_INIT(abt, stack_dabort)
+	STACK_INIT(irq, stack_irq)
+	STACK_INIT(fiq, stack_fiq)
+	STACK_INIT(usr, stack_sys)
+	STACK_INIT(svc, stack_svc)
 
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start
