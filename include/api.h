@@ -35,7 +35,7 @@ OSAPI int task_active(TaskStruct* task);
 OSAPI int task_sleep(void);
 OSAPI int task_wakeup(TaskStruct* task);
 OSAPI int task_tsleep(TimeOut tm);
-OSAPI void* task_get_tls(TaskStruct* task);
+OSAPI int task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */
 OSAPI int flag_create(FlagStruct* flag);
@@ -73,9 +73,5 @@ OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);
 OSAPI void* sys_malloc(uint32_t size);
 OSAPI void sys_free(void* ptr);
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
-
-
-void* __sys_malloc(uint32_t size);
-void* __sys_malloc_align(uint32_t size, uint32_t align);
 
 #endif /* INC_API_H_ */

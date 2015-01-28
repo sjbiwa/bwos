@@ -80,9 +80,9 @@ flag_wait:
 	bx	lr
 
 /* OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout); */
-	.global flag_twait
-	.type   flag_twait, %function
-flag_twait:
+	.global flag_twait_stub
+	.type   flag_twait_stub, %function
+flag_twait_stub:
 	svc #FLAG_TWAIT_APINO
 	bx	lr
 

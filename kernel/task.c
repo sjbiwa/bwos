@@ -373,10 +373,11 @@ OSAPISTUB int __task_tsleep(TimeOut tm)
 	return _ctask->result_code;
 }
 
-OSAPISTUB void* __task_get_tls(TaskStruct* task)
+OSAPISTUB int __task_get_tls(TaskStruct* task, void** ptr)
 {
 	if ( task == TASK_SELF ) {
 		task = _ctask;
 	}
-	return task->tls;
+	*ptr = (void*)(task->tls);
+	return RT_OK;
 }

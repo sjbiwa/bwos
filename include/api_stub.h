@@ -25,7 +25,7 @@ OSAPISTUB int __task_active(TaskStruct* task);
 OSAPISTUB int __task_sleep(void);
 OSAPISTUB int __task_wakeup(TaskStruct* task);
 OSAPISTUB int __task_tsleep(TimeOut tm);
-OSAPISTUB void* __task_get_tls(TaskStruct* task);
+OSAPISTUB int __task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */
 OSAPISTUB int __flag_create(FlagStruct* flag);
