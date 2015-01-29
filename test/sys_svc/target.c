@@ -6,12 +6,15 @@
  */
 #include "api.h"
 
+FlagStruct flag;
+
 void task1(void)
 {
 	lprintf("TASK1\n");
 	for (;;) {
-		lprintf("--1111111111111111111111111111111111111111111111111111111---\n");
-		task_tsleep(SEC(1));
+		int ret_pat;
+		int ret = flag_twait(&flag, 0x0003, FLAG_OR|FLAG_CLR, &ret_pat, SEC(4));
+		lprintf("task1:flag:%d\n", ret);
 	}
 }
 
@@ -19,8 +22,9 @@ void task2(void)
 {
 	lprintf("TASK2\n");
 	for (;;) {
-		lprintf("--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---\n");
-		task_tsleep(MSEC(500));
+		task_tsleep(SEC(5));
+		irq_disable();
+		irq_enable();
 	}
 }
 
@@ -28,7 +32,10 @@ void task3(void)
 {
 	lprintf("TASK3\n");
 	for (;;) {
-		lprintf("------------------------------------------------------------\n");
+		task_tsleep(MSEC(7500));
+		flag_set(&flag, 0x0001);
+		irq_disable();
+		irq_enable();
 	}
 }
 
@@ -39,7 +46,7 @@ TaskStruct		task_struct[MAX_TASK];
 TaskCreateInfo	task_info[MAX_TASK] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
 		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 6},
-		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 7},
+		{"TASK3", TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 7},
 };
 
 void init_task(void)
@@ -49,5 +56,6 @@ void init_task(void)
 		task_create(&task_struct[ix], &task_info[ix]);
 	}
 
+	flag_create(&flag);
 	task_sleep();
 }

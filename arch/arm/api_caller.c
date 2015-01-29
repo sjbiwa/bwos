@@ -14,6 +14,7 @@ OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uin
 	param.flag = flag;
 	param.pattern = pattern;
 	param.wait_mode = wait_mode;
+	param.ret_pattern = ret_pattern;
 	param.tmout = tmout;
 	return flag_twait_stub(&param);
 }
