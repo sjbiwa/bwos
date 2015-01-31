@@ -4,11 +4,9 @@
  *  Created on: 2012/12/07
  *      Author: biwa
  */
+#include "api.h"
 #include "common.h"
 #include "mpcore.h"
-#include "task.h"
-
-typedef	void (*IRQ_HANDLER)(uint32_t irqno, void* info);
 
 uint32_t _irq_level = 0; /* 多重割り込みレベル */
 
@@ -20,8 +18,7 @@ static struct {
 /*
  * 	c_handler
  */
-void
-c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
+void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 {
 	uint32_t		ack;
 	uint32_t		irqno;
@@ -40,8 +37,7 @@ c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 /*
  * 	irq_add_handler
  */
-void
-irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
+OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 {
 	if ( irqno < IRQ_NUM ) {
 		irq_action[irqno].handler = func;
@@ -52,8 +48,7 @@ irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 /*
  * 	irq_set_enable
  */
-void
-irq_set_enable(uint32_t irqno)
+OSAPI void irq_set_enable(uint32_t irqno)
 {
 	uint32_t		off;
 	uint32_t		bit;
@@ -66,8 +61,7 @@ irq_set_enable(uint32_t irqno)
 /*
  * 	irq_set_disable
  */
- void
-irq_set_disable(uint32_t irqno)
+OSAPI void irq_set_disable(uint32_t irqno)
 {
 	uint32_t		off;
 	uint32_t		bit;

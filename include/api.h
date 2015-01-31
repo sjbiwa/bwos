@@ -17,6 +17,7 @@
 #include "msgq.h"
 #include "fixmb.h"
 #include "malloc.h"
+#include "sys_irq.h"
 
 /* 終了ステータス */
 #define	RT_OK			(0)
@@ -73,5 +74,10 @@ OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);
 OSAPI void* sys_malloc(uint32_t size);
 OSAPI void sys_free(void* ptr);
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
+
+/* 割り込みハンドラ関連API */
+OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
+OSAPI void irq_set_enable(uint32_t irqno);
+OSAPI void irq_set_disable(uint32_t irqno);
 
 #endif /* INC_API_H_ */
