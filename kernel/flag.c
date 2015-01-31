@@ -8,7 +8,7 @@
 #include "task.h"
 #include "flag.h"
 #include "link.h"
-#include "api.h"
+#include "api_stub.h"
 
 typedef	struct {
 	FlagStruct*		obj;			/* フラグオブジェクト */
@@ -52,14 +52,14 @@ static inline bool check_and_result(FlagStruct* flag, uint32_t pattern, uint32_t
 }
 
 
-OSAPI int flag_create(FlagStruct* flag)
+OSAPISTUB int __flag_create(FlagStruct* flag)
 {
 	link_clear(&flag->link);
 	flag->value = 0;
 	return RT_OK;
 }
 
-OSAPI int flag_set(FlagStruct* flag, uint32_t pattern)
+OSAPISTUB int __flag_set(FlagStruct* flag, uint32_t pattern)
 {
 	Link* link;
 	uint32_t cpsr;
@@ -86,7 +86,7 @@ OSAPI int flag_set(FlagStruct* flag, uint32_t pattern)
 	return RT_OK;
 }
 
-OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
+OSAPISTUB int __flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -125,12 +125,12 @@ OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uin
 	return _ctask->result_code;
 }
 
-OSAPI int flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
+OSAPISTUB int __flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
 {
-	return flag_twait(flag, pattern, wait_mode, ret_pattern, TMO_FEVER);
+	return __flag_twait(flag, pattern, wait_mode, ret_pattern, TMO_FEVER);
 }
 
-OSAPI int flag_clear(FlagStruct* flag, uint32_t pattern)
+OSAPISTUB int __flag_clear(FlagStruct* flag, uint32_t pattern)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);

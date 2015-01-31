@@ -1,12 +1,15 @@
 	.syntax unified
 	.cpu cortex-a7
+	.thumb
+	.thumb_func
+
 /*
 ** emos boot.S
 */
 #include "arm.h"
 #include "cp15reg.h"
 
-#define	STACK_INIT(cpu_mode,mode_sp)		cps #(cpu_mode);ldr sp, =(mode_sp)
+#define	STACK_INIT(cpu_mode,mode_sp)		ldr r0, =(mode_sp);msr SP_##cpu_mode, r0
 
 /* Vector */
 	.arm
@@ -51,7 +54,7 @@ _vector:
 	.balign 4
 	ldr		pc, _undef_vector
 	.balign 4
-	ldr		pc, _swi_vector
+	ldr		pc, _svc_vector
 	.balign 4
 	ldr		pc, _pref_vector
 	.balign 4
@@ -67,8 +70,8 @@ _reset_vector:
 	.word	_reset_entry
 _undef_vector:
 	.word	_undef_entry
-_swi_vector:
-	.word	_swi_entry
+_svc_vector:
+	.word	_svc_entry
 _pref_vector:
 	.word	_pref_entry
 _dabort_vector:
@@ -93,12 +96,12 @@ _reset_entry:
 	VBAR_set(r0)
 
 	/* Initialize StackPointer */
-	STACK_INIT(MODE_UND, stack_undef)
-	STACK_INIT(MODE_ABT, stack_dabort)
-	STACK_INIT(MODE_IRQ, stack_irq)
-	STACK_INIT(MODE_FIQ, stack_fiq)
-	STACK_INIT(MODE_SYS, stack_sys)
-	STACK_INIT(MODE_SVC, stack_svc)
+	STACK_INIT(und, stack_undef)
+	STACK_INIT(abt, stack_dabort)
+	STACK_INIT(irq, stack_irq)
+	STACK_INIT(fiq, stack_fiq)
+	STACK_INIT(usr, stack_sys)
+	STACK_INIT(svc, stack_svc)
 
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start

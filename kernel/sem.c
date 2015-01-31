@@ -9,7 +9,7 @@
 #include "task.h"
 #include "sem.h"
 #include "link.h"
-#include "api.h"
+#include "api_stub.h"
 
 typedef	struct {
 	SemStruct*		obj;	/* セマフォオブジェクト */
@@ -41,14 +41,14 @@ static void sem_wait_func(TaskStruct* task)
 	sem_release_body(sem);
 }
 
-OSAPI int sem_create(SemStruct* sem, uint32_t max)
+OSAPISTUB int __sem_create(SemStruct* sem, uint32_t max)
 {
 	link_clear(&(sem->link));
 	sem->max = sem->remain = max;
 	return 0;
 }
 
-OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
+OSAPISTUB int __sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -84,12 +84,12 @@ OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPI int sem_request(SemStruct* sem, uint32_t num)
+OSAPISTUB int __sem_request(SemStruct* sem, uint32_t num)
 {
-	return sem_trequest(sem, num, TMO_FEVER);
+	return __sem_trequest(sem, num, TMO_FEVER);
 }
 
-OSAPI int sem_release(SemStruct* sem, uint32_t num)
+OSAPISTUB int __sem_release(SemStruct* sem, uint32_t num)
 {
 	uint32_t		cpsr;
 	int				ret = RT_OK;

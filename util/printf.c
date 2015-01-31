@@ -257,7 +257,7 @@ static MutexStruct printf_mutex;
 
 void lprintf_init(void)
 {
-	mutex_create(&printf_mutex);
+	__mutex_create(&printf_mutex);
 #if 0
 	*(volatile uint32_t*)(UART_BASE+0x2C) = (0x07<<4); /* UARTLCR_H */
 	*(volatile uint32_t*)(UART_BASE+0x30) = (0x03<<8)|(0x01); /* UARTCR */

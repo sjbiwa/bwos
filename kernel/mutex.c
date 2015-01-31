@@ -9,9 +9,9 @@
 #include "task.h"
 #include "mutex.h"
 #include "link.h"
-#include "api.h"
+#include "api_stub.h"
 
-OSAPI int mutex_create(MutexStruct* mtx)
+OSAPISTUB int __mutex_create(MutexStruct* mtx)
 {
 	link_clear(&(mtx->link));
 	mtx->task = NULL;
@@ -19,7 +19,7 @@ OSAPI int mutex_create(MutexStruct* mtx)
 	return 0;
 }
 
-OSAPI int mutex_unlock(MutexStruct* mtx)
+OSAPISTUB int __mutex_unlock(MutexStruct* mtx)
 {
 	uint32_t		cpsr;
 	int				ret = RT_OK;
@@ -46,7 +46,7 @@ OSAPI int mutex_unlock(MutexStruct* mtx)
 	return ret;
 }
 
-OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)
+OSAPISTUB int __mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -84,7 +84,7 @@ OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPI int mutex_lock(MutexStruct* mtx)
+OSAPISTUB int __mutex_lock(MutexStruct* mtx)
 {
-	return mutex_tlock(mtx, TMO_FEVER);
+	return __mutex_tlock(mtx, TMO_FEVER);
 }

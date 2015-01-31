@@ -17,7 +17,7 @@
 /* タスク属性定義 */
 #define	TASK_ACT			(0x00000001u<<0)	/* タスク生成時にレディーキューに登録する */
 #define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
-
+#define	TASK_SYS			(0x00000001u<<2)	/* SYSTEMモード(特権)タスク */
 
 typedef	enum { TASK_STANDBY, TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
 typedef	struct tagTaskStruct {
@@ -30,8 +30,10 @@ typedef	struct tagTaskStruct {
 	uint8_t		name[32];			/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
 	void		(*entry)(void);		/* Start Entry */
-	void*		init_sp;			/* Initialize SP */
-	uint32_t	stack_size;			/* Stack Size */
+	void*		init_sp;			/* Initialize SP (SVC) */
+	uint32_t	stack_size;			/* Stack Size (SVC) */
+	void*		usr_init_sp;		/* Initial USER SP (USR or SYS) */
+	uint32_t	usr_stack_size;		/* Initial Stack Size (USR or SYS) */
 	uint32_t	priority;			/* Task Priority */
 	void*		tls;				/* TaskLocalStorage */
 	uint32_t	tls_size;			/* TLS size */
@@ -49,8 +51,8 @@ typedef	struct {
 	uint8_t*	name;				/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
 	void		(*entry)(void);		/* Start Entry */
-	void*		init_sp;			/* Initialize SP */
-	uint32_t	stack_size;			/* Stack Size */
+	void*		usr_init_sp;		/* Initialize SP */
+	uint32_t	usr_stack_size;		/* Stack Size */
 	uint32_t	tls_size;			/* TLS size */
 	uint32_t	priority;			/* Task Priority */
 } TaskCreateInfo;

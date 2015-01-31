@@ -18,6 +18,7 @@
 #include "fixmb.h"
 #include "malloc.h"
 
+/* 終了ステータス */
 #define	RT_OK			(0)
 #define	RT_ERR			(-1)
 #define	RT_TIMEOUT		(-2)
@@ -28,19 +29,13 @@
 #define	TMO_POLL		((TimeOut)0)
 #define	TMO_FEVER		((TimeOut)(-1))
 
-/* フラグ関連API wait_mode */
-#define	FLAG_OR			(0x00000001u<<0)
-#define	FLAG_AND		(0x00000001u<<1)
-#define	FLAG_CLR		(0x00000001u<<2)
-#define	FLAG_BITCLR		(0x00000001u<<3)
-
 /* タスク関連API */
 OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);
 OSAPI int task_active(TaskStruct* task);
 OSAPI int task_sleep(void);
 OSAPI int task_wakeup(TaskStruct* task);
 OSAPI int task_tsleep(TimeOut tm);
-OSAPI void* task_get_tls(TaskStruct* task);
+OSAPI int task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */
 OSAPI int flag_create(FlagStruct* flag);
@@ -78,9 +73,5 @@ OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);
 OSAPI void* sys_malloc(uint32_t size);
 OSAPI void sys_free(void* ptr);
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
-
-
-void* __sys_malloc(uint32_t size);
-void* __sys_malloc_align(uint32_t size, uint32_t align);
 
 #endif /* INC_API_H_ */

@@ -10,6 +10,7 @@
 #include "malloc.h"
 #include "link.h"
 #include "mutex.h"
+#include "api_stub.h"
 
 #define	MB_ALIGN				(4)	/* 空きブロック/使用中ブロックのアラインメント */
 
@@ -69,7 +70,8 @@ static MutexStruct	malloc_mutex;
 void sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
-	mutex_create(&malloc_mutex);
+	__mutex_create(&malloc_mutex);
+	arch_malloc_init();
 }
 
 #if defined(TEST_MODE)
@@ -143,7 +145,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 	return ret;
 }
 
-void* __sys_malloc_align(uint32_t size, uint32_t align)
+void* sys_malloc_align_body(uint32_t size, uint32_t align)
 {
 	void* ret = NULL;
 
@@ -195,7 +197,7 @@ void* __sys_malloc_align(uint32_t size, uint32_t align)
 		/* 指定の空きブロックからメモリ割り当て */
 		ret = mb_alloc(mb_space, size);
 		if ( !ret ) {
-			lprintf("system error.(malloc\n");
+			//lprintf("system error.(malloc\n");
 		}
 	}
 
@@ -204,18 +206,18 @@ void* __sys_malloc_align(uint32_t size, uint32_t align)
 
 }
 
-OSAPI void* sys_malloc_align(uint32_t size, uint32_t align)
+OSAPISTUB void* __sys_malloc_align(uint32_t size, uint32_t align)
 {
-	mutex_lock(&malloc_mutex);
-	void* ret = __sys_malloc_align(size, align);
-	mutex_unlock(&malloc_mutex);
+	__mutex_lock(&malloc_mutex);
+	void* ret = sys_malloc_align_body(size, align);
+	__mutex_unlock(&malloc_mutex);
 
 	return ret;
 
 }
 
 
-void* __sys_malloc(uint32_t size)
+void* sys_malloc_body(uint32_t size)
 {
 	void* ret = NULL;
 
@@ -239,25 +241,25 @@ void* __sys_malloc(uint32_t size)
 		/* 指定の空きブロックからメモリ割り当て */
 		ret = mb_alloc(mb_space, size);
 		if ( !ret ) {
-			lprintf("system error.(malloc\n");
+			//lprintf("system error.(malloc\n");
 		}
 	}
 
 	return ret;
 }
 
-OSAPI void* sys_malloc(uint32_t size)
+OSAPISTUB void* __sys_malloc(uint32_t size)
 {
-	mutex_lock(&malloc_mutex);
-	void* ret = __sys_malloc(size);
-	mutex_unlock(&malloc_mutex);
+	__mutex_lock(&malloc_mutex);
+	void* ret = sys_malloc_body(size);
+	__mutex_unlock(&malloc_mutex);
 
 	return ret;
 }
 
-OSAPI void sys_free(void* ptr)
+OSAPISTUB void __sys_free(void* ptr)
 {
-	mutex_lock(&malloc_mutex);
+	__mutex_lock(&malloc_mutex);
 
 	/* シグネチャチェック */
 	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;
@@ -314,51 +316,7 @@ OSAPI void sys_free(void* ptr)
 	}
 
 err_ret:
-	mutex_unlock(&malloc_mutex);
+	__mutex_unlock(&malloc_mutex);
 
 	return;
 }
-
-#if defined(TEST_MODE)
-
-void dump_mbinfo()
-{
-	mutex_lock(&malloc_mutex);
-
-	mutex_unlock(&malloc_mutex);
-}
-
-void dump_space()
-{
-	lprintf("DUMP_SPACE\n");
-	mutex_lock(&malloc_mutex);
-	Link* link = mb_space_link.next;
-	while ( link != &mb_space_link ) {
-		MBSpaceProlog* mb_prolog = containerof(link, MBSpaceProlog, link);
-		MBSpaceEpilog* mb_epilog = (MBSpaceEpilog*)((uint8_t*)mb_prolog + mb_prolog->mb_size) - 1;
-		if ( (mb_prolog->identify.signature != MB_SIGNATURE) ||  (mb_epilog->identify.signature != MB_SIGNATURE) ||
-				(mb_prolog->identify.status != MB_SPACE) || (mb_epilog->identify.status != MB_SPACE) ||
-				(mb_prolog->mb_size != mb_epilog->mb_size) ) {
-			lprintf("error\n");
-			break;
-		}
-		lprintf("SPACE:%08X-%08X (len=%08X)\n", mb_prolog, mb_epilog+1, mb_prolog->mb_size);
-		link =link->next;
-	}
-	mutex_unlock(&malloc_mutex);
-}
-
-void dump_use(void* ptr)
-{
-	lprintf("DUMP_USE\n");
-	mutex_lock(&malloc_mutex);
-	MBUseProlog* mb_prolog = (MBUseProlog*)ptr - 1;
-	MBUseEpilog* mb_epilog = (MBUseEpilog*)((uint8_t*)(mb_prolog) + mb_prolog->mb_size) - 1;
-	if ( (mb_prolog->identify.signature != MB_SIGNATURE) ||  (mb_epilog->identify.signature != MB_SIGNATURE) ||
-			(mb_prolog->identify.status != MB_USE) || (mb_epilog->identify.status != MB_USE) ) {
-		lprintf("error\n");
-	}
-	lprintf("USE:%08X (len=%08X)\n", mb_prolog, mb_prolog->mb_size);
-	mutex_unlock(&malloc_mutex);
-}
-#endif

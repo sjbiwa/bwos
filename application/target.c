@@ -71,7 +71,7 @@ static void* ptr[100];
 			}
 			task_tsleep(MSEC(10));
 		}
-		dump_space();
+		//dump_space();
 	}
 	task_sleep();
 }
@@ -98,7 +98,7 @@ static void* ptr[100];
 			}
 			task_tsleep(MSEC(20));
 		}
-		dump_space();
+		//dump_space();
 	}
 	task_sleep();
 }
@@ -126,7 +126,7 @@ static void* ptr[100];
 			}
 			task_tsleep(MSEC(30));
 		}
-		dump_space();
+		//dump_space();
 	}
 	flags = true;
 	task_sleep();

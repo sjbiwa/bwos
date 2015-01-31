@@ -19,30 +19,34 @@
 **
 **       TASK_CONTEXT
 **			---------------------
-** SVC_SP->	| FPEXC				|+0
-**			| R0				|+4
-** 			| R4				|+8
-**			| R5				|+12
-**			| R6				|+16
-**			| R7				|+20
-**			| R8				|+24
-**			| R9				|+28
-**			| R10				|+32
-**			| R11				|+36
-** 			| LR(return address)|+40 <- _dispatch()の戻りアドレス または 割り込み復帰用スタブへのアドレス
+** SVC_SP-> | SPSR_svc			|+0
+** 			| SP_usr			|+4
+**			| LR_usr			|+8
+**			---------------------
+** SVC_SP->	| FPEXC				|+12
+**			| R0				|+16
+** 			| R4				|+20
+**			| R5				|+24
+**			| R6				|+28
+**			| R7				|+32
+**			| R8				|+36
+**			| R9				|+40
+**			| R10				|+44
+**			| R11				|+48
+** 			| LR(return address)|+52 <- _dispatch()の戻りアドレス または 割り込み復帰用スタブへのアドレス
 **			----------------------
 **  	  ** entry/IRQからの復帰 **
 **			----------------------
-**			| R0				|+44
-**			| R1				|+48
-**			| R2				|+52
-**			| R3				|+56
-**			| R12				|+60
-**			| LR				|+64
-**			| PC(return address)|+68  <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+72
+**			| R0				|+56
+**			| R1				|+60
+**			| R2				|+64
+**			| R3				|+68
+**			| R12				|+72
+**			| LR				|+76
+**			| PC(return address)|+80  <- 割り込み発生時の戻りアドレス
+**			| CPSR              |+84
 **			---------------------
-** beforeSP |					|+76
+** beforeSP |					|+88
 **
 **		import _ctask	(current task)
 **		import _ntask	(next task)
@@ -81,6 +85,12 @@ _save_and_restore:
 	str		r0, [r1]
 
 _no_save_vfp:
+	/* save USR/SYS info */
+	mrs		r0, SPSR_svc
+	mrs		r1, SP_usr
+	mrs		r2, LR_usr
+	push	{r0,r1,r2}
+
 	str		sp, [lr,#SAVE_SP]
 
 _restore_context:
@@ -98,6 +108,13 @@ _restore_context:
 
 	/* restore SP (LR is _ntask)*/
 	ldr		sp, [lr,#SAVE_SP]
+
+	/* restore USR/SYS info */
+	pop		{r0,r1,r2}
+	msr		SPSR_svc, r0
+	msr		SP_usr, r1
+	msr		LR_usr, r2
+
 	/* restore FPEXC */
 	pop		{r1}
 	vmsr	FPEXC, r1

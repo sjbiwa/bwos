@@ -8,7 +8,7 @@
 #include "task.h"
 #include "fixmb.h"
 #include "link.h"
-#include "api.h"
+#include "api_stub.h"
 
 typedef	struct {
 	FixmbStruct*	obj;			/* MBオブジェクト */
@@ -51,7 +51,7 @@ static uint32_t fixmb_ptr2idx(FixmbStruct* fixmb, void* ptr)
 	return (uint32_t)(((uint8_t*)ptr - (uint8_t*)(fixmb->mb_area)) / fixmb->mb_size);
 }
 
-OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
+OSAPISTUB int __fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 {
 	uint32_t ix;
 	uint32_t bitmap_num;
@@ -62,7 +62,7 @@ OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 	}
 	fixmb->mb_size = POST_ALIGN_BY(mb_size, 16); /* サイズは16バイトの倍数にする */
 	fixmb->mb_length = length;
-	fixmb->mb_area = sys_malloc_align(fixmb->mb_size * length, 16);
+	fixmb->mb_area = __sys_malloc_align(fixmb->mb_size * length, 16);
 
 	fixmb->is_list_mode = false;
 	fixmb->list.top.index = fixmb->list.last.index = NO_ENTRY;
@@ -71,7 +71,7 @@ OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 
 	/* 使用中ビットマップをクリア */
 	bitmap_num = (length + 31) / 32;
-	fixmb->use_bitmap = sys_malloc_align(bitmap_num * 4, 4);
+	fixmb->use_bitmap = __sys_malloc_align(bitmap_num * 4, 4);
 	for ( ix=0; ix < bitmap_num; ix++ ) {
 		fixmb->use_bitmap[ix] = 0;
 	}
@@ -80,7 +80,7 @@ OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 }
 
 
-OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
+OSAPISTUB int __fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
 	uint32_t alloc_index;
 	uint32_t cpsr;
@@ -136,12 +136,12 @@ OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPI int fixmb_request(FixmbStruct* fixmb, void** ptr)
+OSAPISTUB int __fixmb_request(FixmbStruct* fixmb, void** ptr)
 {
-	return fixmb_trequest(fixmb, ptr, TMO_FEVER);
+	return __fixmb_trequest(fixmb, ptr, TMO_FEVER);
 }
 
-OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr)
+OSAPISTUB int __fixmb_release(FixmbStruct* fixmb, void* ptr)
 {
 	uint32_t area_size;
 	uint32_t		cpsr;
