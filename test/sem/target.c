@@ -10,13 +10,6 @@ static SemStruct sem1;
 static SemStruct sem2;
 
 
-void task1(void)
-{
-	sem_create(&sem1, 20);
-	sem_create(&sem2, 15);
-	task_sleep();
-}
-
 void task2(void)
 {
 	int ret;
@@ -68,5 +61,30 @@ void task5(void)
 		sem_release(&sem2, 2);
 		task_tsleep(MSEC(80));
 	}
+	task_sleep();
+}
+
+
+/* configuration task */
+TaskStruct		task_struct[4];
+
+TaskCreateInfo	task_info[] = {
+		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 6},
+		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
+		{"TASK4", TASK_ACT|TASK_FPU, task4, 0, 1024, 1024, 5},
+		{"TASK5", TASK_ACT|TASK_FPU, task5, 0, 1024, 1024, 5},
+};
+
+void init_task(void)
+{
+	int ix;
+	for ( ix=0; ix<arrayof(task_info); ix++ ) {
+		task_create(&task_struct[ix], &task_info[ix]);
+	}
+
+	/* 共有リソース初期化 */
+	sem_create(&sem1, 20);
+	sem_create(&sem2, 15);
+
 	task_sleep();
 }

@@ -62,6 +62,14 @@ extern	TaskStruct*			_ntask;
 
 extern void task_remove_queue(TaskStruct* task);
 extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
+
 extern void task_add_timeout(TaskStruct* task, TimeOut tm);
+
+static inline task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task))
+{
+	task->wait_obj = wait_obj;
+	task->wait_func = wait_func;
+	task->task_state = TASK_WAIT;
+}
 
 #endif /* TASK_H_ */

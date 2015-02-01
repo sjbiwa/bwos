@@ -47,11 +47,11 @@ OSAPISTUB int __sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout);
 OSAPISTUB int __sem_release(SemStruct* sem, uint32_t num);
 
 /* メッセージキュー関連API */
-OSAPISTUB int __msgq_create(MsgqStruct* msgq, uint32_t length);
-OSAPISTUB int __msgq_send(MsgqStruct* msgq, void* ptr);
-OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout);
-OSAPISTUB int __msgq_recv(MsgqStruct* msgq, void** ptr);
-OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout);
+OSAPI int __msgq_create(MsgqStruct* msgq, uint32_t length);
+OSAPI int __msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length);
+OSAPI int __msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
+OSAPI int __msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length);
+OSAPI int __msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
 
 /* 固定長メモリブロック関連API */
 OSAPISTUB int __fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);

@@ -58,10 +58,10 @@ OSAPI int sem_release(SemStruct* sem, uint32_t num);
 
 /* メッセージキュー関連API */
 OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length);
-OSAPI int msgq_send(MsgqStruct* msgq, void* ptr);
-OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout);
-OSAPI int msgq_recv(MsgqStruct* msgq, void** ptr);
-OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout);
+OSAPI int msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length);
+OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
+OSAPI int msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length);
+OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, uint32_t length, TimeOut tmout);
 
 /* 固定長メモリブロック関連API */
 OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);

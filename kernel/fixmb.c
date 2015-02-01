@@ -120,9 +120,7 @@ OSAPISTUB int __fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 		FixmbInfoStruct fixmb_info;
 		fixmb_info.obj = fixmb;
 		fixmb_info.ptr = ptr;
-		_ctask->wait_obj = (void*)(&fixmb_info);
-		_ctask->wait_func = 0;
-		_ctask->task_state = TASK_WAIT;
+		task_set_wait(_ctask, (void*)(&fixmb_info), 0);
 		task_remove_queue(_ctask);
 		link_add_last(&(fixmb->link), &(_ctask->link));
 		if ( tmout != TMO_FEVER ) {

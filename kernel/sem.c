@@ -12,7 +12,7 @@
 #include "api_stub.h"
 
 typedef	struct {
-	SemStruct*		obj;	/* セマフォオブジェクト */
+	SemStruct*		sem;	/* セマフォオブジェクト */
 	uint32_t		count;	/* セマフォ要求カウント */
 } SemInfoStruct;
 
@@ -30,6 +30,7 @@ static void sem_release_body(SemStruct* sem)
 		/* 要求数を満たすのでタスク起床 */
 		sem->remain -= sem_info->count;
 		link_remove(link);
+		task->wait_func = 0; /* 再度同じ処理が走らないようにクリアする */
 		task_wakeup_stub(task, RT_OK);
 	}
 }
@@ -37,7 +38,7 @@ static void sem_release_body(SemStruct* sem)
 /* セマフォ待ちのタスクがタイムアウトした場合 */
 static void sem_wait_func(TaskStruct* task)
 {
-	SemStruct* sem = (SemStruct*)task->wait_obj;
+	SemStruct* sem = ((SemInfoStruct*)task->wait_obj)->sem;
 	sem_release_body(sem);
 }
 
@@ -67,12 +68,10 @@ OSAPISTUB int __sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 	else {
 		/* 先に待ちタスクがいるか数が足りない場合は待ちに入る */
 		SemInfoStruct sem_info;
-		sem_info.obj = sem;
+		sem_info.sem = sem;
 		sem_info.count = num;
-		_ctask->wait_obj = (void*)&sem_info;
-		_ctask->wait_func = sem_wait_func;
 		task_remove_queue(_ctask);
-		_ctask->task_state = TASK_WAIT;
+		task_set_wait(_ctask, (void*)&sem_info, sem_wait_func);
 		link_add_last(&(sem->link), &(_ctask->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */
