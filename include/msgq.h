@@ -15,7 +15,7 @@
 
 typedef	struct tagMsgqStruct {
 	Link			link;
-	void**			data;
+	uint8_t*		data;
 	uint32_t		length;
 	uint32_t		data_top;
 	uint32_t		data_num;

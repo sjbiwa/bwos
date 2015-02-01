@@ -144,9 +144,7 @@ static void task_sleep_stub(TaskStruct* task)
 {
 	task_remove_queue(task);
 	link_clear(&(task->link));
-	task->wait_obj = 0;
-	task->wait_func = 0;
-	task->task_state = TASK_WAIT;
+	task_set_wait(task, 0, 0);
 }
 
 void task_add_timeout(TaskStruct* task, TimeOut tm)

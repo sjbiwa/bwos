@@ -27,7 +27,7 @@ OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 DEFS += -DTEST_MODE
 DEFS += -DOS_VER="0.01"
 
-C_SRCS += resource.c target.c
+C_SRCS += target.c
 
 all: $(TARGET)
 
