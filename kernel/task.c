@@ -153,10 +153,8 @@ void task_add_timeout(TaskStruct* task, TimeOut tm)
 	task_add_timeout_queue(task);
 }
 
-void task_wakeup_stub(TaskStruct* task, int32_t result_code)
+static void task_wakeup_body(TaskStruct* task, int32_t result_code, bool call_func)
 {
-	uint32_t		cpsr;
-
 	if ( task->task_state == TASK_WAIT ) {
 		/* 待ちリストに登録されている場合はリストから削除 */
 		if ( !link_is_empty(&(task->link)) ) {
@@ -175,10 +173,19 @@ void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 		task_add_queue(task);
 
 		/* タスク起床時にコールバック関数呼び出し */
-		if ( task->wait_func != 0 ) {
+		if ( call_func && (task->wait_func != 0) ) {
 			(task->wait_func)(task);
 		}
 	}
+}
+void task_wakeup_stub(TaskStruct* task, int32_t result_code)
+{
+	task_wakeup_body(task, result_code, false);
+}
+
+void task_wakeup_async(TaskStruct* task, int32_t result_code)
+{
+	task_wakeup_body(task, result_code, true);
 }
 
 void task_tick(void)
@@ -199,7 +206,7 @@ void task_tick(void)
 		if ( tick_count < task->timeout ) {
 			break;
 		}
-		task_wakeup_stub(task, RT_TIMEOUT);
+		task_wakeup_async(task, RT_TIMEOUT);
 		req_sched = true;
 	}
 	if ( req_sched ) {
@@ -353,7 +360,7 @@ OSAPISTUB int __task_wakeup(TaskStruct* task)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
-	task_wakeup_stub(task, RT_WAKEUP);
+	task_wakeup_async(task, RT_WAKEUP);
 	schedule();
 	irq_restore(cpsr);
 	return RT_OK;
