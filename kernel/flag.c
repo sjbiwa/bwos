@@ -108,9 +108,7 @@ OSAPISTUB int __flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mod
 			flag_info.pattern = pattern;
 			flag_info.wait_mode = wait_mode;
 			flag_info.ret_pattern = ret_pattern;
-			_ctask->wait_obj = (void*)(&flag_info);
-			_ctask->wait_func = 0;
-			_ctask->task_state = TASK_WAIT;
+			task_set_wait(_ctask, (void*)(&flag_info), 0);
 			task_remove_queue(_ctask);
 			link_add_last(&(flag->link), &(_ctask->link));
 			if ( tmout != TMO_FEVER ) {

@@ -11,9 +11,144 @@
 #include "link.h"
 #include "api_stub.h"
 
+/****************************************************************************/
+/*	msgqの制限事項															*/
+/*	send/recvで指定するlengthはcreateで作成したサイズ(length)/2以下とする	*/
+/*	※これは、queueとsend/recvバッファ間のコピーが複数回に分割されることが	*/
+/*	ないようにするためである。(バッファのラップアラウンドは除く)			*/
+/****************************************************************************/
+
 typedef	struct {
-	void*			ptr;
+	MsgqStruct*		msgq;		/* 要求オブジェクト */
+	void*			req_ptr;	/* 要求エリア */
+	uint32_t		req_length;	/* 要求バイト数 */
 } MsgqInfoStruct;
+
+static uint32_t queue_space(MsgqStruct* msgq)
+{
+	return msgq->length - msgq->data_num;
+}
+
+static bool is_send_wait_mode(MsgqStruct* msgq)
+{
+	return (!link_is_empty(&(msgq->link)) && ((msgq->length/2) < msgq->data_num)) ? true : false;
+}
+
+static bool is_recv_wait_mode(MsgqStruct* msgq)
+{
+	return (!link_is_empty(&(msgq->link)) && (msgq->data_num < (msgq->length/2))) ? true : false;
+}
+
+static void copy_to_queue(MsgqStruct* msgq, void* ptr, uint32_t length)
+{
+	uint32_t st_index = (msgq->data_top + msgq->data_num) % msgq->length;
+	uint32_t ed_index = (st_index + length) % msgq->length;
+	if ( st_index <= ed_index ) {
+		/* 1回のコピー */
+		memcpy(&msgq->data[st_index], ptr, length);
+	}
+	else {
+		/* 2回のコピー */
+		uint32_t f_length = msgq->length - st_index;
+		memcpy(&msgq->data[st_index], ptr, f_length);
+		memcpy(&msgq->data[0], ((uint8_t*)ptr) + f_length, ed_index);
+	}
+	msgq->data_num += length;
+}
+
+static void copy_from_queue(MsgqStruct* msgq, void* ptr, uint32_t length)
+{
+	uint32_t st_index = msgq->data_top;
+	uint32_t ed_index = (st_index + length) % msgq->length;
+	if ( st_index <= ed_index ) {
+		/* 1回のコピー */
+		memcpy(ptr, &msgq->data[st_index], length);
+	}
+	else {
+		/* 2回のコピー */
+		uint32_t f_length = msgq->length - st_index;
+		memcpy(ptr, &msgq->data[st_index], f_length);
+		memcpy(((uint8_t*)ptr) + f_length, &msgq->data[0], ed_index);
+	}
+	msgq->data_top = (msgq->data_top + length) % msgq->length;
+	msgq->data_num -= length;
+}
+
+static bool msgq_send_check_and_copy(MsgqStruct* msgq, MsgqInfoStruct* msgq_info)
+{
+	bool ret = true;
+	/* 要求数をチェック */
+	if ( queue_space(msgq) < msgq_info->req_length ) {
+		/* 足りないので終了 */
+		ret = false;
+	}
+	else {
+		/* 要求数を満たすのでバッファにコピー */
+		copy_to_queue(msgq, msgq_info->req_ptr, msgq_info->req_length);
+	}
+	return ret;
+}
+
+static bool msgq_recv_check_and_copy(MsgqStruct* msgq, MsgqInfoStruct* msgq_info)
+{
+	bool ret = true;
+	if ( msgq->data_num < msgq_info->req_length ) {
+		/* 足りないので終了 */
+		ret = false;
+	}
+	else {
+		/* 要求数を満たすのでバッファからコピー */
+		copy_from_queue(msgq, msgq_info->req_ptr, msgq_info->req_length);
+	}
+	return ret;
+}
+
+static void msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStruct*,MsgqInfoStruct*))
+{
+	/* 送信待ちタスクでデータが格納できるものはすべて起床する */
+	while ( !link_is_empty(&(msgq->link)) ) {
+		Link* link = msgq->link.next;
+		TaskStruct* task = containerof(link, TaskStruct, link);
+		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(task->wait_obj);
+
+		/* コピーされなかったら終了 */
+		if ( !(*check_and_copy)(msgq, msgq_info) ) {
+			break;
+		}
+
+		link_remove(link);
+		task->wait_func = 0; /* 再度同じ処理が走らないようにクリアする */
+		task_wakeup_stub(task, RT_OK);
+	}
+}
+
+static void msgq_send_wakeup_body(MsgqStruct* msgq)
+{
+	msgq_task_wakeup_body(msgq, msgq_send_check_and_copy);
+}
+
+static void msgq_recv_wakeup_body(MsgqStruct* msgq)
+{
+	msgq_task_wakeup_body(msgq, msgq_recv_check_and_copy);
+}
+
+/* msgq待ちのタスクがタイムアウトした場合 */
+static void msgq_wait_func(TaskStruct* task)
+{
+	MsgqStruct* msgq = ((MsgqInfoStruct*)task->wait_obj)->msgq;
+
+	if ( is_send_wait_mode(msgq) ) {
+		msgq_send_wakeup_body(msgq);
+	}
+	else if ( is_recv_wait_mode(msgq) ) {
+		msgq_recv_wakeup_body(msgq);
+	}
+	else {
+		/* タイムアウトしたmsgq待ちタスクが存在するにもかかわらず */
+		/* 送信/受信いずれも待っていない場合は不整合 */
+		lprintf("MSGQ:damange\n");
+	}
+}
 
 OSAPISTUB int __msgq_create(MsgqStruct* msgq, uint32_t length)
 {
@@ -31,49 +166,48 @@ OSAPISTUB int __msgq_create(MsgqStruct* msgq, uint32_t length)
 	return ret;
 }
 
-OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout)
+OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
 {
 	uint32_t		cpsr;
 
 	irq_save(cpsr);
 
-	if ( msgq->data_num < msgq->length ) {
-		/* キューに空きがある->必ず書き込みできるので待ち状態にはならない */
-		/* 受信待ちタスクがいるかチェック */
-		if ( !link_is_empty(&(msgq->link)) ) {
-			/* 受信待ちタスクがいるのでそのタスクにデータを直接渡して起床させる */
-			Link* link = msgq->link.next;
-			link_remove(link);
-			TaskStruct* task = containerof(link, TaskStruct, link);
-			task_wakeup_stub(task, RT_OK);
-			((MsgqInfoStruct*)(task->wait_obj))->ptr = ptr;
+	/* 要求サイズチェック */
+	if ( length <= (msgq->length / 2) ) {
+
+		if ( (length <= queue_space(msgq)) &&  !is_send_wait_mode(msgq) ) {
+			/* 要求サイズ以上に空きがあり 送信待ちタスクがない場合は必ず書き込みできるので待ち状態にはならない */
+
+			copy_to_queue(msgq, ptr, length);
+
+			/* 受信待ちタスクでデータが満たされるものをすべて起床する */
+			msgq_recv_wakeup_body(msgq);
+
 			schedule();
+			_ctask->result_code = RT_OK;
+		}
+		else if ( tmout == TMO_POLL ) {
+			/* ポーリングなのでタイムアウトエラーとする */
+			_ctask->result_code = RT_OK;
 		}
 		else {
-			/* 受信待ちタスクがいないのでキューに書き込んで終了 */
-			((void**)msgq->data)[(msgq->data_top + msgq->data_num) % msgq->length] = ptr;
-			msgq->data_num++;
+			/* キューに空きがない状態 または すでに送信待ちタスクが存在する 待ち状態に遷移する */
+			MsgqInfoStruct msgq_info;
+			msgq_info.msgq = msgq;
+			msgq_info.req_ptr = ptr;
+			msgq_info.req_length = length;
+			task_set_wait(_ctask, &msgq_info, msgq_wait_func);
+			task_remove_queue(_ctask);
+			link_add_last(&(msgq->link), &(_ctask->link));
+			if ( tmout != TMO_FEVER ) {
+				/* タイムアウトリストに追加 */
+				task_add_timeout(_ctask, tmout);
+			}
+			schedule();
 		}
-		_ctask->result_code = RT_TIMEOUT;
-	}
-	else if ( tmout == TMO_POLL ) {
-		/* ポーリングなのでタイムアウトエラーとする */
-		_ctask->result_code = RT_OK;
 	}
 	else {
-		/* キューに空きがない状態->待ち状態に遷移する */
-		MsgqInfoStruct msgq_info;
-		msgq_info.ptr = ptr;
-		_ctask->wait_obj = &msgq_info;
-		_ctask->wait_func = 0;
-		_ctask->task_state = TASK_WAIT;
-		task_remove_queue(_ctask);
-		link_add_last(&(msgq->link), &(_ctask->link));
-		if ( tmout != TMO_FEVER ) {
-			/* タイムアウトリストに追加 */
-			task_add_timeout(_ctask, tmout);
-		}
-		schedule();
+		_ctask->result_code = RT_ERR;
 	}
 
 	irq_restore(cpsr);
@@ -81,57 +215,53 @@ OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __msgq_send(MsgqStruct* msgq, void* ptr)
+OSAPISTUB int __msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length)
 {
-	return __msgq_tsend(msgq, ptr, TMO_FEVER);
+	return __msgq_tsend(msgq, ptr, length, TMO_FEVER);
 }
 
-OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout)
+OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
 {
 	uint32_t cpsr;
 
 	irq_save(cpsr);
 
-	/* 送信待ちの場合は処理リトライするのでループにする */
-	if ( 0 < msgq->data_num ) {
-		/* キューにデータがある -> 読み込みできるので待ち状態にならない */
-		*ptr = ((void**)msgq->data)[msgq->data_top];
-		msgq->data_num--;
-		msgq->data_top = (msgq->data_top + 1) % msgq->length;
+	/* 要求サイズチェック */
+	if ( length <= (msgq->length / 2) ) {
 
-		/* 送信待ちタスクがいる場合は先頭タスクが書き込むデータをキューに入れてタスク起床 */
-		if ( !link_is_empty(&(msgq->link)) ) {
-			Link* link = msgq->link.next;
-			link_remove(link);
-			TaskStruct* task = containerof(link, TaskStruct, link);
-			task_wakeup_stub(task, RT_OK);
-			(msgq->data)[(msgq->data_top + msgq->data_num) % msgq->length] =
-											((MsgqInfoStruct*)(task->wait_obj))->ptr;
-			msgq->data_num++;
+		if ( (length <= msgq->data_num) && !is_recv_wait_mode(msgq) ) {
+			/* キューのデータが要求数以上あり かつ 受信待ちタスクがない場合は 必ず読み込みできるので待ち状態にはならない */
+
+			copy_from_queue(msgq, ptr, length);
+
+			/* 送信待ちタスクでデータが格納できるものはすべて起床する */
+			msgq_send_wakeup_body(msgq);
+
+			schedule();
+			_ctask->result_code = RT_OK;
+		}
+		else if ( tmout == TMO_POLL ) {
+			/* ポーリングなのでタイムアウトエラーとする */
+			_ctask->result_code = RT_OK;
+		}
+		else {
+			/* キューにデータがない -> 待ち状態になる */
+			MsgqInfoStruct msgq_info;
+			msgq_info.msgq = msgq;
+			msgq_info.req_ptr = ptr;
+			msgq_info.req_length = length;
+			task_set_wait(_ctask, &msgq_info, msgq_wait_func);
+			task_remove_queue(_ctask);
+			link_add_last(&(msgq->link), &(_ctask->link));
+			if ( tmout != TMO_FEVER ) {
+				/* タイムアウトリストに追加 */
+				task_add_timeout(_ctask, tmout);
+			}
 			schedule();
 		}
-		_ctask->result_code = RT_OK;
-	}
-	else if ( tmout == TMO_POLL ) {
-		/* ポーリングなのでタイムアウトエラーとする */
-		_ctask->result_code = RT_OK;
 	}
 	else {
-		/* キューにデータがない -> 待ち状態になる */
-		MsgqInfoStruct msgq_info;
-		_ctask->wait_obj = &msgq_info;
-		_ctask->wait_func = 0;
-		_ctask->task_state = TASK_WAIT;
-		task_remove_queue(_ctask);
-		link_add_last(&(msgq->link), &(_ctask->link));
-		if ( tmout != TMO_FEVER ) {
-			/* タイムアウトリストに追加 */
-			task_add_timeout(_ctask, tmout);
-		}
-		schedule();
-		if ( _ctask->result_code == RT_OK ) {
-			*ptr = msgq_info.ptr;
-		}
+		_ctask->result_code = RT_ERR;
 	}
 
 	irq_restore(cpsr);
@@ -139,8 +269,8 @@ OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __msgq_recv(MsgqStruct* msgq, void** ptr)
+OSAPISTUB int __msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length)
 {
-	return __msgq_trecv(msgq, ptr, TMO_FEVER);
+	return __msgq_trecv(msgq, ptr, length, TMO_FEVER);
 }
 
