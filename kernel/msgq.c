@@ -74,43 +74,62 @@ static void copy_from_queue(MsgqStruct* msgq, void* ptr, uint32_t length)
 	msgq->data_num -= length;
 }
 
-static void msgq_send_wakeup_body(MsgqStruct* msgq)
+static bool msgq_send_check_and_copy(MsgqStruct* msgq, MsgqInfoStruct* msgq_info)
+{
+	bool ret = true;
+	/* 要求数をチェック */
+	if ( queue_space(msgq) < msgq_info->req_length ) {
+		/* 足りないので終了 */
+		ret = false;
+	}
+	else {
+		/* 要求数を満たすのでバッファにコピー */
+		copy_to_queue(msgq, msgq_info->req_ptr, msgq_info->req_length);
+	}
+	return ret;
+}
+
+static bool msgq_recv_check_and_copy(MsgqStruct* msgq, MsgqInfoStruct* msgq_info)
+{
+	bool ret = true;
+	if ( msgq->data_num < msgq_info->req_length ) {
+		/* 足りないので終了 */
+		ret = false;
+	}
+	else {
+		/* 要求数を満たすのでバッファからコピー */
+		copy_from_queue(msgq, msgq_info->req_ptr, msgq_info->req_length);
+	}
+	return ret;
+}
+
+static void msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStruct*,MsgqInfoStruct*))
 {
 	/* 送信待ちタスクでデータが格納できるものはすべて起床する */
 	while ( !link_is_empty(&(msgq->link)) ) {
 		Link* link = msgq->link.next;
 		TaskStruct* task = containerof(link, TaskStruct, link);
 		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(task->wait_obj);
-		/* 要求数をチェック */
-		if ( queue_space(msgq) < msgq_info->req_length ) {
-			/* 足りないので終了 */
+
+		/* コピーされなかったら終了 */
+		if ( !(*check_and_copy)(msgq, msgq_info) ) {
 			break;
 		}
-		/* 要求数を満たすのでバッファにコピーしてタスク起床 */
-		copy_to_queue(msgq, msgq_info->req_ptr, msgq_info->req_length);
+
 		link_remove(link);
 		task->wait_func = 0; /* 再度同じ処理が走らないようにクリアする */
 		task_wakeup_stub(task, RT_OK);
 	}
 }
 
+static void msgq_send_wakeup_body(MsgqStruct* msgq)
+{
+	msgq_task_wakeup_body(msgq, msgq_send_check_and_copy);
+}
+
 static void msgq_recv_wakeup_body(MsgqStruct* msgq)
 {
-	while ( !link_is_empty(&(msgq->link)) ) {
-		Link* link = msgq->link.next;
-		TaskStruct* task = containerof(link, TaskStruct, link);
-		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)task->wait_obj;
-		/* 要求数をチェック */
-		if ( msgq->data_num < msgq_info->req_length ) {
-			/* 足りないので終了 */
-			break;
-		}
-		/* 要求数を満たすのでタスク起床 */
-		copy_from_queue(msgq, msgq_info->req_ptr, msgq_info->req_length);
-		link_remove(link);
-		task->wait_func = 0; /* 再度同じ処理が走らないようにクリアする */
-		task_wakeup_stub(task, RT_OK);
-	}
+	msgq_task_wakeup_body(msgq, msgq_recv_check_and_copy);
 }
 
 /* msgq待ちのタスクがタイムアウトした場合 */
@@ -177,9 +196,7 @@ OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut
 			msgq_info.msgq = msgq;
 			msgq_info.req_ptr = ptr;
 			msgq_info.req_length = length;
-			_ctask->wait_obj = &msgq_info;
-			_ctask->wait_func = msgq_wait_func;
-			_ctask->task_state = TASK_WAIT;
+			task_set_wait(_ctask, &msgq_info, msgq_wait_func);
 			task_remove_queue(_ctask);
 			link_add_last(&(msgq->link), &(_ctask->link));
 			if ( tmout != TMO_FEVER ) {
@@ -233,9 +250,7 @@ OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut
 			msgq_info.msgq = msgq;
 			msgq_info.req_ptr = ptr;
 			msgq_info.req_length = length;
-			_ctask->wait_obj = &msgq_info;
-			_ctask->wait_func = msgq_wait_func;
-			_ctask->task_state = TASK_WAIT;
+			task_set_wait(_ctask, &msgq_info, msgq_wait_func);
 			task_remove_queue(_ctask);
 			link_add_last(&(msgq->link), &(_ctask->link));
 			if ( tmout != TMO_FEVER ) {
