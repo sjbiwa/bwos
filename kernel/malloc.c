@@ -12,7 +12,7 @@
 #include "mutex.h"
 #include "api_stub.h"
 
-#define	MB_ALIGN				(4)	/* 空きブロック/使用中ブロックのアラインメント */
+#define	MB_ALIGN				(sizeof(PtrInt_t))	/* 空きブロック/使用中ブロックのアラインメント */
 
 /* アラインメント演算用マクロ */
 #define	PRE_ALIGN(x)			PRE_ALIGN_BY(x,MB_ALIGN)
@@ -20,8 +20,8 @@
 
 /* ポインタ演算用マクロ */
 #define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PRE_PTRALIGN(x)			((void*)PRE_ALIGN(x))	/* アドレスの直前（自身を含む)のアラインメントアドレス */
-#define	POST_PTRALIGN(x)		((void*)POST_ALIGN(x))	/* アドレスの直後（自身を含む)のアラインメントアドレス */
+#define	PRE_PTRALIGN(x)			PRE_ALIGN(x)	/* アドレスの直前（自身を含む)のアラインメントアドレス */
+#define	POST_PTRALIGN(x)		POST_ALIGN(x)	/* アドレスの直後（自身を含む)のアラインメントアドレス */
 
 #define	MB_SIGNATURE			(0xA55Au)
 #define	MB_SPACE				(0x0001u)
@@ -34,25 +34,26 @@
 typedef	struct {
 	uint16_t	signature;		/* 管理ブロックシグネチャ */
 	uint16_t	status;			/* 管理ブロック状態 */
+	uint8_t		dummy[sizeof(PtrInt_t)-sizeof(uint16_t)*2];
 } MBIdentify;
 
 /* 空きブロック先頭構造 */
 typedef	struct {
 	MBIdentify		identify;		/* メモリブロックID */
-	uint32_t		mb_size;
+	MemSize_t		mb_size;
 	Link			link;
 } MBSpaceProlog;
 
 /* 空きブロック最終構造 */
 typedef	struct {
-	uint32_t		mb_size;
+	MemSize_t		mb_size;
 	MBIdentify		identify;		/* メモリブロックID */
 } MBSpaceEpilog;
 
 /* 使用ブロック先頭構造 */
 typedef	struct {
 	MBIdentify		identify;		/* メモリブロックID */
-	uint32_t		mb_size;
+	MemSize_t		mb_size;
 } MBUseProlog;
 
 /* 使用ブロック最終構造 */
@@ -79,7 +80,7 @@ static void* mb_start_addr;
 static void* mb_end_addr;
 #endif
 
-void sys_malloc_add_block(void* start_addr, uint32_t size)
+void sys_malloc_add_block(void* start_addr, MemSize_t size)
 {
 	/* ブロックの先頭/最終にMBIdentifyを置いて、挟まれた初期空きブロックがALIGNされるstart/endを算出 */
 	void* end_addr = PTRVAR(start_addr) + size;
@@ -113,12 +114,12 @@ void sys_malloc_add_block(void* start_addr, uint32_t size)
 }
 
 /* sizeは使用中ヘッダ部を含めた必要サイズ */
-static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
+static void* mb_alloc(MBSpaceProlog* mb_space_prolog, MemSize_t size)
 {
 	void* ret = NULL;
 
 	/* 確保後の残りサイズチェック(余りが管理領域サイズ以下ならすべてを割り当てる) */
-	uint32_t remain_size = mb_space_prolog->mb_size - size;
+	MemSize_t remain_size = mb_space_prolog->mb_size - size;
 	if ( MB_SPACE_INFO_SIZE <= remain_size ) {
 		/* 残りブロックを新たに空きブロックとする */
 		MBSpaceProlog* mb_remain_prolog = (MBSpaceProlog*)(PTRVAR(mb_space_prolog) + size);
@@ -145,7 +146,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, uint32_t size)
 	return ret;
 }
 
-void* sys_malloc_align_body(uint32_t size, uint32_t align)
+void* sys_malloc_align_body(MemSize_t size, uint32_t align)
 {
 	void* ret = NULL;
 
@@ -158,7 +159,7 @@ void* sys_malloc_align_body(uint32_t size, uint32_t align)
 	for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
 		MBSpaceProlog* mb_space_prolog = containerof(find_link, MBSpaceProlog, link);
 		/* 空きブロックを使用ブロックにしたときに実データがalignに合うかチェック */
-		if ( ((uint32_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
+		if ( ((PtrInt_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
 			/* 指定サイズが確保できればそのまま使う */
 			if ( size <= mb_space_prolog->mb_size ) {
 				mb_space = mb_space_prolog;
@@ -172,10 +173,10 @@ void* sys_malloc_align_body(uint32_t size, uint32_t align)
 			uint8_t* aligned_addr = PTRVAR(mb_space_prolog+1)+sizeof(MBSpaceEpilog)+sizeof(MBUseProlog);
 			aligned_addr = PTRVAR(POST_ALIGN_BY(aligned_addr, align));
 			/* 新たに空きブロックとなる領域のサイズ */
-			uint32_t f_size = (PTRVAR(aligned_addr) - sizeof(MBUseProlog)) - PTRVAR(mb_space_prolog);
+			MemSize_t f_size = (PTRVAR(aligned_addr) - sizeof(MBUseProlog)) - PTRVAR(mb_space_prolog);
 			if ( (f_size + size) <= mb_space_prolog->mb_size ) {
 				/* 領域分割してアラインド領域を確保 */
-				uint32_t second_mb_size = mb_space_prolog->mb_size - f_size;
+				MemSize_t second_mb_size = mb_space_prolog->mb_size - f_size;
 				/* 最初のブロック */
 				MBSpaceEpilog* mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + f_size) - 1;
 				mb_space_epilog->identify.signature = MB_SIGNATURE;
@@ -206,7 +207,7 @@ void* sys_malloc_align_body(uint32_t size, uint32_t align)
 
 }
 
-OSAPISTUB void* __sys_malloc_align(uint32_t size, uint32_t align)
+OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
 {
 	__mutex_lock(&malloc_mutex);
 	void* ret = sys_malloc_align_body(size, align);
@@ -217,7 +218,7 @@ OSAPISTUB void* __sys_malloc_align(uint32_t size, uint32_t align)
 }
 
 
-void* sys_malloc_body(uint32_t size)
+void* sys_malloc_body(MemSize_t size)
 {
 	void* ret = NULL;
 
@@ -248,7 +249,7 @@ void* sys_malloc_body(uint32_t size)
 	return ret;
 }
 
-OSAPISTUB void* __sys_malloc(uint32_t size)
+OSAPISTUB void* __sys_malloc(MemSize_t size)
 {
 	__mutex_lock(&malloc_mutex);
 	void* ret = sys_malloc_body(size);

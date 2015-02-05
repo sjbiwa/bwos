@@ -60,8 +60,8 @@ OSAPISTUB int __fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
 OSAPISTUB int __fixmb_release(FixmbStruct* fixmb, void* ptr);
 
 /* ヒープメモリ関連API */
-OSAPISTUB void* __sys_malloc(uint32_t size);
+OSAPISTUB void* __sys_malloc(MemSize_t size);
 OSAPISTUB void __sys_free(void* ptr);
-OSAPISTUB void* __sys_malloc_align(uint32_t size, uint32_t align);
+OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align);
 
 #endif /* INC_API_STUB_H_ */

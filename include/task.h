@@ -31,12 +31,12 @@ typedef	struct tagTaskStruct {
 	uint32_t	task_attr;			/* Task属性 */
 	void		(*entry)(void);		/* Start Entry */
 	void*		init_sp;			/* Initialize SP (SVC) */
-	uint32_t	stack_size;			/* Stack Size (SVC) */
+	MemSize_t	stack_size;			/* Stack Size (SVC) */
 	void*		usr_init_sp;		/* Initial USER SP (USR or SYS) */
-	uint32_t	usr_stack_size;		/* Initial Stack Size (USR or SYS) */
+	MemSize_t	usr_stack_size;		/* Initial Stack Size (USR or SYS) */
 	uint32_t	priority;			/* Task Priority */
 	void*		tls;				/* TaskLocalStorage */
-	uint32_t	tls_size;			/* TLS size */
+	MemSize_t	tls_size;			/* TLS size */
 	/******************/
 	/* カーネル使用領域 */
 	TaskState	task_state;			/* Task State */

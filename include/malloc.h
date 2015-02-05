@@ -12,8 +12,8 @@
 #include "common.h"
 
 extern void sys_malloc_init(void);
-extern void sys_malloc_add_block(void* addr, uint32_t size);
-extern void* sys_malloc_body(uint32_t size);
-extern void* sys_malloc_align_body(uint32_t size, uint32_t align);
+extern void sys_malloc_add_block(void* addr, MemSize_t size);
+extern void* sys_malloc_body(MemSize_t size);
+extern void* sys_malloc_align_body(MemSize_t size, uint32_t align);
 
 #endif /* MALLOC_H_ */
