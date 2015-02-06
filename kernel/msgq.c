@@ -150,17 +150,24 @@ static void msgq_wait_func(TaskStruct* task)
 	}
 }
 
-OSAPISTUB int __msgq_create(MsgqStruct* msgq, uint32_t length)
+OSAPISTUB int __msgq_create(MsgqStruct** p_msgq, uint32_t length)
 {
 	int ret = RT_ERR;
 	if ( 0 < length ) {
-		msgq->data = __sys_malloc_align(sizeof(void*) * length, sizeof(void*));
-		if ( msgq->data ) {
-			link_clear(&msgq->link);
-			msgq->length = length;
-			msgq->data_top = 0;
-			msgq->data_num = 0;
-			ret = RT_OK;
+		MsgqStruct* msgq = __sys_malloc_align(sizeof(MsgqStruct), NORMAL_ALIGN);
+		if ( msgq ) {
+			msgq->data = __sys_malloc_align(sizeof(void*) * length, sizeof(void*));
+			if ( msgq->data ) {
+				link_clear(&msgq->link);
+				msgq->length = length;
+				msgq->data_top = 0;
+				msgq->data_num = 0;
+				*p_msgq = msgq;
+				ret = RT_OK;
+			}
+			else {
+				__sys_free(msgq);
+			}
 		}
 	}
 	return ret;

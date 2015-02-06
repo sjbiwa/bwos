@@ -31,7 +31,7 @@
 #define	TMO_FEVER		((TimeOut)(-1))
 
 /* タスク関連API */
-OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);
+OSAPI int task_create(TaskStruct** task, TaskCreateInfo* info);
 OSAPI int task_active(TaskStruct* task);
 OSAPI int task_sleep(void);
 OSAPI int task_wakeup(TaskStruct* task);
@@ -39,33 +39,33 @@ OSAPI int task_tsleep(TimeOut tm);
 OSAPI int task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */
-OSAPI int flag_create(FlagStruct* flag);
+OSAPI int flag_create(FlagStruct** flag);
 OSAPI int flag_set(FlagStruct* flag, uint32_t pattern);
 OSAPI int flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern);
 OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);
 OSAPI int flag_clear(FlagStruct* flag, uint32_t pattern);
 
 /* ミューテックス関連API */
-OSAPI int mutex_create(MutexStruct* mtx);
+OSAPI int mutex_create(MutexStruct** mtx);
 OSAPI int mutex_unlock(MutexStruct* mtx);
 OSAPI int mutex_lock(MutexStruct* mtx);
 OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout);
 
 /* セマフォ関連API */
-OSAPI int sem_create(SemStruct* sem, uint32_t max);
+OSAPI int sem_create(SemStruct** sem, uint32_t max);
 OSAPI int sem_request(SemStruct* sem, uint32_t num);
 OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout);
 OSAPI int sem_release(SemStruct* sem, uint32_t num);
 
 /* メッセージキュー関連API */
-OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length);
+OSAPI int msgq_create(MsgqStruct** msgq, uint32_t length);
 OSAPI int msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length);
 OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
 OSAPI int msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length);
 OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, uint32_t length, TimeOut tmout);
 
 /* 固定長メモリブロック関連API */
-OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);
+OSAPI int fixmb_create(FixmbStruct** fixmb, uint32_t mb_size, uint32_t length);
 OSAPI int fixmb_request(FixmbStruct* fixmb, void** ptr);
 OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
 OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);

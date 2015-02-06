@@ -11,12 +11,18 @@
 #include "link.h"
 #include "api_stub.h"
 
-OSAPISTUB int __mutex_create(MutexStruct* mtx)
+OSAPISTUB int __mutex_create(MutexStruct** p_mtx)
 {
-	link_clear(&(mtx->link));
-	mtx->task = NULL;
-	mtx->count = 0;
-	return 0;
+	int ret = RT_ERR;
+	MutexStruct* mtx = __sys_malloc_align(sizeof(MutexStruct), NORMAL_ALIGN);
+	if ( mtx ) {
+		link_clear(&(mtx->link));
+		mtx->task = NULL;
+		mtx->count = 0;
+		*p_mtx = mtx;
+		ret = RT_OK;
+	}
+	return ret;
 }
 
 OSAPISTUB int __mutex_unlock(MutexStruct* mtx)

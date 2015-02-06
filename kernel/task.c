@@ -292,44 +292,73 @@ void task_init(void)
 	task_add_queue(&init_task_struct);
 }
 
-OSAPISTUB int __task_create(TaskStruct* task, TaskCreateInfo* info)
+OSAPISTUB int __task_create(TaskStruct** p_task, TaskCreateInfo* info)
 {
-	task_init_struct(task,
+	bool is_alloc_sp = false;
+	bool is_alloc_usr_sp = false;
+	TaskStruct* task = __sys_malloc_align(sizeof(TaskStruct), NORMAL_ALIGN);
+	if ( task ) {
+		task_init_struct(task,
 						info->name,
 						info->task_attr,
 						info->entry,
 						info->usr_init_sp,
 						info->usr_stack_size,
 						info->priority);
-	/* SVC_stack */
-	if ( task->init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->init_sp = __sys_malloc_align(task->stack_size, 8);
-	}
-	/* USR stack */
-	if ( task->usr_init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, 8);
-	}
+		/* SVC_stack */
+		if ( task->init_sp == 0 ) {
+			/* stackをヒープから確保 */
+			task->init_sp = __sys_malloc_align(task->stack_size, STACK_ALIGN);
+			if ( !(task->init_sp) ) {
+				goto ERR_RET1;
+			}
+			is_alloc_sp = true;
+		}
+		/* USR stack */
+		if ( task->usr_init_sp == 0 ) {
+			/* stackをヒープから確保 */
+			task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
+			if ( !(task->usr_init_sp) ) {
+				goto ERR_RET2;
+			}
+			is_alloc_usr_sp = true;
+		}
 
-	/* TLS alloc */
-	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
-		task->tls = __sys_malloc_align(task->tls_size, 8);
-		memset(task->tls, 0, task->tls_size);
+		/* TLS alloc */
+		if ( (task->tls == NULL) && (task->tls_size != 0) ) {
+			task->tls = __sys_malloc_align(task->tls_size, STACK_ALIGN);
+			if ( task->tls ) {
+				memset(task->tls, 0, task->tls_size);
+			}
+		}
+
+		/* ARCH depend create */
+		if ( arch_task_create(task) != RT_OK ) {
+			goto ERR_RET3;
+		}
+
+		if ( task->task_attr & TASK_ACT ) {
+			uint32_t		cpsr;
+			irq_save(cpsr);
+			task->task_state = TASK_READY;
+			task_add_queue(task);
+			schedule();
+			irq_restore(cpsr);
+		}
 	}
-
-	arch_task_create(task); /* ARCH depend create */
-
-	if ( task->task_attr & TASK_ACT ) {
-		uint32_t		cpsr;
-		irq_save(cpsr);
-		task->task_state = TASK_READY;
-		task_add_queue(task);
-		schedule();
-		irq_restore(cpsr);
-	}
-
 	return RT_OK;
+
+ERR_RET3:
+	if ( is_alloc_usr_sp ) {
+		__sys_free(task->usr_init_sp);
+	}
+ERR_RET2:
+	if ( is_alloc_sp ) {
+		__sys_free(task->init_sp);
+	}
+ERR_RET1:
+	__sys_free(task);
+	return RT_ERR;
 }
 
 OSAPISTUB int __task_active(TaskStruct* task)

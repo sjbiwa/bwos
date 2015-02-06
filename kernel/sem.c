@@ -42,11 +42,17 @@ static void sem_wait_func(TaskStruct* task)
 	sem_release_body(sem);
 }
 
-OSAPISTUB int __sem_create(SemStruct* sem, uint32_t max)
+OSAPISTUB int __sem_create(SemStruct** p_sem, uint32_t max)
 {
-	link_clear(&(sem->link));
-	sem->max = sem->remain = max;
-	return 0;
+	int ret = RT_ERR;
+	SemStruct* sem = __sys_malloc_align(sizeof(SemStruct), NORMAL_ALIGN);
+	if ( sem ) {
+		link_clear(&(sem->link));
+		sem->max = sem->remain = max;
+		*p_sem = sem;
+		ret = RT_OK;
+	}
+	return ret;
 }
 
 OSAPISTUB int __sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)

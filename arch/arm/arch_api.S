@@ -14,7 +14,7 @@
 	.balign 4
 
 /* タスク関連API */
-/*OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);*/
+/*OSAPI int task_create(TaskStruct** task, TaskCreateInfo* info);*/
 	.global task_create
 	.type   task_create, %function
 task_create:
@@ -58,7 +58,7 @@ task_get_tls:
 
 
 /* フラグ関連API */
-/* OSAPI int flag_create(FlagStruct* flag); */
+/* OSAPI int flag_create(FlagStruct** flag); */
 	.global flag_create
 	.type   flag_create, %function
 flag_create:
@@ -95,7 +95,7 @@ flag_clear:
 
 
 /* ミューテックス関連API */
-/* OSAPI int mutex_create(MutexStruct* mtx); */
+/* OSAPI int mutex_create(MutexStruct** mtx); */
 	.global mutex_create
 	.type   mutex_create, %function
 mutex_create:
@@ -125,7 +125,7 @@ mutex_tlock:
 
 
 /* セマフォ関連API */
-/* OSAPI int sem_create(SemStruct* sem, uint32_t max); */
+/* OSAPI int sem_create(SemStruct** sem, uint32_t max); */
 	.global sem_create
 	.type   sem_create, %function
 sem_create:
@@ -155,7 +155,7 @@ sem_release:
 
 
 /* メッセージキュー関連API */
-/* OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length); */
+/* OSAPI int msgq_create(MsgqStruct** msgq, uint32_t length); */
 	.global msgq_create
 	.type   msgq_create, %function
 msgq_create:
@@ -192,7 +192,7 @@ msgq_trecv:
 
 
 /* 固定長メモリブロック関連API */
-/* OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length); */
+/* OSAPI int fixmb_create(FixmbStruct** fixmb, uint32_t mb_size, uint32_t length); */
 	.global fixmb_create
 	.type   fixmb_create, %function
 fixmb_create:

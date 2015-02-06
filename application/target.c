@@ -132,7 +132,7 @@ static void* ptr[100];
 	task_sleep();
 }
 
-static FlagStruct	wait_flag;
+static FlagStruct*	wait_flag;
 
 void task4(void)
 {
@@ -140,7 +140,7 @@ void task4(void)
 	lprintf("start task4\n");
 	while (!flags) {
 		task_tsleep(MSEC(70));
-		flag_set(&wait_flag, 0x0001);
+		flag_set(wait_flag, 0x0001);
 		lprintf("set_flag task4\n");
 	}
 }
@@ -151,7 +151,7 @@ void task5(void)
 
 	while (!flags) {
 		uint32_t ret_pattern;
-		int ret = flag_twait(&wait_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern, MSEC(50));
+		int ret = flag_twait(wait_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern, MSEC(50));
 		lprintf("wakeup task5:%d\n", ret);
 	}
 }
@@ -159,8 +159,9 @@ void task5(void)
 #endif
 
 
+
 /* configuration task */
-TaskStruct		task_struct[16];
+TaskStruct*		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},

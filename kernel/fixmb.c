@@ -51,32 +51,54 @@ static uint32_t fixmb_ptr2idx(FixmbStruct* fixmb, void* ptr)
 	return (uint32_t)(((uint8_t*)ptr - (uint8_t*)(fixmb->mb_area)) / fixmb->mb_size);
 }
 
-OSAPISTUB int __fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
+OSAPISTUB int __fixmb_create(FixmbStruct** p_fixmb, uint32_t mb_size, uint32_t length)
 {
-	uint32_t ix;
-	uint32_t bitmap_num;
+	FixmbStruct* fixmb = __sys_malloc_align(sizeof(FixmbStruct), NORMAL_ALIGN);
+	if ( fixmb ) {
+		link_clear(&fixmb->link);
+		if ( mb_size < sizeof(FixmbList) ) {
+			mb_size = sizeof(FixmbList);
+		}
+		fixmb->mb_size = POST_ALIGN_BY(mb_size, 16); /* サイズは16バイトの倍数にする */
+		fixmb->mb_length = length;
+		fixmb->mb_area = __sys_malloc_align(fixmb->mb_size * length, 16);
 
-	link_clear(&fixmb->link);
-	if ( mb_size < sizeof(FixmbList) ) {
-		mb_size = sizeof(FixmbList);
+		if ( fixmb->mb_area ) {
+			uint32_t bitmap_num;
+			fixmb->is_list_mode = false;
+			fixmb->list.top.index = fixmb->list.last.index = NO_ENTRY;
+			fixmb->mb_array_index = 0;
+			fixmb->use_count = 0;
+
+			/* 使用中ビットマップをクリア */
+			bitmap_num = (length + 31) / 32;
+			fixmb->use_bitmap = __sys_malloc_align(bitmap_num * 4, 4);
+			if ( fixmb->use_bitmap ) {
+				uint32_t ix;
+				for ( ix=0; ix < bitmap_num; ix++ ) {
+					fixmb->use_bitmap[ix] = 0;
+				}
+				*p_fixmb = fixmb;
+			}
+			else {
+				goto ERR_RET1;
+			}
+		}
+		else {
+			goto ERR_RET2;
+		}
 	}
-	fixmb->mb_size = POST_ALIGN_BY(mb_size, 16); /* サイズは16バイトの倍数にする */
-	fixmb->mb_length = length;
-	fixmb->mb_area = __sys_malloc_align(fixmb->mb_size * length, 16);
-
-	fixmb->is_list_mode = false;
-	fixmb->list.top.index = fixmb->list.last.index = NO_ENTRY;
-	fixmb->mb_array_index = 0;
-	fixmb->use_count = 0;
-
-	/* 使用中ビットマップをクリア */
-	bitmap_num = (length + 31) / 32;
-	fixmb->use_bitmap = __sys_malloc_align(bitmap_num * 4, 4);
-	for ( ix=0; ix < bitmap_num; ix++ ) {
-		fixmb->use_bitmap[ix] = 0;
+	else {
+		goto ERR_RET3;
 	}
+	return RT_OK;
 
-	return 0;
+ERR_RET1:
+	__sys_free(fixmb->mb_area);
+ERR_RET2:
+	__sys_free(fixmb);
+ERR_RET3:
+	return RT_ERR;
 }
 
 
