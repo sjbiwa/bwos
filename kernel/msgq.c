@@ -146,7 +146,7 @@ static void msgq_wait_func(TaskStruct* task)
 	else {
 		/* タイムアウトしたmsgq待ちタスクが存在するにもかかわらず */
 		/* 送信/受信いずれも待っていない場合は不整合 */
-		lprintf("MSGQ:damange\n");
+		tprintf("MSGQ:damange\n");
 	}
 }
 

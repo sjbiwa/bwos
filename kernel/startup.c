@@ -15,10 +15,9 @@ void startup(void)
 	/* ハードウェア初期化 */
 	arch_system_preinit();
 	tprintf("Booting BWOS Ver " OS_VERSION  "\n");
+	sys_malloc_init();
 	irq_init();
 	timer_init();
-	lprintf_init();
-	sys_malloc_init();
 	task_init();
 	arch_system_postinit();
 

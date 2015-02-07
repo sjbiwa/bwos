@@ -11,14 +11,19 @@
 #include "link.h"
 #include "api_stub.h"
 
+void __mutex_create_static(MutexStruct* mtx)
+{
+	link_clear(&(mtx->link));
+	mtx->task = NULL;
+	mtx->count = 0;
+}
+
 OSAPISTUB int __mutex_create(MutexStruct** p_mtx)
 {
 	int ret = RT_ERR;
 	MutexStruct* mtx = __sys_malloc_align(sizeof(MutexStruct), NORMAL_ALIGN);
 	if ( mtx ) {
-		link_clear(&(mtx->link));
-		mtx->task = NULL;
-		mtx->count = 0;
+		__mutex_create_static(mtx);
 		*p_mtx = mtx;
 		ret = RT_OK;
 	}

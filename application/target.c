@@ -171,7 +171,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASK5",          TASK_ACT, task5, 0, 1024, 1024, 5},
 };
 
-void init_task(void)
+void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {

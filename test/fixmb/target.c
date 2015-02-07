@@ -11,19 +11,19 @@ typedef	struct {
 	uint32_t count;
 } Message;
 
-static FixmbStruct	fixmb;
-static MsgqStruct	msgq;
+static FixmbStruct*	fixmb;
+static MsgqStruct*	msgq;
 
 void task1(void)
 {
 	Message* ptr;
 	uint32_t ix;
 	for ( ix=0;; ix++ ) {
-		if ( fixmb_request(&fixmb, (void**)(&ptr)) == RT_OK ) {
+		if ( fixmb_request(fixmb, (void**)(&ptr)) == RT_OK ) {
 			lprintf("TASK1:FIXMB:%08X\n", ptr);
 			ptr->id = 1;
 			ptr->count = ix;
-			msgq_send(&msgq, ptr);
+			msgq_send(msgq, &ptr, sizeof(void*));
 			task_tsleep(MSEC(15));
 		}
 	}
@@ -34,11 +34,11 @@ void task2(void)
 	Message* ptr;
 	uint32_t ix;
 	for ( ix=0;; ix++ ) {
-		if ( fixmb_request(&fixmb, (void**)(&ptr)) == RT_OK ) {
+		if ( fixmb_request(fixmb, (void**)(&ptr)) == RT_OK ) {
 			lprintf("TASK2:FIXMB:%08X\n", ptr);
 			ptr->id = 2;
 			ptr->count = ix*10000;
-			msgq_send(&msgq, ptr);
+			msgq_send(msgq, &ptr, sizeof(void*));
 			task_tsleep(MSEC(50));
 		}
 	}
@@ -48,9 +48,9 @@ void task3(void)
 {
 	Message* ptr;
 	for (;;) {
-		if ( msgq_recv(&msgq, (void**)(&ptr)) == RT_OK ) {
+		if ( msgq_recv(msgq, &ptr, sizeof(void*)) == RT_OK ) {
 			lprintf("TASK3:RECV(%d)/(%d):\n", ptr->id, ptr->count);
-			fixmb_release(&fixmb, (void*)ptr);
+			fixmb_release(fixmb, (void*)ptr);
 		}
 		else {
 			lprintf("TASK3:RECV:ERROR:\n");
@@ -60,7 +60,7 @@ void task3(void)
 }
 
 /* configuration task */
-TaskStruct		task_struct[16];
+TaskStruct*		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
@@ -68,7 +68,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 7},
 };
 
-void init_task(void)
+void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
@@ -77,6 +77,6 @@ void init_task(void)
 
 	/* 共有リソース初期化 */
 	fixmb_create(&fixmb, 128, 16);
-	msgq_create(&msgq, 4);
+	msgq_create(&msgq, 1024);
 	task_sleep();
 }

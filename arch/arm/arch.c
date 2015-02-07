@@ -53,16 +53,21 @@ void arch_init_task_create(TaskStruct* task)
 	arch_init_task(task);
 }
 
-void arch_task_create(TaskStruct* task)
+int arch_task_create(TaskStruct* task)
 {
+	int ret = RT_OK;
 	arch_init_task(task);
 
 	/* FPU(VFP)退避用領域の確保 */
 	if ( task->task_attr & TASK_FPU ) {
 		uint32_t*		ptr = task->save_sp;
-		task->arch_tls = __sys_malloc_align(8*32+1, STACK_ALIGN); /* D0-D31, FPSCR */
 		ptr[TASK_FRAME_FPEXC] = 0x40000000;
+		task->arch_tls = __sys_malloc_align(8*32+1, STACK_ALIGN); /* D0-D31, FPSCR */
+		if ( !(task->arch_tls) ) {
+			ret = RT_ERR;
+		}
 	}
+	return ret;
 }
 
 void arch_system_preinit(void)

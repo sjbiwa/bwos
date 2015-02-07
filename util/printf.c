@@ -253,11 +253,11 @@ tsprintf(char* buff,char* fmt, ...){
 /*
   Tiny sprintf関数
 */
-static MutexStruct printf_mutex;
+static MutexStruct* printf_mutex;
 
 void lprintf_init(void)
 {
-	__mutex_create(&printf_mutex);
+	mutex_create(&printf_mutex);
 #if 0
 	*(volatile uint32_t*)(UART_BASE+0x2C) = (0x07<<4); /* UARTLCR_H */
 	*(volatile uint32_t*)(UART_BASE+0x30) = (0x03<<8)|(0x01); /* UARTCR */
@@ -294,10 +294,10 @@ static char		buff[1024];
 	len = 0;
 	va_start(arg, fmt);
 
-	mutex_lock(&printf_mutex);
+	mutex_lock(printf_mutex);
 	vtsprintf(buff,fmt,arg);
 
 	va_end(arg);
 	debug_print(buff);
-	mutex_unlock(&printf_mutex);
+	mutex_unlock(printf_mutex);
 }

@@ -71,8 +71,8 @@ static MutexStruct	malloc_mutex;
 void sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
-	__mutex_create(&malloc_mutex);
 	arch_malloc_init();
+	__mutex_create_static(&malloc_mutex);
 }
 
 #if defined(TEST_MODE)
@@ -198,7 +198,7 @@ void* sys_malloc_align_body(MemSize_t size, uint32_t align)
 		/* 指定の空きブロックからメモリ割り当て */
 		ret = mb_alloc(mb_space, size);
 		if ( !ret ) {
-			//lprintf("system error.(malloc\n");
+			//tprintf("system error.(malloc\n");
 		}
 	}
 
@@ -242,7 +242,7 @@ void* sys_malloc_body(MemSize_t size)
 		/* 指定の空きブロックからメモリ割り当て */
 		ret = mb_alloc(mb_space, size);
 		if ( !ret ) {
-			//lprintf("system error.(malloc\n");
+			//tprintf("system error.(malloc\n");
 		}
 	}
 
