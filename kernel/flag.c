@@ -51,14 +51,18 @@ static inline bool check_and_result(FlagStruct* flag, uint32_t pattern, uint32_t
 	return ret;
 }
 
+void __flag_create_static(FlagStruct* flag)
+{
+	link_clear(&flag->link);
+	flag->value = 0;
+}
 
 OSAPISTUB int __flag_create(FlagStruct** p_flag)
 {
 	int ret = RT_ERR;
 	FlagStruct* flag = __sys_malloc_align(sizeof(FlagStruct), NORMAL_ALIGN);
 	if ( flag ) {
-		link_clear(&flag->link);
-		flag->value = 0;
+		__flag_create_static(flag);
 		*p_flag = flag;
 		ret = RT_OK;
 	}

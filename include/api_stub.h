@@ -64,8 +64,10 @@ OSAPISTUB void* __sys_malloc(MemSize_t size);
 OSAPISTUB void __sys_free(void* ptr);
 OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align);
 
-/* static領域版 */
+/* static領域版 (カーネル内部で使用) */
 void __mutex_create_static(MutexStruct* mtx);
+void __flag_create_static(FlagStruct* flag);
+void __sem_create_static(SemStruct* sem, uint32_t max);
 
 
 #endif /* INC_API_STUB_H_ */
