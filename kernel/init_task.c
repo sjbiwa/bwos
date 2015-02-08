@@ -19,5 +19,10 @@ void init_task(void)
 {
 	lprintf_init();
 	task_create(&task, &main_task_info);
-	task_sleep();
+
+	/* init_taskのオブジェクトはすべてstaticメモリを使うので */
+	/* 終了してはいけない */
+	for (;;) {
+		task_sleep();
+	}
 }

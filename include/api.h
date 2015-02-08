@@ -36,6 +36,7 @@ OSAPI int task_active(TaskStruct* task);
 OSAPI int task_sleep(void);
 OSAPI int task_wakeup(TaskStruct* task);
 OSAPI int task_tsleep(TimeOut tm);
+OSAPI int task_dormant(void);
 OSAPI int task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */

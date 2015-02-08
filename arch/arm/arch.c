@@ -43,9 +43,9 @@ static inline void arch_init_task(TaskStruct* task)
 	ptr[TASK_FRAME_PC] = (PtrInt_t)task->entry;
 	ptr[TASK_FRAME_PSR] = FLAG_T | ((task->task_attr&TASK_SYS)?MODE_SYS:MODE_USR);
 	ptr[TASK_FRAME_FPEXC] = 0x00000000;
-	ptr[TASK_FRAME_SPSR] = 0xA5A5A5A5;
+	ptr[TASK_FRAME_SPSR] = 0x00000000;
 	ptr[TASK_FRAME_SP_USR] = (PtrInt_t)usr_stack;
-	ptr[TASK_FRAME_LR_USR] = 0xF0F0F0F0;
+	ptr[TASK_FRAME_LR_USR] = (PtrInt_t)task_dormant;
 }
 
 void arch_init_task_create(TaskStruct* task)

@@ -25,6 +25,7 @@ OSAPISTUB int __task_active(TaskStruct* task);
 OSAPISTUB int __task_sleep(void);
 OSAPISTUB int __task_wakeup(TaskStruct* task);
 OSAPISTUB int __task_tsleep(TimeOut tm);
+OSAPISTUB int __task_dormant(void);
 OSAPISTUB int __task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */

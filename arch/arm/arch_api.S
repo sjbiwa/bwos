@@ -49,6 +49,13 @@ task_tsleep:
 	svc #TASK_TSLEEP_APINO
 	bx	lr
 
+/* OSAPI int task_dormant(void); */
+	.global task_dormant
+	.type   task_dormant, %function
+task_dormant:
+	svc #TASK_DORMANT_APINO
+	bx	lr
+
 /* OSAPI void* task_get_tls(TaskStruct* task); */
 	.global task_get_tls
 	.type   task_get_tls, %function

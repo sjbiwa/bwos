@@ -19,7 +19,7 @@
 #define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
 #define	TASK_SYS			(0x00000001u<<2)	/* SYSTEMモード(特権)タスク */
 
-typedef	enum { TASK_STANDBY, TASK_READY, TASK_WAIT, TASK_DONE } TaskState;
+typedef	enum { TASK_STANDBY, TASK_READY, TASK_WAIT, TASK_DORMANT } TaskState;
 typedef	struct tagTaskStruct {
 	/* Fixed Position */
 	Link		link;				/* ReadQueue/EventQueue LinkList */

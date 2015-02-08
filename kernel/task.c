@@ -407,6 +407,19 @@ OSAPISTUB int __task_tsleep(TimeOut tm)
 	return _ctask->result_code;
 }
 
+OSAPISTUB int __task_dormant(void)
+{
+	uint32_t		cpsr;
+	irq_save(cpsr);
+	task_remove_queue(_ctask);
+	link_clear(&(_ctask->link));
+	_ctask->task_state = TASK_DORMANT;
+	schedule();
+	for (;;);
+	irq_restore(cpsr);
+	return RT_OK;
+}
+
 OSAPISTUB int __task_get_tls(TaskStruct* task, void** ptr)
 {
 	if ( task == TASK_SELF ) {
