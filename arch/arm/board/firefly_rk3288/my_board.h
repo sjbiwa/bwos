@@ -8,8 +8,8 @@
 #ifndef MY_BOARD_H_
 #define MY_BOARD_H_
 
-#define	START_MEM_ADDR		(0x40000000u)
-#define	END_MEM_ADDR		(0x7FFFFFFFu)
+#define	START_MEM_ADDR		(0x00000000u)
+#define	END_MEM_ADDR		(0x1FFFFFFFu)
 
 #define	CACHE_LINE_SIZE		(64)
 
@@ -20,8 +20,7 @@
 #define	TIME_UNIT_VALUE		(0x8000)	/* 1TIME-UNITのクロック数 */
 										/* 1UNIT=約1.365ms */
 
-#define	MPCORE_BASE				(0x01C80000u)
-
+#define	MPCORE_BASE				(0xFFC00000u)
 
 /*** Tick管理パラメータ ***/
 typedef	uint64_t	TimeSpec;	/* OS内部での時間単位 */

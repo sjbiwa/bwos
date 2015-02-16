@@ -144,6 +144,4 @@ extern char __data_start;
 	__dsb();
 	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
 	__isb();
-
-	tprintf("SCTLR = %08X\n", SCTLR_get());
 }

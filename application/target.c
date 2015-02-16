@@ -73,7 +73,8 @@ static void* ptr[100];
 		}
 		//dump_space();
 	}
-	task_sleep();
+	//task_sleep();
+	lprintf("task1 finished\n");
 }
 
 void task2(void)
@@ -100,7 +101,8 @@ static void* ptr[100];
 		}
 		//dump_space();
 	}
-	task_sleep();
+	//task_sleep();
+	lprintf("task2 finished\n");
 }
 
 static volatile bool flags = false;
@@ -129,13 +131,19 @@ static void* ptr[100];
 		//dump_space();
 	}
 	flags = true;
-	task_sleep();
+	//task_sleep();
+	lprintf("task3 finished\n");
 }
 
 static FlagStruct*	wait_flag;
 
 void task4(void)
 {
+	for (;;) {
+		lprintf("start task4\n");
+		task_tsleep(SEC(5));
+
+	}
 	flag_create(&wait_flag);
 	lprintf("start task4\n");
 	while (!flags) {
@@ -143,17 +151,23 @@ void task4(void)
 		flag_set(wait_flag, 0x0001);
 		lprintf("set_flag task4\n");
 	}
+	lprintf("task4 finished\n");
 }
 
 void task5(void)
 {
-	lprintf("start task5\n");
+	for (;;) {
+		lprintf("start task5\n");
+		task_tsleep(SEC(8));
+
+	}
 
 	while (!flags) {
 		uint32_t ret_pattern;
 		int ret = flag_twait(wait_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern, MSEC(50));
 		lprintf("wakeup task5:%d\n", ret);
 	}
+	lprintf("task5 finished\n");
 }
 
 #endif
@@ -164,9 +178,9 @@ void task5(void)
 TaskStruct*		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
-		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 5},
-		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
+//		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 10},
+//		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 5},
+//		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
 		{"TASK4",          TASK_ACT, task4, 0, 1024, 1024, 5},
 		{"TASK5",          TASK_ACT, task5, 0, 1024, 1024, 5},
 };
