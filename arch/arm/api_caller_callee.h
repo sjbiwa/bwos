@@ -14,9 +14,9 @@
 /* ARMは４つの引数までしかレジスタ渡しできないので５つ以上 */
 /* 引数があるAPIについては CALLER-CALLEEスタブを使う */
 
-/*OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);*/
+/*OSAPI int flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);*/
 typedef	struct {
-	FlagStruct* flag;
+	int id;
 	uint32_t pattern;
 	uint32_t wait_mode;
 	uint32_t* ret_pattern;

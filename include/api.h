@@ -10,14 +10,6 @@
 
 #include <stdint.h>
 #include "common.h"
-#include "task.h"
-#include "flag.h"
-#include "mutex.h"
-#include "sem.h"
-#include "msgq.h"
-#include "fixmb.h"
-#include "malloc.h"
-#include "sys_irq.h"
 
 /* 終了ステータス */
 #define	RT_OK			(0)
@@ -30,46 +22,58 @@
 #define	TMO_POLL		((TimeOut)0)
 #define	TMO_FEVER		((TimeOut)(-1))
 
+/* タスク生成パラメータ */
+typedef	struct {
+	uint8_t*	name;				/* Task Name */
+	uint32_t	task_attr;			/* Task属性 */
+	void		(*entry)(void);		/* Start Entry */
+	void*		usr_init_sp;		/* Initialize SP */
+	uint32_t	usr_stack_size;		/* Stack Size */
+	uint32_t	tls_size;			/* TLS size */
+	uint32_t	priority;			/* Task Priority */
+} TaskCreateInfo;
+
+
 /* タスク関連API */
-OSAPI int task_create(TaskStruct** task, TaskCreateInfo* info);
-OSAPI int task_active(TaskStruct* task);
+OSAPI int task_create(TaskCreateInfo* info);
+OSAPI int task_active(int id);
 OSAPI int task_sleep(void);
-OSAPI int task_wakeup(TaskStruct* task);
+OSAPI int task_wakeup(int id);
 OSAPI int task_tsleep(TimeOut tm);
 OSAPI int task_dormant(void);
-OSAPI int task_get_tls(TaskStruct* task, void** ptr);
+OSAPI int task_get_tls(int id, void** ptr);
 
 /* フラグ関連API */
-OSAPI int flag_create(FlagStruct** flag);
-OSAPI int flag_set(FlagStruct* flag, uint32_t pattern);
-OSAPI int flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern);
-OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);
-OSAPI int flag_clear(FlagStruct* flag, uint32_t pattern);
+OSAPI int flag_create(void);
+OSAPI int flag_set(int id, uint32_t pattern);
+OSAPI int flag_wait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern);
+OSAPI int flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);
+OSAPI int flag_clear(int id, uint32_t pattern);
 
 /* ミューテックス関連API */
-OSAPI int mutex_create(MutexStruct** mtx);
-OSAPI int mutex_unlock(MutexStruct* mtx);
-OSAPI int mutex_lock(MutexStruct* mtx);
-OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout);
+OSAPI int mutex_create(void);
+OSAPI int mutex_unlock(int id);
+OSAPI int mutex_lock(int id);
+OSAPI int mutex_tlock(int id, TimeOut tmout);
 
 /* セマフォ関連API */
-OSAPI int sem_create(SemStruct** sem, uint32_t max);
-OSAPI int sem_request(SemStruct* sem, uint32_t num);
-OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout);
-OSAPI int sem_release(SemStruct* sem, uint32_t num);
+OSAPI int sem_create(uint32_t max);
+OSAPI int sem_request(int id, uint32_t num);
+OSAPI int sem_trequest(int id, uint32_t num, TimeOut tmout);
+OSAPI int sem_release(int id, uint32_t num);
 
 /* メッセージキュー関連API */
-OSAPI int msgq_create(MsgqStruct** msgq, uint32_t length);
-OSAPI int msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length);
-OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
-OSAPI int msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length);
-OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, uint32_t length, TimeOut tmout);
+OSAPI int msgq_create(uint32_t length);
+OSAPI int msgq_send(int id, void* ptr, uint32_t length);
+OSAPI int msgq_tsend(int id, void* ptr, uint32_t length, TimeOut tmout);
+OSAPI int msgq_recv(int id, void* ptr, uint32_t length);
+OSAPI int msgq_trecv(int id, void** ptr, uint32_t length, TimeOut tmout);
 
 /* 固定長メモリブロック関連API */
-OSAPI int fixmb_create(FixmbStruct** fixmb, uint32_t mb_size, uint32_t length);
-OSAPI int fixmb_request(FixmbStruct* fixmb, void** ptr);
-OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
-OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr);
+OSAPI int fixmb_create(uint32_t mb_size, uint32_t length);
+OSAPI int fixmb_request(int id, void** ptr);
+OSAPI int fixmb_trequest(int id, void** ptr, TimeOut tmout);
+OSAPI int fixmb_release(int id, void* ptr);
 
 /* ヒープメモリ関連API */
 OSAPI void* sys_malloc(uint32_t size);

@@ -47,16 +47,6 @@ typedef	struct tagTaskStruct {
 	int32_t		result_code;		/* API完了コード */
 } TaskStruct;
 
-typedef	struct {
-	uint8_t*	name;				/* Task Name */
-	uint32_t	task_attr;			/* Task属性 */
-	void		(*entry)(void);		/* Start Entry */
-	void*		usr_init_sp;		/* Initialize SP */
-	uint32_t	usr_stack_size;		/* Stack Size */
-	uint32_t	tls_size;			/* TLS size */
-	uint32_t	priority;			/* Task Priority */
-} TaskCreateInfo;
-
 extern	TaskStruct*			_ctask;
 extern	TaskStruct*			_ntask;
 

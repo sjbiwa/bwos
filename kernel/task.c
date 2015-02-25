@@ -6,7 +6,7 @@
  */
 
 #include "common.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 #include "link.h"
 #include "task.h"
 
@@ -292,59 +292,56 @@ void task_init(void)
 	task_add_queue(&init_task_struct);
 }
 
-OSAPISTUB int __task_create(TaskStruct** p_task, TaskCreateInfo* info)
+int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 {
 	bool is_alloc_sp = false;
 	bool is_alloc_usr_sp = false;
-	TaskStruct* task = __sys_malloc_align(sizeof(TaskStruct), NORMAL_ALIGN);
-	if ( task ) {
-		task_init_struct(task,
-						info->name,
-						info->task_attr,
-						info->entry,
-						info->usr_init_sp,
-						info->usr_stack_size,
-						info->priority);
-		/* SVC_stack */
-		if ( task->init_sp == 0 ) {
-			/* stackをヒープから確保 */
-			task->init_sp = __sys_malloc_align(task->stack_size, STACK_ALIGN);
-			if ( !(task->init_sp) ) {
-				goto ERR_RET1;
-			}
-			is_alloc_sp = true;
+	task_init_struct(task,
+					info->name,
+					info->task_attr,
+					info->entry,
+					info->usr_init_sp,
+					info->usr_stack_size,
+					info->priority);
+	/* SVC_stack */
+	if ( task->init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->init_sp = __sys_malloc_align(task->stack_size, STACK_ALIGN);
+		if ( !(task->init_sp) ) {
+			goto ERR_RET1;
 		}
-		/* USR stack */
-		if ( task->usr_init_sp == 0 ) {
-			/* stackをヒープから確保 */
-			task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
-			if ( !(task->usr_init_sp) ) {
-				goto ERR_RET2;
-			}
-			is_alloc_usr_sp = true;
+		is_alloc_sp = true;
+	}
+	/* USR stack */
+	if ( task->usr_init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
+		if ( !(task->usr_init_sp) ) {
+			goto ERR_RET2;
 		}
+		is_alloc_usr_sp = true;
+	}
 
-		/* TLS alloc */
-		if ( (task->tls == NULL) && (task->tls_size != 0) ) {
-			task->tls = __sys_malloc_align(task->tls_size, STACK_ALIGN);
-			if ( task->tls ) {
-				memset(task->tls, 0, task->tls_size);
-			}
+	/* TLS alloc */
+	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
+		task->tls = __sys_malloc_align(task->tls_size, STACK_ALIGN);
+		if ( task->tls ) {
+			memset(task->tls, 0, task->tls_size);
 		}
+	}
 
-		/* ARCH depend create */
-		if ( arch_task_create(task) != RT_OK ) {
-			goto ERR_RET3;
-		}
+	/* ARCH depend create */
+	if ( arch_task_create(task) != RT_OK ) {
+		goto ERR_RET3;
+	}
 
-		if ( task->task_attr & TASK_ACT ) {
-			uint32_t		cpsr;
-			irq_save(cpsr);
-			task->task_state = TASK_READY;
-			task_add_queue(task);
-			schedule();
-			irq_restore(cpsr);
-		}
+	if ( task->task_attr & TASK_ACT ) {
+		uint32_t		cpsr;
+		irq_save(cpsr);
+		task->task_state = TASK_READY;
+		task_add_queue(task);
+		schedule();
+		irq_restore(cpsr);
 	}
 	return RT_OK;
 
@@ -361,7 +358,7 @@ ERR_RET1:
 	return RT_ERR;
 }
 
-OSAPISTUB int __task_active(TaskStruct* task)
+int _kernel_task_active(TaskStruct* task)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -375,7 +372,7 @@ OSAPISTUB int __task_active(TaskStruct* task)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_sleep(void)
+int _kernel_task_sleep(void)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -385,7 +382,7 @@ OSAPISTUB int __task_sleep(void)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_wakeup(TaskStruct* task)
+int _kernel_task_wakeup(TaskStruct* task)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -395,7 +392,7 @@ OSAPISTUB int __task_wakeup(TaskStruct* task)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_tsleep(TimeOut tm)
+int _kernel_task_tsleep(TimeOut tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -407,7 +404,7 @@ OSAPISTUB int __task_tsleep(TimeOut tm)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __task_dormant(void)
+int _kernel_task_dormant(void)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -420,11 +417,61 @@ OSAPISTUB int __task_dormant(void)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_get_tls(TaskStruct* task, void** ptr)
+int _kernel_task_get_tls(TaskStruct* task, void** ptr)
 {
 	if ( task == TASK_SELF ) {
 		task = _ctask;
 	}
 	*ptr = (void*)(task->tls);
 	return RT_OK;
+}
+
+OSAPISTUB int __task_create(TaskCreateInfo* info)
+{
+	int ret = RT_ERR;
+	int task_id = alloc_task_struct();
+	if ( 0 <= task_id ) {
+		TaskStruct* task = taskid2object(task_id);
+		ret = _kernel_task_create(task, info);
+		if ( ret == RT_OK ) {
+			ret = task_id;
+		}
+		else {
+			free_task_struct(task_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __task_active(int id)
+{
+	TaskStruct* task = taskid2object(id);
+	return _kernel_task_active(task, id);
+}
+
+OSAPISTUB int __task_sleep(void)
+{
+	return _kernel_task_sleep();
+}
+
+OSAPISTUB int __task_wakeup(int id)
+{
+	TaskStruct* task = taskid2object(id);
+	return _kernel_task_wakeup(task);
+}
+
+OSAPISTUB int __task_tsleep(TimeOut tm)
+{
+	return _kernel_task_tsleep(tm);
+}
+
+OSAPISTUB int __task_dormant(void)
+{
+	return __kernel_task_dormant();
+}
+
+OSAPISTUB int __task_get_tls(int id, void** ptr)
+{
+	TaskStruct* task = taskid2object(id);
+	return _kernel_task_get_tls(task, ptr);
 }
