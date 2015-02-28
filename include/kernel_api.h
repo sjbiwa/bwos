@@ -19,6 +19,30 @@
 #include "malloc.h"
 #include "api.h"
 
+/***********************************************/
+/* オブジェクト<->インデックス変換用マクロ一式 */
+/***********************************************/
+#define	OBJECT_INDEX_FUNC(OBJNAME,OBJSTRUCT) \
+static OBJSTRUCT *	OBJNAME##_struct_array = 0; \
+static int			OBJNAME##_struct_max = 0; \
+static int			OBJNAME##_struct_alloc_id = 0; \
+static int alloc_##OBJNAME##_id(void) \
+{ \
+	int ret = RT_ERR; \
+	if ( OBJNAME##_struct_alloc_id < OBJNAME##_struct_max ) { \
+		ret = OBJNAME##_struct_alloc_id; \
+		OBJNAME##_struct_alloc_id++; \
+	} \
+	return ret; \
+} \
+static OBJSTRUCT * OBJNAME##id2object(int id) \
+{ \
+	return &OBJNAME##_struct_array[id]; \
+} \
+static void free_##OBJNAME##_struct(int id) \
+{ \
+}
+
 /********************************************************/
 /* OSAPISTUB											*/
 /*	タスク/割り込みハンドラ(カーネル外)から呼び出される	*/

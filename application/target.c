@@ -14,38 +14,6 @@ static void delay(void)
 	}
 }
 
-#if 0
-void task1(void)
-{
-//	double	a = 1.0;
-	for (;;) {
-//		TlsValue* tls = task_get_tls(TASK_SELF);
-//		tls->value1 += 1;
-//		tls->value2 += 2;
-//		tls->value3 += 3;
-//		tls->value4 += 4;
-//		a += 0.1;
-//		lprintf("task1::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
-		lprintf("task1\n");
-		task_tsleep(MSEC(50));
-	}
-}
-
-void task2(void)
-{
-//	double	a = 1.0;
-	for (;;) {
-//		TlsValue* tls = task_get_tls(&task_info[0]);
-//		lprintf("%d %d %d %d\n", tls->value1, tls->value2, tls->value3, tls->value4);
-//		a += 0.1;
-//		lprintf("task2::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
-		lprintf("task2\n");
-		task_tsleep(MSEC(70));
-	}
-}
-
-#else
-
 void task1(void)
 {
 static void* ptr[100];
@@ -135,7 +103,7 @@ static void* ptr[100];
 	lprintf("task3 finished\n");
 }
 
-static FlagStruct*	wait_flag;
+static int	wait_flag;
 
 void task4(void)
 {
@@ -144,7 +112,7 @@ void task4(void)
 		task_tsleep(SEC(5));
 
 	}
-	flag_create(&wait_flag);
+	wait_flag = flag_create();
 	lprintf("start task4\n");
 	while (!flags) {
 		task_tsleep(MSEC(70));
@@ -170,12 +138,9 @@ void task5(void)
 	lprintf("task5 finished\n");
 }
 
-#endif
-
-
 
 /* configuration task */
-TaskStruct*		task_struct[16];
+int  task_id[16];
 
 TaskCreateInfo	task_info[] = {
 //		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 10},
@@ -189,7 +154,7 @@ void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
-		task_create(&task_struct[ix], &task_info[ix]);
+		task_id[ix] = task_create(&task_info[ix]);
 	}
 	task_sleep();
 }

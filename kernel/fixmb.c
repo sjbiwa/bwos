@@ -8,15 +8,18 @@
 #include "task.h"
 #include "fixmb.h"
 #include "link.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 
 typedef	struct {
 	FixmbStruct*	obj;			/* MBオブジェクト */
 	void**			ptr;			/* 確保したMBアドレス格納エリアへのポインタ */
 } FixmbInfoStruct;
 
-
 #define	NO_ENTRY	(0xfffffffu)
+
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(fixmb,FixmbStruct);
+
 
 /* 該当ブロックの使用中状態チェック */
 static bool check_bitmap(uint32_t* bitmap, uint32_t cu_index)
@@ -51,58 +54,49 @@ static uint32_t fixmb_ptr2idx(FixmbStruct* fixmb, void* ptr)
 	return (uint32_t)(((uint8_t*)ptr - (uint8_t*)(fixmb->mb_area)) / fixmb->mb_size);
 }
 
-OSAPISTUB int __fixmb_create(FixmbStruct** p_fixmb, uint32_t mb_size, uint32_t length)
+int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 {
-	FixmbStruct* fixmb = __sys_malloc_align(sizeof(FixmbStruct), NORMAL_ALIGN);
-	if ( fixmb ) {
-		link_clear(&fixmb->link);
-		if ( mb_size < sizeof(FixmbList) ) {
-			mb_size = sizeof(FixmbList);
-		}
-		fixmb->mb_size = POST_ALIGN_BY(mb_size, 16); /* サイズは16バイトの倍数にする */
-		fixmb->mb_length = length;
-		fixmb->mb_area = __sys_malloc_align(fixmb->mb_size * length, 16);
+	link_clear(&fixmb->link);
+	if ( mb_size < sizeof(FixmbList) ) {
+		mb_size = sizeof(FixmbList);
+	}
+	fixmb->mb_size = SIZE_POST_ALIGN_BY(mb_size, NORMAL_ALIGN);
+	fixmb->mb_length = length;
+	fixmb->mb_area = __sys_malloc_align(fixmb->mb_size * length, NORMAL_ALIGN); /* TBD: このメモリはユーザー空間の必要がある */
 
-		if ( fixmb->mb_area ) {
-			uint32_t bitmap_num;
-			fixmb->is_list_mode = false;
-			fixmb->list.top.index = fixmb->list.last.index = NO_ENTRY;
-			fixmb->mb_array_index = 0;
-			fixmb->use_count = 0;
+	if ( fixmb->mb_area ) {
+		uint32_t bitmap_num;
+		fixmb->is_list_mode = false;
+		fixmb->list.top.index = fixmb->list.last.index = NO_ENTRY;
+		fixmb->mb_array_index = 0;
+		fixmb->use_count = 0;
 
-			/* 使用中ビットマップをクリア */
-			bitmap_num = (length + 31) / 32;
-			fixmb->use_bitmap = __sys_malloc_align(bitmap_num * 4, 4);
-			if ( fixmb->use_bitmap ) {
-				uint32_t ix;
-				for ( ix=0; ix < bitmap_num; ix++ ) {
-					fixmb->use_bitmap[ix] = 0;
-				}
-				*p_fixmb = fixmb;
-			}
-			else {
-				goto ERR_RET1;
+		/* 使用中ビットマップをクリア */
+		bitmap_num = (length + 31) / 32;
+		fixmb->use_bitmap = __sys_malloc_align(bitmap_num * 4, 4);
+		if ( fixmb->use_bitmap ) {
+			uint32_t ix;
+			for ( ix=0; ix < bitmap_num; ix++ ) {
+				fixmb->use_bitmap[ix] = 0;
 			}
 		}
 		else {
-			goto ERR_RET2;
+			goto ERR_RET1;
 		}
 	}
 	else {
-		goto ERR_RET3;
+		goto ERR_RET2;
 	}
 	return RT_OK;
 
 ERR_RET1:
 	__sys_free(fixmb->mb_area);
 ERR_RET2:
-	__sys_free(fixmb);
-ERR_RET3:
 	return RT_ERR;
 }
 
 
-OSAPISTUB int __fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
+int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
 	uint32_t alloc_index;
 	uint32_t cpsr;
@@ -156,12 +150,12 @@ OSAPISTUB int __fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __fixmb_request(FixmbStruct* fixmb, void** ptr)
+int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
 {
-	return __fixmb_trequest(fixmb, ptr, TMO_FEVER);
+	return _kernel_fixmb_trequest(fixmb, ptr, TMO_FEVER);
 }
 
-OSAPISTUB int __fixmb_release(FixmbStruct* fixmb, void* ptr)
+int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 {
 	uint32_t area_size;
 	uint32_t		cpsr;
@@ -188,7 +182,7 @@ OSAPISTUB int __fixmb_release(FixmbStruct* fixmb, void* ptr)
 				FixmbList* rel_entry = fixmb_idx2ptr(fixmb, rel_index);
 				FixmbList* last_entry = fixmb_idx2ptr(fixmb, fixmb->list.last.index);
 				last_entry->index = rel_index;
-				fixmb->list.last.index = rel_entry;
+				fixmb->list.last.index = rel_index;
 			}
 		}
 		else {
@@ -207,4 +201,39 @@ OSAPISTUB int __fixmb_release(FixmbStruct* fixmb, void* ptr)
 
 	irq_restore(cpsr);
 	return ret;
+}
+
+OSAPISTUB int __fixmb_create(uint32_t mb_size, uint32_t length)
+{
+	int ret = RT_ERR;
+	int fixmb_id = alloc_fixmb_id();
+	if ( 0 <= fixmb_id ) {
+		FixmbStruct* fixmb = fixmbid2object(fixmb_id);
+		ret = _kernel_fixmb_create(fixmb, mb_size, length);
+		if ( ret == RT_OK ) {
+			ret = fixmb_id;
+		}
+		else {
+			free_fixmb_struct(fixmb_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __fixmb_request(int id, void** ptr)
+{
+	FixmbStruct* fixmb = fixmbid2object(id);
+	return _kernel_fixmb_request(fixmb, ptr);
+}
+
+OSAPISTUB int __fixmb_trequest(int id, void** ptr, TimeOut tmout)
+{
+	FixmbStruct* fixmb = fixmbid2object(id);
+	return _kernel_fixmb_trequest(fixmb, ptr, tmout);
+}
+
+OSAPISTUB int __fixmb_release(int id, void* ptr)
+{
+	FixmbStruct* fixmb = fixmbid2object(id);
+	return _kernel_fixmb_release(fixmb, ptr);
 }

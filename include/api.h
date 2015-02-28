@@ -33,6 +33,19 @@ typedef	struct {
 	uint32_t	priority;			/* Task Priority */
 } TaskCreateInfo;
 
+/* タスク属性定義 */
+#define	TASK_ACT			(0x00000001u<<0)	/* タスク生成時にレディーキューに登録する */
+#define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
+#define	TASK_SYS			(0x00000001u<<2)	/* SYSTEMモード(特権)タスク */
+
+#define	TASK_SELF			(0)
+
+/* フラグ関連API wait_mode */
+#define	FLAG_OR			(0x00000001u<<0)
+#define	FLAG_AND		(0x00000001u<<1)
+#define	FLAG_CLR		(0x00000001u<<2)
+#define	FLAG_BITCLR		(0x00000001u<<3)
+
 
 /* タスク関連API */
 OSAPI int task_create(TaskCreateInfo* info);

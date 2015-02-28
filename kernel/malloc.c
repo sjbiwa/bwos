@@ -10,7 +10,7 @@
 #include "malloc.h"
 #include "link.h"
 #include "mutex.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 
 #define	MB_ALIGN				(sizeof(PtrInt_t))	/* 空きブロック/使用中ブロックのアラインメント */
 
@@ -19,7 +19,6 @@
 #define	POST_ALIGN(x)			POST_ALIGN_BY(x,MB_ALIGN)
 
 /* ポインタ演算用マクロ */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 #define	PRE_PTRALIGN(x)			PRE_ALIGN(x)	/* アドレスの直前（自身を含む)のアラインメントアドレス */
 #define	POST_PTRALIGN(x)		POST_ALIGN(x)	/* アドレスの直後（自身を含む)のアラインメントアドレス */
 
@@ -71,8 +70,7 @@ static MutexStruct	malloc_mutex;
 void sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
-	arch_malloc_init();
-	__mutex_create_static(&malloc_mutex);
+	_kernel_mutex_create(&malloc_mutex);
 }
 
 #if defined(TEST_MODE)
@@ -207,17 +205,6 @@ void* sys_malloc_align_body(MemSize_t size, uint32_t align)
 
 }
 
-OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
-{
-	__mutex_lock(&malloc_mutex);
-	void* ret = sys_malloc_align_body(size, align);
-	__mutex_unlock(&malloc_mutex);
-
-	return ret;
-
-}
-
-
 void* sys_malloc_body(MemSize_t size)
 {
 	void* ret = NULL;
@@ -247,6 +234,16 @@ void* sys_malloc_body(MemSize_t size)
 	}
 
 	return ret;
+}
+
+OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
+{
+	__mutex_lock(&malloc_mutex);
+	void* ret = sys_malloc_align_body(size, align);
+	__mutex_unlock(&malloc_mutex);
+
+	return ret;
+
 }
 
 OSAPISTUB void* __sys_malloc(MemSize_t size)

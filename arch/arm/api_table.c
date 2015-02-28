@@ -5,7 +5,7 @@
  *      Author: biwa
  */
 #include "common.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 #include "api_no.h"
 #include "api_caller_callee.h"
 

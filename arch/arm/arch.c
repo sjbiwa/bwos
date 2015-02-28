@@ -14,7 +14,6 @@
 
 extern void	_entry_stub(void);
 extern char __heap_start;
-void* heap_start_addr = &__heap_start;
 
 /* 最初に1になるビットを左側から探す */
 static inline int32_t bit_srch_l(uint32_t val)
@@ -118,14 +117,15 @@ void arch_system_preinit(void)
 	 FPSCR_set(0x00000000);
 }
 
-void arch_malloc_init(void)
+void arch_register_st_memory()
 {
+	/* 起動時メモリ登録 */
+	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
+	/* ページテーブル作成 */
 	mmgr_init();
-	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
-	size &= ~0x0000000fu;
-	tprintf("mblock addr=%08X size=%08X\n", heap_start_addr, size);
-	sys_malloc_add_block(heap_start_addr, size);
-	tprintf("mblock ok\n");
+}
+arch_register_normal_memory(void)
+{
 }
 
 void arch_system_postinit(void)

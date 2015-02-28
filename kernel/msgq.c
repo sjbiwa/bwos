@@ -9,7 +9,7 @@
 #include "task.h"
 #include "msgq.h"
 #include "link.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 
 /****************************************************************************/
 /*	msgqの制限事項															*/
@@ -23,6 +23,10 @@ typedef	struct {
 	void*			req_ptr;	/* 要求エリア */
 	uint32_t		req_length;	/* 要求バイト数 */
 } MsgqInfoStruct;
+
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(msgq,MsgqStruct);
+
 
 static uint32_t queue_space(MsgqStruct* msgq)
 {
@@ -150,30 +154,23 @@ static void msgq_wait_func(TaskStruct* task)
 	}
 }
 
-OSAPISTUB int __msgq_create(MsgqStruct** p_msgq, uint32_t length)
+int _kernel_msgq_create(MsgqStruct* msgq, uint32_t length)
 {
 	int ret = RT_ERR;
 	if ( 0 < length ) {
-		MsgqStruct* msgq = __sys_malloc_align(sizeof(MsgqStruct), NORMAL_ALIGN);
-		if ( msgq ) {
-			msgq->data = __sys_malloc_align(sizeof(void*) * length, sizeof(void*));
-			if ( msgq->data ) {
-				link_clear(&msgq->link);
-				msgq->length = length;
-				msgq->data_top = 0;
-				msgq->data_num = 0;
-				*p_msgq = msgq;
-				ret = RT_OK;
-			}
-			else {
-				__sys_free(msgq);
-			}
+		msgq->data = __sys_malloc_align(length, sizeof(void*));
+		if ( msgq->data ) {
+			link_clear(&msgq->link);
+			msgq->length = length;
+			msgq->data_top = 0;
+			msgq->data_num = 0;
+			ret = RT_OK;
 		}
 	}
 	return ret;
 }
 
-OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
+int _kernel_msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
 {
 	uint32_t		cpsr;
 
@@ -222,12 +219,12 @@ OSAPISTUB int __msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length)
+int _kernel_msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length)
 {
 	return __msgq_tsend(msgq, ptr, length, TMO_FEVER);
 }
 
-OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
+int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
 {
 	uint32_t cpsr;
 
@@ -276,8 +273,48 @@ OSAPISTUB int __msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length)
+int _kernel_msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length)
 {
 	return __msgq_trecv(msgq, ptr, length, TMO_FEVER);
 }
 
+OSAPI int __msgq_create(uint32_t length)
+{
+	int ret = RT_ERR;
+	int msgq_id = alloc_msgq_id();
+	if ( 0 <= msgq_id ) {
+		MsgqStruct* msgq = msgqid2object(msgq_id);
+		ret = _kernel_msgq_create(msgq, length);
+		if ( ret == RT_OK ) {
+			ret = msgq_id;
+		}
+		else {
+			free_msgq_struct(msgq_id);
+		}
+	}
+	return ret;
+}
+
+OSAPI int __msgq_send(int id, void* ptr, uint32_t length)
+{
+	MsgqStruct* msgq = msgqid2object(id);
+	return _kernel_msgq_send(msgq, ptr, length);
+}
+
+OSAPI int __msgq_tsend(int id, void* ptr, uint32_t length, TimeOut tmout)
+{
+	MsgqStruct* msgq = msgqid2object(id);
+	return _kernel_msgq_tsend(msgq, ptr, length, tmout);
+}
+
+OSAPI int __msgq_recv(int id, void* ptr, uint32_t length)
+{
+	MsgqStruct* msgq = msgqid2object(id);
+	return _kernel_msgq_recv(msgq, ptr, length);
+}
+
+OSAPI int __msgq_trecv(int id, void* ptr, uint32_t length, TimeOut tmout)
+{
+	MsgqStruct* msgq = msgqid2object(id);
+	return _kernel_msgq_trecv(msgq, ptr, length, tmout);
+}

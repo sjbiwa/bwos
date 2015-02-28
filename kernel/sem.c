@@ -9,12 +9,16 @@
 #include "task.h"
 #include "sem.h"
 #include "link.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 
 typedef	struct {
 	SemStruct*		sem;	/* セマフォオブジェクト */
 	uint32_t		count;	/* セマフォ要求カウント */
 } SemInfoStruct;
+
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(sem,SemStruct);
+
 
 static void sem_release_body(SemStruct* sem)
 {
@@ -42,25 +46,15 @@ static void sem_wait_func(TaskStruct* task)
 	sem_release_body(sem);
 }
 
-void __sem_create_static(SemStruct* sem, uint32_t max)
+
+int _kernel_sem_create(SemStruct* sem, uint32_t max)
 {
 	link_clear(&(sem->link));
 	sem->max = sem->remain = max;
+	return RT_OK;
 }
 
-OSAPISTUB int __sem_create(SemStruct** p_sem, uint32_t max)
-{
-	int ret = RT_ERR;
-	SemStruct* sem = __sys_malloc_align(sizeof(SemStruct), NORMAL_ALIGN);
-	if ( sem ) {
-		__sem_create_static(sem, max);
-		*p_sem = sem;
-		ret = RT_OK;
-	}
-	return ret;
-}
-
-OSAPISTUB int __sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
+int _kernel_sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -94,12 +88,12 @@ OSAPISTUB int __sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __sem_request(SemStruct* sem, uint32_t num)
+int _kernel_sem_request(SemStruct* sem, uint32_t num)
 {
 	return __sem_trequest(sem, num, TMO_FEVER);
 }
 
-OSAPISTUB int __sem_release(SemStruct* sem, uint32_t num)
+int _kernel_sem_release(SemStruct* sem, uint32_t num)
 {
 	uint32_t		cpsr;
 	int				ret = RT_OK;
@@ -115,4 +109,39 @@ OSAPISTUB int __sem_release(SemStruct* sem, uint32_t num)
 
 	irq_restore(cpsr);
 	return ret;
+}
+
+OSAPISTUB int __sem_create(uint32_t max)
+{
+	int ret = RT_ERR;
+	int sem_id = alloc_sem_id();
+	if ( 0 <= sem_id ) {
+		SemStruct* sem = semid2object(sem_id);
+		ret = _kernel_sem_create(sem, max);
+		if ( ret == RT_OK ) {
+			ret = sem_id;
+		}
+		else {
+			free_sem_struct(sem_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __sem_request(int id, uint32_t num)
+{
+	SemStruct* sem = semid2object(id);
+	return _kernel_sem_request(sem, num);
+}
+
+OSAPISTUB int __sem_trequest(int id, uint32_t num, TimeOut tmout)
+{
+	SemStruct* sem = semid2object(id);
+	return _kernel_sem_trequest(sem, num, tmout);
+}
+
+OSAPISTUB int __sem_release(int id, uint32_t num)
+{
+	SemStruct* sem = semid2object(id);
+	return _kernel_sem_release(sem, num);
 }

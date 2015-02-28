@@ -5,7 +5,7 @@
  *      Author: biwa
  */
 #include "common.h"
-#include "task.h"
+#include "api.h"
 
 extern void main_task(void);
 
@@ -13,12 +13,10 @@ static TaskCreateInfo	main_task_info = {
 	"MAIN_TASK", TASK_ACT|TASK_FPU, main_task, 0, 1024, 1024, 1,
 };
 
-static TaskStruct* task;
-
 void init_task(void)
 {
 	lprintf_init();
-	task_create(&task, &main_task_info);
+	task_create(&main_task_info);
 
 	/* init_taskのオブジェクトはすべてstaticメモリを使うので */
 	/* 終了してはいけない */

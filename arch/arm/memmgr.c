@@ -41,9 +41,8 @@ static bool mmgr_is_section(uint32_t entry)
 static uint32_t* sectiontbl_alloc(void)
 {
 	/* 16Kバイトアラインメント */
-	uint32_t tbl = POST_ALIGN_BY(heap_start_addr, SECT_TABLE_SIZE);
-	heap_start_addr = (void*)(tbl + SECT_TABLE_SIZE);
-	memset((void*)tbl, 0, SECT_TABLE_SIZE);
+	void* tbl = st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_SIZE);
+	memset(tbl, 0, SECT_TABLE_SIZE);
 	return (uint32_t*)tbl;
 }
 
@@ -51,9 +50,8 @@ static uint32_t* sectiontbl_alloc(void)
 static uint32_t* tbl_alloc(void)
 {
 	/* 1Kバイトアラインメント */
-	uint32_t tbl = POST_ALIGN_BY(heap_start_addr, PAGE_TABLE_SIZE);
-	heap_start_addr = (void*)(tbl + PAGE_TABLE_SIZE);
-	memset((void*)tbl, 0, PAGE_TABLE_SIZE);
+	void* tbl = st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_SIZE);
+	memset(tbl, 0, PAGE_TABLE_SIZE);
 	return (uint32_t*)tbl;
 }
 

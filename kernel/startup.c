@@ -15,11 +15,24 @@ void startup(void)
 	/* ハードウェア初期化 */
 	arch_system_preinit();
 	tprintf("Booting BWOS Ver " OS_VERSION  "\n");
-	sys_malloc_init();
+
+	/* 起動時メモリマネージャにメモリを登録 */
+	arch_register_st_memory();
+
 	irq_init();
 	timer_init();
 	task_init();
 	arch_system_postinit();
+
+	/* 標準メモリマネージャ初期化 */
+	sys_malloc_init();
+	/* 起動時メモリマネージャの残りメモリを標準メモリマネージャに移行 */
+	st_malloc_normalize();
+	/* その他のメモリを標準メモリマネージャに登録 */
+	arch_register_normal_memory();
+
+	/* 初期タスク生成 */
+	task_init_task_create();
 
 	schedule();
 }

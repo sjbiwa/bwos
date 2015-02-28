@@ -14,6 +14,7 @@
 #include "config.h"
 #include "types.h"
 #include "arch_common.h"
+#include "sys_irq.h"
 
 /* OS固有定義マクロ */
 #define	OSAPI
@@ -32,5 +33,15 @@
 /* アドレスアラインメント演算用マクロ */
 #define	PRE_ALIGN_BY(x,n)		((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
 #define	POST_ALIGN_BY(x,n)		((void*)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
+
+#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
+#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
+#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
+#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
+#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
+
+/* メモリサイズ用 */
+#define	SIZE_PRE_ALIGN_BY(x,n)	((((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
+#define	SIZE_POST_ALIGN_BY(x,n)	((((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
 
 #endif /* COMMON_H_ */

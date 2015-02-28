@@ -9,6 +9,7 @@
 #include "kernel_api.h"
 #include "link.h"
 #include "task.h"
+#include "malloc.h"
 
 /* configuration end */
 /***********************/
@@ -36,6 +37,8 @@ static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
 
 static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(task,TaskStruct);
 
 extern void schedule(void);
 extern void init_task(void);
@@ -267,6 +270,13 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 
 void task_init(void)
 {
+	task_struct_array = st_malloc_align(sizeof(TaskStruct) * TASK_MAX_NUM, NORMAL_ALIGN);
+	task_struct_max = TASK_MAX_NUM;
+	task_struct_alloc_id = 0;
+}
+
+void task_init_task_create(void)
+{
 	int			ix;
 	run_queue.pri_bits = 0x00000000;
 	for (ix=0; ix<TASK_PRIORITY_NUM; ix++) {
@@ -429,7 +439,7 @@ int _kernel_task_get_tls(TaskStruct* task, void** ptr)
 OSAPISTUB int __task_create(TaskCreateInfo* info)
 {
 	int ret = RT_ERR;
-	int task_id = alloc_task_struct();
+	int task_id = alloc_task_id();
 	if ( 0 <= task_id ) {
 		TaskStruct* task = taskid2object(task_id);
 		ret = _kernel_task_create(task, info);
@@ -446,7 +456,7 @@ OSAPISTUB int __task_create(TaskCreateInfo* info)
 OSAPISTUB int __task_active(int id)
 {
 	TaskStruct* task = taskid2object(id);
-	return _kernel_task_active(task, id);
+	return _kernel_task_active(task);
 }
 
 OSAPISTUB int __task_sleep(void)
@@ -467,7 +477,7 @@ OSAPISTUB int __task_tsleep(TimeOut tm)
 
 OSAPISTUB int __task_dormant(void)
 {
-	return __kernel_task_dormant();
+	return _kernel_task_dormant();
 }
 
 OSAPISTUB int __task_get_tls(int id, void** ptr)

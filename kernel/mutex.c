@@ -9,28 +9,20 @@
 #include "task.h"
 #include "mutex.h"
 #include "link.h"
-#include "api_stub.h"
+#include "kernel_api.h"
 
-void __mutex_create_static(MutexStruct* mtx)
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(mutex,MutexStruct);
+
+int _kernel_mutex_create(MutexStruct* mtx)
 {
 	link_clear(&(mtx->link));
 	mtx->task = NULL;
 	mtx->count = 0;
+	return RT_OK;
 }
 
-OSAPISTUB int __mutex_create(MutexStruct** p_mtx)
-{
-	int ret = RT_ERR;
-	MutexStruct* mtx = __sys_malloc_align(sizeof(MutexStruct), NORMAL_ALIGN);
-	if ( mtx ) {
-		__mutex_create_static(mtx);
-		*p_mtx = mtx;
-		ret = RT_OK;
-	}
-	return ret;
-}
-
-OSAPISTUB int __mutex_unlock(MutexStruct* mtx)
+int _kernel_mutex_unlock(MutexStruct* mtx)
 {
 	uint32_t		cpsr;
 	int				ret = RT_OK;
@@ -57,7 +49,7 @@ OSAPISTUB int __mutex_unlock(MutexStruct* mtx)
 	return ret;
 }
 
-OSAPISTUB int __mutex_tlock(MutexStruct* mtx, TimeOut tmout)
+int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -93,7 +85,42 @@ OSAPISTUB int __mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __mutex_lock(MutexStruct* mtx)
+int _kernel_mutex_lock(MutexStruct* mtx)
 {
 	return __mutex_tlock(mtx, TMO_FEVER);
+}
+
+OSAPISTUB int __mutex_create(void)
+{
+	int ret = RT_ERR;
+	int mutex_id = alloc_mutex_id();
+	if ( 0 <= mutex_id ) {
+		MutexStruct* mutex = mutexid2object(mutex_id);
+		ret = _kernel_mutex_create(mutex);
+		if ( ret == RT_OK ) {
+			ret = mutex_id;
+		}
+		else {
+			free_mutex_struct(mutex_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __mutex_unlock(int id)
+{
+	MutexStruct* mutex = mutexid2object(id);
+	return _kernel_mutex_unlock(mutex);
+}
+
+OSAPISTUB int __mutex_lock(int id)
+{
+	MutexStruct* mutex = mutexid2object(id);
+	return _kernel_mutex_lock(mutex);
+}
+
+OSAPISTUB int __mutex_tlock(int id, TimeOut tmout)
+{
+	MutexStruct* mutex = mutexid2object(id);
+	return _kernel_mutex_tlock(mutex, tmout);
 }
