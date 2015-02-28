@@ -6,8 +6,8 @@
  */
 #include "api.h"
 
-static SemStruct* sem1;
-static SemStruct* sem2;
+static int sem1;
+static int sem2;
 
 
 void task2(void)
@@ -66,7 +66,7 @@ void task5(void)
 
 
 /* configuration task */
-TaskStruct*		task_struct[4];
+int		task_struct[4];
 
 TaskCreateInfo	task_info[] = {
 		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 6},
@@ -79,12 +79,13 @@ void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
-		task_create(&task_struct[ix], &task_info[ix]);
+		task_struct[ix] = task_create(&task_info[ix]);
+		lprintf("%d\n", task_struct[ix]);
 	}
 
 	/* 共有リソース初期化 */
-	sem_create(&sem1, 20);
-	sem_create(&sem2, 15);
+	sem1 = sem_create(20);
+	sem2 = sem_create(15);
 
 	task_sleep();
 }

@@ -6,8 +6,8 @@
  */
 #include "api.h"
 
-static MsgqStruct*	msgq1;
-static MsgqStruct*	msgq2;
+static int	msgq1;
+static int	msgq2;
 
 typedef	struct {
 	uint32_t	cmd;
@@ -68,7 +68,7 @@ void task3(void)
 }
 
 /* configuration task */
-TaskStruct*		task_struct[16];
+int		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 7},
@@ -80,12 +80,12 @@ void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
-		task_create(&task_struct[ix], &task_info[ix]);
+		task_struct[ix] = task_create(&task_info[ix]);
 	}
 
 	/* 共有リソース初期化 */
-	msgq_create(&msgq1, 128);
-	msgq_create(&msgq2, 1024);
+	msgq1 = msgq_create(128);
+	msgq2 = msgq_create(1024);
 
 	task_sleep();
 }

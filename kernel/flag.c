@@ -18,7 +18,7 @@ typedef	struct {
 } FlagInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(flag,FlagStruct);
+OBJECT_INDEX_FUNC(flag,FlagStruct,FLAG_MAX_NUM);
 
 
 static inline bool is_complete(uint32_t result, uint32_t pattern, uint32_t wait_mode)
@@ -146,7 +146,7 @@ OSAPISTUB int __flag_create(void)
 	int flag_id = alloc_flag_id();
 	if ( 0 <= flag_id ) {
 		FlagStruct* flag = flagid2object(flag_id);
-		ret = __kernel_flag_create(flag);
+		ret = _kernel_flag_create(flag);
 		if ( ret == RT_OK ) {
 			ret = flag_id;
 		}
@@ -179,5 +179,5 @@ OSAPISTUB int __flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_
 OSAPISTUB int __flag_clear(int id, uint32_t pattern)
 {
 	FlagStruct* flag = flagid2object(id);
-	return __flag_clear(flag, pattern);
+	return _kernel_flag_clear(flag, pattern);
 }

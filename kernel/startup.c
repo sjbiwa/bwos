@@ -8,6 +8,7 @@
 #include "task.h"
 #include "malloc.h"
 #include "version.h"
+#include "kernel_api.h"
 
 void startup(void)
 {
@@ -22,6 +23,12 @@ void startup(void)
 	irq_init();
 	timer_init();
 	task_init();
+	flag_init();
+	mutex_init();
+	sem_init();
+	fixmb_init();
+	msgq_init();
+
 	arch_system_postinit();
 
 	/* 標準メモリマネージャ初期化 */

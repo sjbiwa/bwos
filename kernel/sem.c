@@ -17,7 +17,7 @@ typedef	struct {
 } SemInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(sem,SemStruct);
+OBJECT_INDEX_FUNC(sem,SemStruct,SEM_MAX_NUM);
 
 
 static void sem_release_body(SemStruct* sem)

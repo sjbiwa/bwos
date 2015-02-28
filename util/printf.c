@@ -244,11 +244,11 @@ tsprintf(char* buff,char* fmt, ...){
 /*
   Tiny sprintf関数
 */
-static MutexStruct* printf_mutex;
+static int printf_mutex;
 
 void lprintf_init(void)
 {
-	mutex_create(&printf_mutex);
+	printf_mutex = mutex_create();
 	debug_print_init();
 }
 

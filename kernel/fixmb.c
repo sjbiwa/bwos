@@ -18,7 +18,7 @@ typedef	struct {
 #define	NO_ENTRY	(0xfffffffu)
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(fixmb,FixmbStruct);
+OBJECT_INDEX_FUNC(fixmb,FixmbStruct,FIXMB_MAX_NUM);
 
 
 /* 該当ブロックの使用中状態チェック */

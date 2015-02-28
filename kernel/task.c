@@ -14,7 +14,6 @@
 /* configuration end */
 /***********************/
 
-#define	TASK_MAX_NUM			(100)	/* 最大タスクID番号 */
 #define	TASK_PRIORITY_NUM		(32)	/* タスク優先度レベル数 */
 
 #define	EXE_DISPATCH()		\
@@ -38,7 +37,7 @@ static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
 static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(task,TaskStruct);
+OBJECT_INDEX_FUNC(task,TaskStruct,TASK_MAX_NUM);
 
 extern void schedule(void);
 extern void init_task(void);
@@ -266,13 +265,6 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->wait_obj = 0;
 	task->wait_func = 0;
 	task->result_code = 0;
-}
-
-void task_init(void)
-{
-	task_struct_array = st_malloc_align(sizeof(TaskStruct) * TASK_MAX_NUM, NORMAL_ALIGN);
-	task_struct_max = TASK_MAX_NUM;
-	task_struct_alloc_id = 0;
 }
 
 void task_init_task_create(void)

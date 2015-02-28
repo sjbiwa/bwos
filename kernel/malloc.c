@@ -238,9 +238,9 @@ void* sys_malloc_body(MemSize_t size)
 
 OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
 {
-	__mutex_lock(&malloc_mutex);
+	_kernel_mutex_lock(&malloc_mutex);
 	void* ret = sys_malloc_align_body(size, align);
-	__mutex_unlock(&malloc_mutex);
+	_kernel_mutex_unlock(&malloc_mutex);
 
 	return ret;
 
@@ -248,16 +248,16 @@ OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
 
 OSAPISTUB void* __sys_malloc(MemSize_t size)
 {
-	__mutex_lock(&malloc_mutex);
+	_kernel_mutex_lock(&malloc_mutex);
 	void* ret = sys_malloc_body(size);
-	__mutex_unlock(&malloc_mutex);
+	_kernel_mutex_unlock(&malloc_mutex);
 
 	return ret;
 }
 
 OSAPISTUB void __sys_free(void* ptr)
 {
-	__mutex_lock(&malloc_mutex);
+	_kernel_mutex_lock(&malloc_mutex);
 
 	/* シグネチャチェック */
 	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;
@@ -314,7 +314,7 @@ OSAPISTUB void __sys_free(void* ptr)
 	}
 
 err_ret:
-	__mutex_unlock(&malloc_mutex);
+	_kernel_mutex_unlock(&malloc_mutex);
 
 	return;
 }

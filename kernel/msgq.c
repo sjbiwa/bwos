@@ -25,7 +25,7 @@ typedef	struct {
 } MsgqInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(msgq,MsgqStruct);
+OBJECT_INDEX_FUNC(msgq,MsgqStruct,MSGQ_MAX_NUM);
 
 
 static uint32_t queue_space(MsgqStruct* msgq)
@@ -221,7 +221,7 @@ int _kernel_msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmo
 
 int _kernel_msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length)
 {
-	return __msgq_tsend(msgq, ptr, length, TMO_FEVER);
+	return _kernel_msgq_tsend(msgq, ptr, length, TMO_FEVER);
 }
 
 int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
@@ -275,7 +275,7 @@ int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmo
 
 int _kernel_msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length)
 {
-	return __msgq_trecv(msgq, ptr, length, TMO_FEVER);
+	return _kernel_msgq_trecv(msgq, ptr, length, TMO_FEVER);
 }
 
 OSAPI int __msgq_create(uint32_t length)

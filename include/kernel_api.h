@@ -22,7 +22,7 @@
 /***********************************************/
 /* オブジェクト<->インデックス変換用マクロ一式 */
 /***********************************************/
-#define	OBJECT_INDEX_FUNC(OBJNAME,OBJSTRUCT) \
+#define	OBJECT_INDEX_FUNC(OBJNAME,OBJSTRUCT,MAX_NUM) \
 static OBJSTRUCT *	OBJNAME##_struct_array = 0; \
 static int			OBJNAME##_struct_max = 0; \
 static int			OBJNAME##_struct_alloc_id = 0; \
@@ -41,6 +41,12 @@ static OBJSTRUCT * OBJNAME##id2object(int id) \
 } \
 static void free_##OBJNAME##_struct(int id) \
 { \
+} \
+void OBJNAME##_init(void) \
+{ \
+	OBJNAME##_struct_array = st_malloc_align(sizeof(OBJSTRUCT) * MAX_NUM, NORMAL_ALIGN); \
+	OBJNAME##_struct_max = MAX_NUM; \
+	OBJNAME##_struct_alloc_id = 0; \
 }
 
 /********************************************************/

@@ -12,7 +12,7 @@
 #include "kernel_api.h"
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(mutex,MutexStruct);
+OBJECT_INDEX_FUNC(mutex,MutexStruct,MUTEX_MAX_NUM);
 
 int _kernel_mutex_create(MutexStruct* mtx)
 {
@@ -87,7 +87,7 @@ int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 
 int _kernel_mutex_lock(MutexStruct* mtx)
 {
-	return __mutex_tlock(mtx, TMO_FEVER);
+	return _kernel_mutex_tlock(mtx, TMO_FEVER);
 }
 
 OSAPISTUB int __mutex_create(void)

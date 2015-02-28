@@ -11,8 +11,8 @@ typedef	struct {
 	uint32_t count;
 } Message;
 
-static FixmbStruct*	fixmb;
-static MsgqStruct*	msgq;
+static int	fixmb;
+static int	msgq;
 
 void task1(void)
 {
@@ -60,7 +60,7 @@ void task3(void)
 }
 
 /* configuration task */
-TaskStruct*		task_struct[16];
+int		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
@@ -72,11 +72,11 @@ void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
-		task_create(&task_struct[ix], &task_info[ix]);
+		task_struct[ix] = task_create(&task_info[ix]);
 	}
 
 	/* 共有リソース初期化 */
-	fixmb_create(&fixmb, 128, 16);
-	msgq_create(&msgq, 1024);
+	fixmb = fixmb_create(128, 16);
+	msgq = msgq_create(1024);
 	task_sleep();
 }
