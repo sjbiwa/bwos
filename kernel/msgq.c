@@ -5,11 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "task.h"
-#include "msgq.h"
-#include "link.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 /****************************************************************************/
 /*	msgqの制限事項															*/

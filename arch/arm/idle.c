@@ -4,10 +4,10 @@
  *  Created on: 2012/12/09
  *      Author: biwa
  */
-#include "common.h"
+#include "kernel.h"
 #include "arm.h"
-#include "task.h"
 #include "cp15reg.h"
+
 /*
  * 	idle_task
  * 	  call in DISABLE_IRQ

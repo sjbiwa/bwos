@@ -5,9 +5,8 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "api.h"
-#include "task.h"
+#include "kernel.h"
+#include "bwos.h"
 #include "arm.h"
 #include "cp15reg.h"
 #include "my_board.h"

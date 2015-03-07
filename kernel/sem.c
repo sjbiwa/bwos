@@ -5,11 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "task.h"
-#include "sem.h"
-#include "link.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 typedef	struct {
 	SemStruct*		sem;	/* セマフォオブジェクト */

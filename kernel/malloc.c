@@ -6,11 +6,7 @@
  */
 
 #include <stdint.h>
-#include "common.h"
-#include "malloc.h"
-#include "link.h"
-#include "mutex.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 #define	MB_ALIGN				(sizeof(PtrInt_t))	/* 空きブロック/使用中ブロックのアラインメント */
 

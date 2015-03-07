@@ -4,10 +4,9 @@
  *  Created on: 2012/12/07
  *      Author: biwa
  */
-#include "common.h"
+#include "kernel.h"
 #include "mpcore.h"
 #include "cp15reg.h"
-#include "task.h"
 
 
 /* Tick処理 */

@@ -10,14 +10,14 @@
 
 #include <stdint.h>
 #include "common.h"
-#include "task.h"
-#include "flag.h"
-#include "mutex.h"
-#include "sem.h"
-#include "msgq.h"
-#include "fixmb.h"
-#include "malloc.h"
-#include "api.h"
+#include "interface.h"
+#include "kernel/task.h"
+#include "kernel/flag.h"
+#include "kernel/mutex.h"
+#include "kernel/sem.h"
+#include "kernel/msgq.h"
+#include "kernel/fixmb.h"
+#include "kernel/malloc.h"
 
 /***********************************************/
 /* オブジェクト<->インデックス変換用マクロ一式 */

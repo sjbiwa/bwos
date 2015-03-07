@@ -4,8 +4,7 @@
  *  Created on: 2015/02/07
  *      Author: biwa
  */
-#include "common.h"
-#include "api.h"
+#include "bwos.h"
 
 extern void main_task(void);
 

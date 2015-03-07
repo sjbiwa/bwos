@@ -5,11 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "kernel_api.h"
-#include "link.h"
-#include "task.h"
-#include "malloc.h"
+#include "kernel.h"
 
 /* configuration end */
 /***********************/

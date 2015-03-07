@@ -5,7 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
+#include "kernel.h"
 #include "arm.h"
 #include "mpcore.h"
 #include "cp15reg.h"

@@ -6,9 +6,7 @@
  */
 
 #include <stdint.h>
-#include "common.h"
-#include "malloc.h"
-#include "mutex.h"
+#include "kernel.h"
 
 /* 起動直後にのみ使用されるメモリマネージャ */
 /* 割り当てのみで開放はできない領域用 */

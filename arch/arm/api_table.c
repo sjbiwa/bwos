@@ -4,8 +4,7 @@
  *  Created on: 2015/01/25
  *      Author: biwa
  */
-#include "common.h"
-#include "kernel_api.h"
+#include "kernel.h"
 #include "api_no.h"
 #include "api_caller_callee.h"
 

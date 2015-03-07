@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include "common.h"
 #include "link.h"
-#include "msgq.h"
 
 typedef	struct tagMsgqStruct {
 	Link			link;

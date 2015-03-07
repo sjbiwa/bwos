@@ -4,8 +4,7 @@
  *  Created on: 2012/12/07
  *      Author: biwa
  */
-#include "api.h"
-#include "common.h"
+#include "kernel.h"
 #include "mpcore.h"
 
 uint32_t _irq_level = 0; /* 多重割り込みレベル */

@@ -4,11 +4,7 @@
  *  Created on: 2015/01/16
  *      Author: biwa
  */
-#include "common.h"
-#include "task.h"
-#include "fixmb.h"
-#include "link.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 typedef	struct {
 	FixmbStruct*	obj;			/* MBオブジェクト */

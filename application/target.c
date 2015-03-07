@@ -4,7 +4,7 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "api.h"
+#include "bwos.h"
 
 static void delay(void)
 {

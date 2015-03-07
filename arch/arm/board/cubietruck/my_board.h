@@ -8,6 +8,8 @@
 #ifndef MY_BOARD_H_
 #define MY_BOARD_H_
 
+#include "stdint.h"
+
 #define	START_MEM_ADDR		(0x40000000u)
 #define	END_MEM_ADDR		(0x7FFFFFFFu)
 

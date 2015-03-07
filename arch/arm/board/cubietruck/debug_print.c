@@ -7,8 +7,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "common.h"
-#include "mutex.h"
+#include "kernel.h"
 
 #define	UART_BASE		(0x01C28000)
 

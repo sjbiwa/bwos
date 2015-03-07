@@ -5,11 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "task.h"
-#include "mutex.h"
-#include "link.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 /* オブジェクト<->インデックス変換用 */
 OBJECT_INDEX_FUNC(mutex,MutexStruct,MUTEX_MAX_NUM);
