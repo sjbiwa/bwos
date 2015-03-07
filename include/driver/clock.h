@@ -8,7 +8,6 @@
 #ifndef CLOCK_H_
 #define CLOCK_H_
 
-
-
+extern uint32_t get_clock(int clk_id);
 
 #endif /* CLOCK_H_ */
