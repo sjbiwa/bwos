@@ -4,10 +4,9 @@
  *  Created on: 2012/12/07
  *      Author: biwa
  */
-#include "common.h"
+#include "kernel.h"
 #include "mpcore.h"
 #include "cp15reg.h"
-#include "task.h"
 
 
 /* Tick処理 */
@@ -79,6 +78,8 @@ void
 timer_init(void)
 {
 #if defined(USE_TICKLESS)
+	CNTP_CTL_set(0x00000000);
+	CNTFRQ_set(CNTFRQ_VALUE); /* 意味は無いように見えるが設定しておく */
 	/* 64bit最大値を設定してタイムアウト割り込みが発生しないようにする */
 	CNTP_CVAL_set(0xffffffffffffffffLL);
 	CNTP_CTL_set(0x00000001);

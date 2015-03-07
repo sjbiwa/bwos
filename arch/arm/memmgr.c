@@ -5,48 +5,14 @@
  *      Author: biwa
  */
 
-#include "common.h"
+#include "kernel.h"
 #include "arm.h"
 #include "mpcore.h"
 #include "cp15reg.h"
 #include "my_board.h"
+#include "memmgr.h"
 
-#define	SECT_SIZE				(0x100000u)	/* １セクションのサイズ (1MB) */
-#define	PAGE_SIZE				(0x1000u)	/* １ページのサイズ (4KB) */
-#define	SECT_TABLE_SIZE			(4096*4)	/* セクションテーブルのサイズ (4096エントリ) */
-#define	PAGE_TABLE_SIZE			(1024)		/* ページテーブルのサイズ (256エントリ/1KB) */
 
-/* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
-#define	ADDR2SECT(addr)			(((uint32_t)(addr)) >> 20)
-#define	ADDR2PAGE(addr)			((((uint32_t)(addr)) >> 12) & 0xff)
-
-/* テーブルエントリ生成マクロ */
-#define	PAGE_TABLE_ENTRY(addr)	((uint32_t)addr | 0x01)		/* ページテーブルを指すエントリ */
-#define	SECT_ENTRY(addr,attr)	((uint32_t)(addr) | (attr))	/* セクションを指すエントリ */
-#define	PAGE_ENTRY(addr,attr)	((uint32_t)(addr) | (attr))	/* ページを指すエントリ */
-
-/* ページ属性を抽象化レベルから実際レベルに変換するテーブル */
-#define	S_AP(v)		((((v)&0x4)<<13)|(((v)&0x3)<<10))	/* 2-0 -> 15:11:10 */
-#define	S_TEX(v)	((((v)&0x1C)<<10)|(((v)&0x3)<<2))	/* 4-0 -> 14:13:12 3:2(C/B) */
-#define	P_AP(v)		((((v)&0x4)<<7)|(((v)&0x3)<<4))		/* 2-0 -> 9:5:4 */
-#define	P_TEX(v)	((((v)&0x1C)<<4)|(((v)&0x3)<<2))	/* 4-0 -> 8:7:6 3:2(C/B) */
-
-#define	AP_TEXT			(0x3)
-#define	AP_DATA			(0x3)
-#define	AP_DEV			(0x3)
-#define	TEX_TEXT		(0x07)
-#define	TEX_DATA		(0x07)
-#define	TEX_DEV			(0x01)
-
-enum {
-	ATTRL_SECT = 0,
-	ATTRL_PAGE,
-};
-enum {
-	ATTR_TEXT = 0,
-	ATTR_DATA,
-	ATTR_DEV,
-};
 static const uint32_t	attr_conv_tbl[][2] = {
 	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT),
 	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT),
@@ -75,9 +41,8 @@ static bool mmgr_is_section(uint32_t entry)
 static uint32_t* sectiontbl_alloc(void)
 {
 	/* 16Kバイトアラインメント */
-	uint32_t tbl = POST_ALIGN_BY(heap_start_addr, SECT_TABLE_SIZE);
-	heap_start_addr = (void*)(tbl + SECT_TABLE_SIZE);
-	memset((void*)tbl, 0, SECT_TABLE_SIZE);
+	void* tbl = st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_SIZE);
+	memset(tbl, 0, SECT_TABLE_SIZE);
 	return (uint32_t*)tbl;
 }
 
@@ -85,15 +50,14 @@ static uint32_t* sectiontbl_alloc(void)
 static uint32_t* tbl_alloc(void)
 {
 	/* 1Kバイトアラインメント */
-	uint32_t tbl = POST_ALIGN_BY(heap_start_addr, PAGE_TABLE_SIZE);
-	heap_start_addr = (void*)(tbl + PAGE_TABLE_SIZE);
-	memset((void*)tbl, 0, PAGE_TABLE_SIZE);
+	void* tbl = st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_SIZE);
+	memset(tbl, 0, PAGE_TABLE_SIZE);
 	return (uint32_t*)tbl;
 }
 
-void mmgr_add_entry(void* addr, uint32_t size, uint32_t attr)
+void mmgr_add_entry(void* addr, MemSize_t size, uint32_t attr)
 {
-	uint32_t st_addr = PRE_ALIGN_BY(addr, PAGE_SIZE);
+	uint32_t st_addr = (uint32_t)PRE_ALIGN_BY(addr, PAGE_SIZE);
 	size = ((uint32_t)addr + size) - st_addr;
 	size = POST_ALIGN_BY(size, PAGE_SIZE);
 	while ( 0 < size ) {
@@ -154,10 +118,8 @@ extern char __data_start;
 	/* MPCORE領域 */
 	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
 
-	/* Allwinner A20 CCU/interrupt/PIO/Timer */
-	mmgr_add_entry((void*)(0x01C20000), 0x1000, ATTR_DEV);
-	/* UART領域 */
-	mmgr_add_entry((void*)(0x01C28000), 0x1000, ATTR_DEV);
+	/* ボード固有領域 */
+	board_mmgr_init();
 
 	/* MMU関連レジスタ初期化 */
 	DACR_set(0xffffffff);
@@ -180,6 +142,4 @@ extern char __data_start;
 	__dsb();
 	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
 	__isb();
-
-	tprintf("SCTLR = %08X\n", SCTLR_get());
 }

@@ -5,11 +5,10 @@
  *      Author: biwa
  */
 
+#include "my_board.h"
+
 #ifndef MPCORE_H_
 #define MPCORE_H_
-
-//#define	MPCORE_BASE				(0x1E000000)
-#define	MPCORE_BASE				(0x01C80000u)
 
 #define	MPCORE_SCU_BASE			(MPCORE_BASE)
 #define	MPCORE_GICD_BASE		(MPCORE_BASE+0x1000)

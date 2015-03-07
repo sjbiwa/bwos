@@ -4,8 +4,7 @@
  *  Created on: 2015/01/25
  *      Author: biwa
  */
-#include "common.h"
-#include "api_stub.h"
+#include "kernel.h"
 #include "api_no.h"
 #include "api_caller_callee.h"
 
@@ -19,6 +18,7 @@ void* svc_entry_table[] = {
 		[TASK_SLEEP_APINO] =                  (void*)__task_sleep,
 		[TASK_WAKEUP_APINO] =                 (void*)__task_wakeup,
 		[TASK_TSLEEP_APINO] =                 (void*)__task_tsleep,
+		[TASK_DORMANT_APINO] =                 (void*)__task_dormant,
 		[TASK_GET_TLS_APINO] =                (void*)__task_get_tls,
 		[FLAG_CREATE_APINO] =                 (void*)__flag_create,
 		[FLAG_SET_APINO] =                    (void*)__flag_set,

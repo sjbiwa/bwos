@@ -8,6 +8,9 @@
 #ifndef LINK_H_
 #define LINK_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 /* オブジェクトリンク構造体 */
 typedef	struct tagLink {
 	struct tagLink*		next;

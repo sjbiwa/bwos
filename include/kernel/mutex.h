@@ -9,7 +9,7 @@
 #define MUTEX_H_
 
 #include <stdint.h>
-#include "task.h"
+#include "kernel/task.h"
 #include "link.h"
 
 typedef	struct tagMutexStruct {

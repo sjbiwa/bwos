@@ -5,15 +5,11 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "api_stub.h"
-#include "link.h"
-#include "task.h"
+#include "kernel.h"
 
 /* configuration end */
 /***********************/
 
-#define	TASK_MAX_NUM			(100)	/* 最大タスクID番号 */
 #define	TASK_PRIORITY_NUM		(32)	/* タスク優先度レベル数 */
 
 #define	EXE_DISPATCH()		\
@@ -36,6 +32,8 @@ static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
 
 static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(task,TaskStruct,TASK_MAX_NUM);
 
 extern void schedule(void);
 extern void init_task(void);
@@ -265,7 +263,7 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->result_code = 0;
 }
 
-void task_init(void)
+void task_init_task_create(void)
 {
 	int			ix;
 	run_queue.pri_bits = 0x00000000;
@@ -292,33 +290,48 @@ void task_init(void)
 	task_add_queue(&init_task_struct);
 }
 
-OSAPISTUB int __task_create(TaskStruct* task, TaskCreateInfo* info)
+int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 {
+	bool is_alloc_sp = false;
+	bool is_alloc_usr_sp = false;
 	task_init_struct(task,
-						info->name,
-						info->task_attr,
-						info->entry,
-						info->usr_init_sp,
-						info->usr_stack_size,
-						info->priority);
+					info->name,
+					info->task_attr,
+					info->entry,
+					info->usr_init_sp,
+					info->usr_stack_size,
+					info->priority);
 	/* SVC_stack */
 	if ( task->init_sp == 0 ) {
 		/* stackをヒープから確保 */
-		task->init_sp = __sys_malloc_align(task->stack_size, 8);
+		task->init_sp = __sys_malloc_align(task->stack_size, STACK_ALIGN);
+		if ( !(task->init_sp) ) {
+			goto ERR_RET1;
+		}
+		is_alloc_sp = true;
 	}
 	/* USR stack */
 	if ( task->usr_init_sp == 0 ) {
 		/* stackをヒープから確保 */
-		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, 8);
+		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
+		if ( !(task->usr_init_sp) ) {
+			goto ERR_RET2;
+		}
+		is_alloc_usr_sp = true;
 	}
 
 	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
-		task->tls = __sys_malloc_align(task->tls_size, 8);
-		memset(task->tls, 0, task->tls_size);
+		task->tls = __sys_malloc_align(task->tls_size, STACK_ALIGN);
+		if ( task->tls ) {
+			memset(task->tls, 0, task->tls_size);
+		}
 	}
 
-	arch_task_create(task); /* ARCH depend create */
+	/* ARCH depend create */
+	if ( arch_task_create(task) != RT_OK ) {
+		goto ERR_RET3;
+	}
 
 	if ( task->task_attr & TASK_ACT ) {
 		uint32_t		cpsr;
@@ -328,11 +341,22 @@ OSAPISTUB int __task_create(TaskStruct* task, TaskCreateInfo* info)
 		schedule();
 		irq_restore(cpsr);
 	}
-
 	return RT_OK;
+
+ERR_RET3:
+	if ( is_alloc_usr_sp ) {
+		__sys_free(task->usr_init_sp);
+	}
+ERR_RET2:
+	if ( is_alloc_sp ) {
+		__sys_free(task->init_sp);
+	}
+ERR_RET1:
+	__sys_free(task);
+	return RT_ERR;
 }
 
-OSAPISTUB int __task_active(TaskStruct* task)
+int _kernel_task_active(TaskStruct* task)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -346,7 +370,7 @@ OSAPISTUB int __task_active(TaskStruct* task)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_sleep(void)
+int _kernel_task_sleep(void)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -356,7 +380,7 @@ OSAPISTUB int __task_sleep(void)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_wakeup(TaskStruct* task)
+int _kernel_task_wakeup(TaskStruct* task)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -366,7 +390,7 @@ OSAPISTUB int __task_wakeup(TaskStruct* task)
 	return RT_OK;
 }
 
-OSAPISTUB int __task_tsleep(TimeOut tm)
+int _kernel_task_tsleep(TimeOut tm)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -378,11 +402,74 @@ OSAPISTUB int __task_tsleep(TimeOut tm)
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __task_get_tls(TaskStruct* task, void** ptr)
+int _kernel_task_dormant(void)
+{
+	uint32_t		cpsr;
+	irq_save(cpsr);
+	task_remove_queue(_ctask);
+	link_clear(&(_ctask->link));
+	_ctask->task_state = TASK_DORMANT;
+	schedule();
+	for (;;);
+	irq_restore(cpsr);
+	return RT_OK;
+}
+
+int _kernel_task_get_tls(TaskStruct* task, void** ptr)
 {
 	if ( task == TASK_SELF ) {
 		task = _ctask;
 	}
 	*ptr = (void*)(task->tls);
 	return RT_OK;
+}
+
+OSAPISTUB int __task_create(TaskCreateInfo* info)
+{
+	int ret = RT_ERR;
+	int task_id = alloc_task_id();
+	if ( 0 <= task_id ) {
+		TaskStruct* task = taskid2object(task_id);
+		ret = _kernel_task_create(task, info);
+		if ( ret == RT_OK ) {
+			ret = task_id;
+		}
+		else {
+			free_task_struct(task_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __task_active(int id)
+{
+	TaskStruct* task = taskid2object(id);
+	return _kernel_task_active(task);
+}
+
+OSAPISTUB int __task_sleep(void)
+{
+	return _kernel_task_sleep();
+}
+
+OSAPISTUB int __task_wakeup(int id)
+{
+	TaskStruct* task = taskid2object(id);
+	return _kernel_task_wakeup(task);
+}
+
+OSAPISTUB int __task_tsleep(TimeOut tm)
+{
+	return _kernel_task_tsleep(tm);
+}
+
+OSAPISTUB int __task_dormant(void)
+{
+	return _kernel_task_dormant();
+}
+
+OSAPISTUB int __task_get_tls(int id, void** ptr)
+{
+	TaskStruct* task = taskid2object(id);
+	return _kernel_task_get_tls(task, ptr);
 }

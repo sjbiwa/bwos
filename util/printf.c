@@ -1,11 +1,10 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "common.h"
-#include "mutex.h"
+#include "bwos.h"
 
-//#define	UART_BASE		(0x10009018)
-#define	UART_BASE		(0x01C28000)
+extern void debug_print(uint8_t* str);
+extern void debug_print_init(void);
 
 static int vtsprintf(char* buff,char* fmt,va_list arg);
 
@@ -13,15 +12,6 @@ static int tsprintf_string(char* ,char* );
 static int tsprintf_char(int ,char* );
 static int tsprintf_decimal(signed long,char* ,int ,int );
 static int tsprintf_hexadecimal(unsigned long ,char* ,int ,int ,int );
-
-static void
-debug_print(uint8_t* str)
-{
-	for (;*str;str++) {
-		while ( (*(volatile uint32_t*)(UART_BASE+0x7C) & (0x01<<2)) == 0 );
-		*((volatile uint32_t*)(UART_BASE+0x00)) = *str;
-	}
-}
 
 static int
 vtsprintf(char* buff,char* fmt,va_list arg){
@@ -253,15 +243,12 @@ tsprintf(char* buff,char* fmt, ...){
 /*
   Tiny sprintf関数
 */
-static MutexStruct printf_mutex;
+static int printf_mutex;
 
 void lprintf_init(void)
 {
-	__mutex_create(&printf_mutex);
-#if 0
-	*(volatile uint32_t*)(UART_BASE+0x2C) = (0x07<<4); /* UARTLCR_H */
-	*(volatile uint32_t*)(UART_BASE+0x30) = (0x03<<8)|(0x01); /* UARTCR */
-#endif
+	printf_mutex = mutex_create();
+	debug_print_init();
 }
 
 int tprintf(char* fmt, ...)
@@ -294,10 +281,10 @@ static char		buff[1024];
 	len = 0;
 	va_start(arg, fmt);
 
-	mutex_lock(&printf_mutex);
+	mutex_lock(printf_mutex);
 	vtsprintf(buff,fmt,arg);
 
 	va_end(arg);
 	debug_print(buff);
-	mutex_unlock(&printf_mutex);
+	mutex_unlock(printf_mutex);
 }

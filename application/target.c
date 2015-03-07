@@ -4,7 +4,7 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "api.h"
+#include "bwos.h"
 
 static void delay(void)
 {
@@ -13,38 +13,6 @@ static void delay(void)
 		iy = ix / 234;
 	}
 }
-
-#if 0
-void task1(void)
-{
-//	double	a = 1.0;
-	for (;;) {
-//		TlsValue* tls = task_get_tls(TASK_SELF);
-//		tls->value1 += 1;
-//		tls->value2 += 2;
-//		tls->value3 += 3;
-//		tls->value4 += 4;
-//		a += 0.1;
-//		lprintf("task1::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
-		lprintf("task1\n");
-		task_tsleep(MSEC(50));
-	}
-}
-
-void task2(void)
-{
-//	double	a = 1.0;
-	for (;;) {
-//		TlsValue* tls = task_get_tls(&task_info[0]);
-//		lprintf("%d %d %d %d\n", tls->value1, tls->value2, tls->value3, tls->value4);
-//		a += 0.1;
-//		lprintf("task2::%d.%d\n", (int)a, (int)(a*1000)-(int)a*1000);
-		lprintf("task2\n");
-		task_tsleep(MSEC(70));
-	}
-}
-
-#else
 
 void task1(void)
 {
@@ -73,7 +41,8 @@ static void* ptr[100];
 		}
 		//dump_space();
 	}
-	task_sleep();
+	//task_sleep();
+	lprintf("task1 finished\n");
 }
 
 void task2(void)
@@ -100,7 +69,8 @@ static void* ptr[100];
 		}
 		//dump_space();
 	}
-	task_sleep();
+	//task_sleep();
+	lprintf("task2 finished\n");
 }
 
 static volatile bool flags = false;
@@ -129,52 +99,62 @@ static void* ptr[100];
 		//dump_space();
 	}
 	flags = true;
-	task_sleep();
+	//task_sleep();
+	lprintf("task3 finished\n");
 }
 
-static FlagStruct	wait_flag;
+static int	wait_flag;
 
 void task4(void)
 {
-	flag_create(&wait_flag);
+	for (;;) {
+		lprintf("start task4\n");
+		task_tsleep(SEC(5));
+
+	}
+	wait_flag = flag_create();
 	lprintf("start task4\n");
 	while (!flags) {
 		task_tsleep(MSEC(70));
-		flag_set(&wait_flag, 0x0001);
+		flag_set(wait_flag, 0x0001);
 		lprintf("set_flag task4\n");
 	}
+	lprintf("task4 finished\n");
 }
 
 void task5(void)
 {
-	lprintf("start task5\n");
+	for (;;) {
+		lprintf("start task5\n");
+		task_tsleep(SEC(8));
+
+	}
 
 	while (!flags) {
 		uint32_t ret_pattern;
-		int ret = flag_twait(&wait_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern, MSEC(50));
+		int ret = flag_twait(wait_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern, MSEC(50));
 		lprintf("wakeup task5:%d\n", ret);
 	}
+	lprintf("task5 finished\n");
 }
-
-#endif
 
 
 /* configuration task */
-TaskStruct		task_struct[16];
+int  task_id[16];
 
 TaskCreateInfo	task_info[] = {
-//		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 5},
-//		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 5},
-//		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
+		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 10},
+		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 5},
+		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
 		{"TASK4",          TASK_ACT, task4, 0, 1024, 1024, 5},
 		{"TASK5",          TASK_ACT, task5, 0, 1024, 1024, 5},
 };
 
-void init_task(void)
+void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
-		task_create(&task_struct[ix], &task_info[ix]);
+		task_id[ix] = task_create(&task_info[ix]);
 	}
 	task_sleep();
 }

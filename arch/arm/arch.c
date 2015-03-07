@@ -5,16 +5,14 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "api.h"
-#include "task.h"
+#include "kernel.h"
+#include "bwos.h"
 #include "arm.h"
 #include "cp15reg.h"
 #include "my_board.h"
 
 extern void	_entry_stub(void);
 extern char __heap_start;
-void* heap_start_addr = &__heap_start;
 
 /* 最初に1になるビットを左側から探す */
 static inline int32_t bit_srch_l(uint32_t val)
@@ -31,21 +29,21 @@ static inline void arch_init_task(TaskStruct* task)
 	uint32_t*		ptr;
 	uint32_t*		usr_stack;
 	/* SVC stack */
-	ptr = (uint32_t*)((uint32_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
-	ptr = (void*)PRE_ALIGN_BY(ptr, 8);
+	ptr = (uint32_t*)((PtrInt_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
+	ptr = PRE_ALIGN_BY(ptr, STACK_ALIGN);
 	task->save_sp = ptr;
 	/* USR/SYS stack */
-	usr_stack = (uint32_t*)((uint32_t)(task->usr_init_sp) + task->usr_stack_size);
-	usr_stack = (void*)PRE_ALIGN_BY(usr_stack, 8);
+	usr_stack = (uint32_t*)((PtrInt_t)(task->usr_init_sp) + task->usr_stack_size);
+	usr_stack = PRE_ALIGN_BY(usr_stack, STACK_ALIGN);
 
 	/* setup task-context */
-	ptr[TASK_FRAME_STUB] = (uint32_t)_entry_stub;
-	ptr[TASK_FRAME_PC] = (uint32_t)task->entry;
+	ptr[TASK_FRAME_STUB] = (PtrInt_t)_entry_stub;
+	ptr[TASK_FRAME_PC] = (PtrInt_t)task->entry;
 	ptr[TASK_FRAME_PSR] = FLAG_T | ((task->task_attr&TASK_SYS)?MODE_SYS:MODE_USR);
 	ptr[TASK_FRAME_FPEXC] = 0x00000000;
-	ptr[TASK_FRAME_SPSR] = 0xDDDDDDDD;
-	ptr[TASK_FRAME_SP_USR] = (uint32_t)usr_stack;
-	ptr[TASK_FRAME_LR_USR] = 0x33333333;
+	ptr[TASK_FRAME_SPSR] = 0x00000000;
+	ptr[TASK_FRAME_SP_USR] = (PtrInt_t)usr_stack;
+	ptr[TASK_FRAME_LR_USR] = (PtrInt_t)task_dormant;
 }
 
 void arch_init_task_create(TaskStruct* task)
@@ -53,25 +51,37 @@ void arch_init_task_create(TaskStruct* task)
 	arch_init_task(task);
 }
 
-void arch_task_create(TaskStruct* task)
+int arch_task_create(TaskStruct* task)
 {
+	int ret = RT_OK;
 	arch_init_task(task);
 
 	/* FPU(VFP)退避用領域の確保 */
 	if ( task->task_attr & TASK_FPU ) {
 		uint32_t*		ptr = task->save_sp;
-		task->arch_tls = __sys_malloc_align(8*32+1, 8); /* D0-D31, FPSCR */
 		ptr[TASK_FRAME_FPEXC] = 0x40000000;
+		task->arch_tls = __sys_malloc_align(8*32+1, STACK_ALIGN); /* D0-D31, FPSCR */
+		if ( !(task->arch_tls) ) {
+			ret = RT_ERR;
+		}
 	}
+	return ret;
 }
 
 void arch_system_preinit(void)
 {
+	tprintf("SCTLR = %08X\n", SCTLR_get());
+	tprintf("SCR = %08X\n", SCR_get());
+	tprintf("ID_PFR0 = %08X\n", ID_PFR0_get());
+	tprintf("ID_PFR1 = %08X\n", ID_PFR1_get());
+
 	/* PROC_ID / ASID を初期化 */
 	CONTEXTIDR_set(0);
 
 	/* データキャッシュinvalidate */
 	uint32_t clid = CLIDR_get();
+	tprintf("CLID = %08X\n", clid);
+
 	int32_t ix;
 	/* 下位キャッシュ層から順番にinvalidate */
 	for (ix=6; 0 <= ix; ix--) {
@@ -106,14 +116,15 @@ void arch_system_preinit(void)
 	 FPSCR_set(0x00000000);
 }
 
-void arch_malloc_init(void)
+void arch_register_st_memory()
 {
+	/* 起動時メモリ登録 */
+	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
+	/* ページテーブル作成 */
 	mmgr_init();
-	uint32_t size = (uint8_t*)(END_MEM_ADDR+1) - (uint8_t*)(heap_start_addr);
-	size &= ~0x0000000fu;
-	tprintf("mblock addr=%08X size=%08X\n", heap_start_addr, size);
-	sys_malloc_add_block(heap_start_addr, size);
-	tprintf("mblock ok\n");
+}
+arch_register_normal_memory(void)
+{
 }
 
 void arch_system_postinit(void)

@@ -4,11 +4,7 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "common.h"
-#include "task.h"
-#include "flag.h"
-#include "link.h"
-#include "api_stub.h"
+#include "kernel.h"
 
 typedef	struct {
 	FlagStruct*		obj;			/* フラグオブジェクト */
@@ -16,6 +12,10 @@ typedef	struct {
 	uint32_t		wait_mode;		/* waitモード */
 	uint32_t*		ret_pattern;	/* completeフラグ値 */
 } FlagInfoStruct;
+
+/* オブジェクト<->インデックス変換用 */
+OBJECT_INDEX_FUNC(flag,FlagStruct,FLAG_MAX_NUM);
+
 
 static inline bool is_complete(uint32_t result, uint32_t pattern, uint32_t wait_mode)
 {
@@ -51,15 +51,14 @@ static inline bool check_and_result(FlagStruct* flag, uint32_t pattern, uint32_t
 	return ret;
 }
 
-
-OSAPISTUB int __flag_create(FlagStruct* flag)
+int _kernel_flag_create(FlagStruct* flag)
 {
 	link_clear(&flag->link);
 	flag->value = 0;
 	return RT_OK;
 }
 
-OSAPISTUB int __flag_set(FlagStruct* flag, uint32_t pattern)
+int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 {
 	Link* link;
 	uint32_t cpsr;
@@ -86,7 +85,7 @@ OSAPISTUB int __flag_set(FlagStruct* flag, uint32_t pattern)
 	return RT_OK;
 }
 
-OSAPISTUB int __flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
+int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
@@ -123,16 +122,58 @@ OSAPISTUB int __flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mod
 	return _ctask->result_code;
 }
 
-OSAPISTUB int __flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
+int _kernel_flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
 {
-	return __flag_twait(flag, pattern, wait_mode, ret_pattern, TMO_FEVER);
+	return _kernel_flag_twait(flag, pattern, wait_mode, ret_pattern, TMO_FEVER);
 }
 
-OSAPISTUB int __flag_clear(FlagStruct* flag, uint32_t pattern)
+int _kernel_flag_clear(FlagStruct* flag, uint32_t pattern)
 {
 	uint32_t		cpsr;
 	irq_save(cpsr);
 	flag->value &= ~pattern;
 	irq_restore(cpsr);
 	return RT_OK;
+}
+
+OSAPISTUB int __flag_create(void)
+{
+	int ret = RT_ERR;
+	int flag_id = alloc_flag_id();
+	if ( 0 <= flag_id ) {
+		FlagStruct* flag = flagid2object(flag_id);
+		ret = _kernel_flag_create(flag);
+		if ( ret == RT_OK ) {
+			ret = flag_id;
+		}
+		else {
+			free_flag_struct(flag_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __flag_set(int id, uint32_t pattern)
+{
+	FlagStruct* flag = flagid2object(id);
+	return _kernel_flag_set(flag, pattern);
+}
+
+OSAPISTUB int __flag_wait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
+{
+	FlagStruct* flag = flagid2object(id);
+	return _kernel_flag_wait(flag, pattern, wait_mode, ret_pattern);
+}
+
+OSAPISTUB int __flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
+{
+	FlagStruct* flag = flagid2object(id);
+	return _kernel_flag_twait(flag, pattern, wait_mode, ret_pattern, tmout);
+
+}
+
+OSAPISTUB int __flag_clear(int id, uint32_t pattern)
+{
+	FlagStruct* flag = flagid2object(id);
+	return _kernel_flag_clear(flag, pattern);
 }

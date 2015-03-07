@@ -4,10 +4,10 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "api.h"
+#include "bwos.h"
 
-static MsgqStruct	msgq1;
-static MsgqStruct	msgq2;
+static int	msgq1;
+static int	msgq2;
 
 typedef	struct {
 	uint32_t	cmd;
@@ -34,7 +34,8 @@ void task1(void)
 		cmd.cmd = ix;
 		cmd.param1 = ix*10;
 		cmd.param2 = ix*100;
-		msgq_send(&msgq1, &cmd, sizeof(cmd));
+		msgq_send(msgq1, &cmd, sizeof(cmd));
+		task_tsleep(MSEC(200));
 //		lprintf("TASK1:MSGQ1:send:%d\n", ix);
 	}
 	task_sleep();
@@ -46,7 +47,7 @@ void task2(void)
 	MsgCmd cmd;
 	MsgCmd2 cmd2;
 	for ( ix=0;; ix++ ) {
-		msgq_recv(&msgq1, &cmd, sizeof(cmd));
+		msgq_recv(msgq1, &cmd, sizeof(cmd));
 //		lprintf("TASK2:MSG1:recv:%d\n", ix);
 		cmd2.cmd = cmd.cmd;
 		cmd2.param5 = cmd.param1;
@@ -60,14 +61,14 @@ void task3(void)
 	int ix;
 	MsgCmd cmd;
 	for ( ix=0;; ix++ ) {
-		msgq_recv(&msgq1, &cmd, sizeof(cmd));
+		msgq_recv(msgq1, &cmd, sizeof(cmd));
 //		lprintf("TASK3:MSG2:recv:%d\n", ix);
 		lprintf("TASK3:CMD2:%d %d %d\n", cmd.cmd, cmd.param1, cmd.param2);
 	}
 }
 
 /* configuration task */
-TaskStruct		task_struct[16];
+int		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 7},
@@ -75,16 +76,16 @@ TaskCreateInfo	task_info[] = {
 		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
 };
 
-void init_task(void)
+void main_task(void)
 {
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
-		task_create(&task_struct[ix], &task_info[ix]);
+		task_struct[ix] = task_create(&task_info[ix]);
 	}
 
 	/* 共有リソース初期化 */
-	msgq_create(&msgq1, 128);
-	msgq_create(&msgq2, 1024);
+	msgq1 = msgq_create(128);
+	msgq2 = msgq_create(1024);
 
 	task_sleep();
 }

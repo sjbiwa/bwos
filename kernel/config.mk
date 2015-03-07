@@ -2,4 +2,4 @@
 #
 #
 
-C_SRCS += startup.c task.c irq.c idle.c flag.c mutex.c malloc.c sem.c msgq.c fixmb.c
+C_SRCS += startup.c task.c irq.c st_malloc.c malloc.c flag.c mutex.c sem.c msgq.c fixmb.c init_task.c

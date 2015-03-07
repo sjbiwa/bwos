@@ -5,10 +5,10 @@
  *      Author: biwa
  */
 
-#include "api_stub.h"
+#include "kernel.h"
 #include "api_caller_callee.h"
 
 int __flag_twait_stub(APIFlagTwaitParam* param)
 {
-	return __flag_twait(param->flag, param->pattern, param->wait_mode, param->ret_pattern, param->tmout);
+	return __flag_twait(param->id, param->pattern, param->wait_mode, param->ret_pattern, param->tmout);
 }

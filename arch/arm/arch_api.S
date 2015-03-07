@@ -14,14 +14,14 @@
 	.balign 4
 
 /* タスク関連API */
-/*OSAPI int task_create(TaskStruct* task, TaskCreateInfo* info);*/
+/*OSAPI int task_create(TaskCreateInfo* info);*/
 	.global task_create
 	.type   task_create, %function
 task_create:
 	svc #TASK_CREATE_APINO
 	bx	lr
 
-/* OSAPI int task_active(TaskStruct* task); */
+/* OSAPI int task_active(int id); */
 	.global task_active
 	.type   task_active, %function
 task_active:
@@ -35,7 +35,7 @@ task_sleep:
 	svc #TASK_SLEEP_APINO
 	bx	lr
 
-/* OSAPI int task_wakeup(TaskStruct* task); */
+/* OSAPI int task_wakeup(int id); */
 	.global task_wakeup
 	.type   task_wakeup, %function
 task_wakeup:
@@ -49,7 +49,14 @@ task_tsleep:
 	svc #TASK_TSLEEP_APINO
 	bx	lr
 
-/* OSAPI void* task_get_tls(TaskStruct* task); */
+/* OSAPI int task_dormant(void); */
+	.global task_dormant
+	.type   task_dormant, %function
+task_dormant:
+	svc #TASK_DORMANT_APINO
+	bx	lr
+
+/* OSAPI void* task_get_tls(int id); */
 	.global task_get_tls
 	.type   task_get_tls, %function
 task_get_tls:
@@ -58,35 +65,35 @@ task_get_tls:
 
 
 /* フラグ関連API */
-/* OSAPI int flag_create(FlagStruct* flag); */
+/* OSAPI int flag_create(void); */
 	.global flag_create
 	.type   flag_create, %function
 flag_create:
 	svc #FLAG_CREATE_APINO
 	bx	lr
 
-/* OSAPI int flag_set(FlagStruct* flag, uint32_t pattern); */
+/* OSAPI int flag_set(int id, uint32_t pattern); */
 	.global flag_set
 	.type   flag_set, %function
 flag_set:
 	svc #FLAG_SET_APINO
 	bx	lr
 
-/* OSAPI int flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern); */
+/* OSAPI int flag_wait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern); */
 	.global flag_wait
 	.type   flag_wait, %function
 flag_wait:
 	svc #FLAG_WAIT_APINO
 	bx	lr
 
-/* OSAPI int flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout); */
+/* OSAPI int flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout); */
 	.global flag_twait_stub
 	.type   flag_twait_stub, %function
 flag_twait_stub:
 	svc #FLAG_TWAIT_APINO
 	bx	lr
 
-/* OSAPI int flag_clear(FlagStruct* flag, uint32_t pattern); */
+/* OSAPI int flag_clear(int id, uint32_t pattern); */
 	.global flag_clear
 	.type   flag_clear, %function
 flag_clear:
@@ -95,28 +102,28 @@ flag_clear:
 
 
 /* ミューテックス関連API */
-/* OSAPI int mutex_create(MutexStruct* mtx); */
+/* OSAPI int mutex_create(void); */
 	.global mutex_create
 	.type   mutex_create, %function
 mutex_create:
 	svc #MUTEX_CREATE_APINO
 	bx	lr
 
-/* OSAPI int mutex_unlock(MutexStruct* mtx); */
+/* OSAPI int mutex_unlock(int id); */
 	.global mutex_unlock
 	.type   mutex_unlock, %function
 mutex_unlock:
 	svc #MUTEX_UNLOCK_APINO
 	bx	lr
 
-/* OSAPI int mutex_lock(MutexStruct* mtx); */
+/* OSAPI int mutex_lock(int id); */
 	.global mutex_lock
 	.type   mutex_lock, %function
 mutex_lock:
 	svc #MUTEX_LOCK_APINO
 	bx	lr
 
-/* OSAPI int mutex_tlock(MutexStruct* mtx, TimeOut tmout); */
+/* OSAPI int mutex_tlock(int id, TimeOut tmout); */
 	.global mutex_tlock
 	.type   mutex_tlock, %function
 mutex_tlock:
@@ -125,28 +132,28 @@ mutex_tlock:
 
 
 /* セマフォ関連API */
-/* OSAPI int sem_create(SemStruct* sem, uint32_t max); */
+/* OSAPI int sem_create(uint32_t max); */
 	.global sem_create
 	.type   sem_create, %function
 sem_create:
 	svc #SEM_CREATE_APINO
 	bx	lr
 
-/* OSAPI int sem_request(SemStruct* sem, uint32_t num); */
+/* OSAPI int sem_request(int id, uint32_t num); */
 	.global sem_request
 	.type   sem_request, %function
 sem_request:
 	svc #SEM_REQUEST_APINO
 	bx	lr
 
-/* OSAPI int sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout); */
+/* OSAPI int sem_trequest(int id, uint32_t num, TimeOut tmout); */
 	.global sem_trequest
 	.type   sem_trequest, %function
 sem_trequest:
 	svc #SEM_TREQUEST_APINO
 	bx	lr
 
-/* OSAPI int sem_release(SemStruct* sem, uint32_t num); */
+/* OSAPI int sem_release(int id, uint32_t num); */
 	.global sem_release
 	.type   sem_release, %function
 sem_release:
@@ -155,35 +162,35 @@ sem_release:
 
 
 /* メッセージキュー関連API */
-/* OSAPI int msgq_create(MsgqStruct* msgq, uint32_t length); */
+/* OSAPI int msgq_create(uint32_t length); */
 	.global msgq_create
 	.type   msgq_create, %function
 msgq_create:
 	svc #MSGQ_CREATE_APINO
 	bx	lr
 
-/* OSAPI int msgq_send(MsgqStruct* msgq, void* ptr); */
+/* OSAPI int msgq_send(int id, void* ptr); */
 	.global msgq_send
 	.type   msgq_send, %function
 msgq_send:
 	svc #MSGQ_SEND_APINO
 	bx	lr
 
-/* OSAPI int msgq_tsend(MsgqStruct* msgq, void* ptr, TimeOut tmout); */
+/* OSAPI int msgq_tsend(int id, void* ptr, TimeOut tmout); */
 	.global msgq_tsend
 	.type   msgq_tsend, %function
 msgq_tsend:
 	svc #MSGQ_TSEND_APINO
 	bx	lr
 
-/* OSAPI int msgq_recv(MsgqStruct* msgq, void** ptr); */
+/* OSAPI int msgq_recv(int id, void** ptr); */
 	.global msgq_recv
 	.type   msgq_recv, %function
 msgq_recv:
 	svc #MSGQ_RECV_APINO
 	bx	lr
 
-/* OSAPI int msgq_trecv(MsgqStruct* msgq, void** ptr, TimeOut tmout); */
+/* OSAPI int msgq_trecv(int id, void** ptr, TimeOut tmout); */
 	.global msgq_trecv
 	.type   msgq_trecv, %function
 msgq_trecv:
@@ -192,28 +199,28 @@ msgq_trecv:
 
 
 /* 固定長メモリブロック関連API */
-/* OSAPI int fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length); */
+/* OSAPI int fixmb_create(uint32_t mb_size, uint32_t length); */
 	.global fixmb_create
 	.type   fixmb_create, %function
 fixmb_create:
 	svc #FIXMB_CREATE_APINO
 	bx	lr
 
-/* OSAPI int fixmb_request(FixmbStruct* fixmb, void** ptr); */
+/* OSAPI int fixmb_request(int id, void** ptr); */
 	.global fixmb_request
 	.type   fixmb_request, %function
 fixmb_request:
 	svc #FIXMB_REQUEST_APINO
 	bx	lr
 
-/* OSAPI int fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout); */
+/* OSAPI int fixmb_trequest(int id, void** ptr, TimeOut tmout); */
 	.global fixmb_trequest
 	.type   fixmb_trequest, %function
 fixmb_trequest:
 	svc #FIXMB_TREQUEST_APINO
 	bx	lr
 
-/* OSAPI int fixmb_release(FixmbStruct* fixmb, void* ptr); */
+/* OSAPI int fixmb_release(int id, void* ptr); */
 	.global fixmb_release
 	.type   fixmb_release, %function
 fixmb_release:
