@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "config.h"
 #include "types.h"
 #include "arch_common.h"
 #include "sys_irq.h"

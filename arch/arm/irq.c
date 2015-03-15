@@ -71,6 +71,20 @@ OSAPI void irq_set_disable(uint32_t irqno)
 }
 
 /*
+ * 	irq_set_disable
+ */
+OSAPI bool irq_get_enable(uint32_t irqno)
+{
+	uint32_t		off;
+	uint32_t		bit;
+
+	off = irqno / 32;
+	bit = irqno % 32;
+	ret = (ioread32(GICD_ICENABLER+off) & (0x01<<bit)) ? true : false;
+	return ret;
+}
+
+/*
  * 	irq_init
  */
 void
