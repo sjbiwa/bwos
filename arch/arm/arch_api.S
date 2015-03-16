@@ -250,3 +250,23 @@ sys_malloc_align:
 	svc #SYS_MALLOC_ALIGN_APINO
 	bx	lr
 
+/* OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info); */
+	.global irq_add_handler
+	.type   irq_add_handler, %function
+irq_add_handler:
+	svc #IRQ_ADD_HANDLER_APINO
+	bx	lr
+
+/* OSAPI void irq_set_enable(uint32_t irqno, int setting); */
+	.global irq_set_enable
+	.type   irq_set_enable, %function
+irq_set_enable:
+	svc #IRQ_SET_ENABLE_APINO
+	bx	lr
+
+/* OSAPI int irq_get_enable(info->irq); */
+	.global irq_get_enable
+	.type   irq_get_enable, %function
+irq_get_enable:
+	svc #IRQ_GET_ENABLE_APINO
+	bx	lr

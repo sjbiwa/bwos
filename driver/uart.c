@@ -170,39 +170,66 @@
 #define	UART_STOPBIT_2					(2)
 
 typedef	struct {
-	uint8_t*	io_addr;				/* ベースアドレス */
-	uint32_t	irq;					/* IRQ番号 */
-	uint32_t	clock_src;				/* クロック識別子 */
-} UartRegisterInfo;
+	uint8_t*		io_addr;				/* ベースアドレス */
+	uint32_t		irq;					/* IRQ番号 */
+	uint32_t		clock_src;				/* クロック識別子 */
+} UartDeviceInfo;
 
 typedef	struct {
-	uint32_t	baudrate;				/* ボーレート */
-	uint32_t	bits;					/* データビット幅 */
-	uint32_t	parity;					/* パリティ設定 */
-	uint32_t	stop_bits;				/* ストップビット幅 */
+	uint32_t		baudrate;				/* ボーレート */
+	uint32_t		bits;					/* データビット幅 */
+	uint32_t		parity;					/* パリティ設定 */
+	uint32_t		stop_bits;				/* ストップビット幅 */
 } UartPortConfig;
 
-static UartRegisterInfo*	uart_register_list;
-static uint32_t				uart_register_num;
+typedef	struct {
+	uint8_t*		tx_buff;				/* 送信バッファ */
+	uint32_t		tx_buff_size;			/* 送信バッファサイズ */
+	uint32_t		tx_top;					/* 送信データ先頭位置 */
+	uint32_t		tx_length;				/* 送信データサイズ */
+	uint8_t*		rx_buff;				/* 受信バッファ */
+	uint32_t		rx_buff_size;			/* 受信バッファサイズ */
+	uint32_t		rx_top;					/* 受信データ先頭位置 */
+	uint32_t		rx_length;				/* 受信データサイズ */
+	bool			running;
+	UartDeviceInfo*	dev;
+} UartObject;
 
-void uart_register(UartRegisterInfo* info, uint32_t info_num)
+static UartObject*		uart_obj_tbl;
+static uint32_t		uart_obj_num;
+
+static void uart_irq_handler(uint32_t irqno, void* info);
+
+static UartObject* get_uart_object(uint32_t portno)
 {
-	uart_register_list = info;
-	uart_register_num = info_num;
+	return &uart_obj_tbl[portno];
 }
 
-static void uart_irq_handler(uint32_t irqno, void* info)
+static UartDeviceInfo* get_uart_device_info(uint32_t portno)
 {
+	return get_uart_object(portno)->dev;
+}
+
+void uart_register(UartDeviceInfo* info, uint32_t info_num)
+{
+	uart_obj_num = info_num;
+	uart_obj_tbl = sys_malloc(sizeof(UartObject) * info_num);
+	for ( int ix=0; ix < info_num; ix++ ) {
+		uart_obj_tbl[ix].running = false;
+		uart_obj_tbl[ix].dev = &info[ix];
+		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
+		irq_add_handler(uart_obj_tbl[ix].dev->irq, uart_irq_handler, &uart_obj_tbl[ix]);
+	}
 }
 
 void uart_setConfig(uint32_t port_no, UartPortConfig* config)
 {
-	UartRegisterInfo* info = get_uart_info(port_no);
+	UartDeviceInfo* info = get_uart_device_info(port_no);
 	uint8_t* port = info->io_addr;
 	bool irq_enable_org = irq_get_enable(info->irq);
 
 	/* UART割り込み禁止 */
-	irq_set_disable(info->irq);
+	irq_set_enable(info->irq, IRQ_DISABLE);
 	iowrite32(port+UART_IER, 0x0);
 
 	/* UARTリセット */
@@ -249,10 +276,13 @@ void uart_setConfig(uint32_t port_no, UartPortConfig* config)
 						IER_TRANS_HOLD_EMPTY_INT_EN|
 						IER_RECEIVE_DATA_AVAILABLE_INT_EN);
 	if ( irq_enable_org ) {
-		irq_set_enable(info->irq);
+		irq_set_enable(info->irq, IRQ_ENABLE);
 	}
 }
 
-OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
+static void uart_irq_handler(uint32_t irqno, void* info)
+{
+	UartObject* uart_obj = (UartObject*)info;
+}
 
 /* Rockchip RK3288 UART */
