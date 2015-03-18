@@ -180,7 +180,12 @@ typedef	struct {
 	uint32_t		bits;					/* データビット幅 */
 	uint32_t		parity;					/* パリティ設定 */
 	uint32_t		stop_bits;				/* ストップビット幅 */
-} UartPortConfig;
+} UartConfigParam;
+
+typedef	struct {
+	uint32_t		tx_buff_size;
+	uint32_t		rx_buff_size;
+} UartOpenParam;
 
 typedef	struct {
 	uint8_t*		tx_buff;				/* 送信バッファ */
@@ -222,7 +227,7 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 	}
 }
 
-void uart_setConfig(uint32_t port_no, UartPortConfig* config)
+void uart_setConfig(uint32_t port_no, UartConfigParam* config)
 {
 	UartDeviceInfo* info = get_uart_device_info(port_no);
 	uint8_t* port = info->io_addr;
@@ -278,6 +283,27 @@ void uart_setConfig(uint32_t port_no, UartPortConfig* config)
 	if ( irq_enable_org ) {
 		irq_set_enable(info->irq, IRQ_ENABLE);
 	}
+}
+
+void uart_open(uint32_t port_no, UartOpenParam* open)
+{
+	UartObject* uart_obj = get_uart_object(port_no);
+	if ( uart_obj->running ) {
+		irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE);
+		sys_free(uart_obj->tx_buff);
+		sys_free(uart_obj->rx_buff);
+	}
+
+	uart_obj->tx_buff_size = open->tx_buff_size;
+	uart_obj->rx_buff_size = open->rx_buff_size;
+	uart_obj->tx_buff = sys_malloc(uart_obj->tx_buff_size);
+	uart_obj->rx_buff = sys_malloc(uart_obj->rx_buff_size);
+	uart_obj->tx_top = 0;
+	uart_obj->tx_length = 0;
+	uart_obj->rx_top = 0;
+	uart_obj->rx_length = 0;
+	uart_obj->running = true;
+	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE);
 }
 
 static void uart_irq_handler(uint32_t irqno, void* info)
