@@ -48,7 +48,7 @@
 #define	IER_MODEM_STATUS_INT_EN			(0x1u<<3)		/* MODEMステータス割り込み */
 #define	IER_RECEIVE_LINE_STATUS_INT_EN	(0x1u<<2)		/* REceiverLineStatus割り込み */
 #define	IER_TRANS_HOLD_EMPTY_INT_EN		(0x1u<<1)		/* TransmitHoldingRegisterEmpty */
-#define	IER_RECEIVE_DATA_AVAILABLE_INT_EN	(0x1u<<0)		/* Received Data Available */
+#define	IER_RECEIVE_DATA_AVAILABLE_INT_EN	(0x1u<<0)	/* Received Data Available */
 
 /* IIR */
 #define	IIR_FIFOS_EN_MASK				(0x03u<<6)		/* FIFOs enable Identification */
@@ -188,22 +188,45 @@ typedef	struct {
 } UartOpenParam;
 
 typedef	struct {
-	uint8_t*		tx_buff;				/* 送信バッファ */
-	uint32_t		tx_buff_size;			/* 送信バッファサイズ */
-	uint32_t		tx_top;					/* 送信データ先頭位置 */
-	uint32_t		tx_length;				/* 送信データサイズ */
-	uint8_t*		rx_buff;				/* 受信バッファ */
-	uint32_t		rx_buff_size;			/* 受信バッファサイズ */
-	uint32_t		rx_top;					/* 受信データ先頭位置 */
-	uint32_t		rx_length;				/* 受信データサイズ */
-	bool			running;
+	uint8_t*		buff;					/* リングバッファ */
+	uint32_t		buff_size;				/* リングバッファサイズ */
+	uint32_t		top;					/* 有効データ先頭位置 */
+	uint32_t		length;					/* 有効データサイズ */
+} RingBuff;
+
+typedef	struct {
+	bool			active;					/* UART 動作中 (open中) */
+	RingBuff		tx;						/* 送信リングバッファ */
+	int				tx_flg;					/* 送信完了待ち */
+	RingBuff		rx;						/* 受信リングバッファ */
+	int				rx_flg;					/* 受信待ち */
 	UartDeviceInfo*	dev;
 } UartObject;
 
 static UartObject*		uart_obj_tbl;
-static uint32_t		uart_obj_num;
+static uint32_t			uart_obj_num;
 
 static void uart_irq_handler(uint32_t irqno, void* info);
+
+int ringbuf_create(RingBuff* ring, uint32_t buff_size)
+{
+	ring->buff = sys_malloc(buff_size);
+	if ( ring->buff == NULL ) {
+		return RT_ERR;
+	}
+	ring->buff_size = buff_size;
+	ring->top = 0;
+	ring->length = 0;
+	return RT_OK;
+}
+
+void ringbuff_destroy(RingBuff* ring)
+{
+	if ( ring->buff ) {
+		sys_free(ring->buff);
+		ring->buff = NULL;
+	}
+}
 
 static UartObject* get_uart_object(uint32_t portno)
 {
@@ -220,7 +243,7 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 	uart_obj_num = info_num;
 	uart_obj_tbl = sys_malloc(sizeof(UartObject) * info_num);
 	for ( int ix=0; ix < info_num; ix++ ) {
-		uart_obj_tbl[ix].running = false;
+		uart_obj_tbl[ix].active = false;
 		uart_obj_tbl[ix].dev = &info[ix];
 		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
 		irq_add_handler(uart_obj_tbl[ix].dev->irq, uart_irq_handler, &uart_obj_tbl[ix]);
@@ -285,25 +308,79 @@ void uart_setConfig(uint32_t port_no, UartConfigParam* config)
 	}
 }
 
+static void uart_release_resource(UartObject* uart_obj)
+{
+	irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE);
+	ringbuff_destroy(&(uart_obj->tx));
+	ringbuff_destroy(&(uart_obj->rx));
+}
+
 void uart_open(uint32_t port_no, UartOpenParam* open)
 {
 	UartObject* uart_obj = get_uart_object(port_no);
-	if ( uart_obj->running ) {
-		irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE);
-		sys_free(uart_obj->tx_buff);
-		sys_free(uart_obj->rx_buff);
+	if ( uart_obj->active ) {
+		uart_release_resource(uart_obj);
+	}
+	ringbuf_create(&(uart_obj->tx), open->tx_buff_size);
+	ringbuf_create(&(uart_obj->rx), open->rx_buff_size);
+	uart_obj->tx_flg = flag_create();
+	uart_obj->rx_flg = flag_create();
+	uart_obj->active = true;
+	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE);
+}
+
+void uart_close(uint32_t port_no)
+{
+	UartObject* uart_obj = get_uart_object(port_no);
+	if ( uart_obj->active ) {
+		uart_release_resource(uart_obj);
+		uart_obj->active = false;
+	}
+}
+
+int uart_send(uint32_t port_no, void* buff, int req_size, TimeOut tmout)
+{
+	UartObject* uart_obj = get_uart_object(port_no);
+	if ( !uart_obj->active ) {
+		return RT_ERR;
 	}
 
-	uart_obj->tx_buff_size = open->tx_buff_size;
-	uart_obj->rx_buff_size = open->rx_buff_size;
-	uart_obj->tx_buff = sys_malloc(uart_obj->tx_buff_size);
-	uart_obj->rx_buff = sys_malloc(uart_obj->rx_buff_size);
-	uart_obj->tx_top = 0;
-	uart_obj->tx_length = 0;
-	uart_obj->rx_top = 0;
-	uart_obj->rx_length = 0;
-	uart_obj->running = true;
-	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE);
+	int ret = 0;
+
+	uint32_t psr;
+	irq_save(psr);
+
+	for (;;) {
+		/* リングバッファに最大req_sizeだけ書き込み */
+		int write_size = ringbuff_write(&uart_obj->tx, buff, req_size);
+		if ( 0 < write_size ) {
+			/* 1バイト以上書き込んだのでtx_empty割り込み有効 */
+			tx_empty割り込み有効
+			ret = write_size;
+			break;
+		}
+		else if ( write_size == 0 ) {
+			if ( tmout != TMO_POLL ) {
+				/* tx_buff not full待ち */
+				uint32_t ret_ptn;
+				int sc_ret = flag_twait(uart_obj->tx_flg, 0x0001, FLAG_OR|FLAG_CLR, &ret_ptn, tmout);
+				if ( sc_ret == RT_OK ) {
+					/* tx_buff not full になったので再度書き込み処理実行 */
+					continue;
+				}
+				else {
+					ret = sc_ret;
+					break;
+				}
+			}
+		}
+	}
+	irq_resore(psr);
+	return write_size;
+}
+
+int uart_recv(uint32_t port_no, void* buff, int req_size, TimeOut tmout)
+{
 }
 
 static void uart_irq_handler(uint32_t irqno, void* info)
