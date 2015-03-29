@@ -2,4 +2,4 @@
 #
 #
 
-C_SRCS +=
+C_SRCS += uart.c

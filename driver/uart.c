@@ -5,8 +5,9 @@
  *      Author: biwa
  */
 
-#include "kernel.h"
-#include "clock.h"
+#include "bwos.h"
+//#include "clock.h"
+#define	get_clock(a)		(1)
 
 /* UARTレジスタ定義 */
 #define	UART_RBR						(0x0000u)		/* Receive Buffer Register */
@@ -169,6 +170,10 @@
 #define	UART_STOPBIT_1_5				(1)
 #define	UART_STOPBIT_2					(2)
 
+/* UART configuration info */
+#define	FIFO_DEPTH						(64)	/* FIFOに格納できるサイズ */
+
+
 typedef	struct {
 	uint8_t*		io_addr;				/* ベースアドレス */
 	uint32_t		irq;					/* IRQ番号 */
@@ -183,15 +188,15 @@ typedef	struct {
 } UartConfigParam;
 
 typedef	struct {
-	uint32_t		tx_buff_size;
-	uint32_t		rx_buff_size;
+	int				tx_buff_size;
+	int				rx_buff_size;
 } UartOpenParam;
 
 typedef	struct {
 	uint8_t*		buff;					/* リングバッファ */
-	uint32_t		buff_size;				/* リングバッファサイズ */
-	uint32_t		top;					/* 有効データ先頭位置 */
-	uint32_t		length;					/* 有効データサイズ */
+	int				buff_size;				/* リングバッファサイズ */
+	int				top;					/* 有効データ先頭位置 */
+	int				length;					/* 有効データサイズ */
 } RingBuff;
 
 typedef	struct {
@@ -200,15 +205,17 @@ typedef	struct {
 	int				tx_flg;					/* 送信完了待ち */
 	RingBuff		rx;						/* 受信リングバッファ */
 	int				rx_flg;					/* 受信待ち */
+	uint8_t			tx_rx_temp_buff[FIFO_DEPTH]; /* 送信/受信時にテンポラリとして使うバッファ */
 	UartDeviceInfo*	dev;
 } UartObject;
 
 static UartObject*		uart_obj_tbl;
 static uint32_t			uart_obj_num;
 
+
 static void uart_irq_handler(uint32_t irqno, void* info);
 
-int ringbuf_create(RingBuff* ring, uint32_t buff_size)
+static int ringbuf_create(RingBuff* ring, uint32_t buff_size)
 {
 	ring->buff = sys_malloc(buff_size);
 	if ( ring->buff == NULL ) {
@@ -220,12 +227,73 @@ int ringbuf_create(RingBuff* ring, uint32_t buff_size)
 	return RT_OK;
 }
 
-void ringbuff_destroy(RingBuff* ring)
+static void ringbuff_destroy(RingBuff* ring)
 {
 	if ( ring->buff ) {
 		sys_free(ring->buff);
 		ring->buff = NULL;
 	}
+}
+
+static int ringbuff_write(RingBuff* ring, void* buff, int length)
+{
+	int ret = 0;
+	int space_length = ring->buff_size - ring->length;
+	if ( space_length < length ) {
+		length = space_length;
+	}
+
+	if ( 0 < length ) {
+		/* 書き込み位置所得 */
+		int offset = ring->top + ring->length;
+		if ( ring->buff_size <= offset ) {
+			offset -= ring->buff_size;
+		}
+		int prolog_length = length;
+		int epilog_length = 0;
+		if ( ring->buff_size < (offset + length) ) {
+			prolog_length = ring->buff_size - offset;
+			epilog_length = length - prolog_length;
+		}
+		memcpy(ring->buff + ring->top, buff, prolog_length);
+		if ( 0 < epilog_length ) {
+			memcpy(ring->buff, (uint8_t*)buff + prolog_length, epilog_length);
+		}
+		ring->length += length;
+		ret = length;
+	}
+
+	return ret;
+}
+
+static int ringbuff_read(RingBuff* ring, void* buff, int length)
+{
+	int ret = 0;
+	if ( ring->length < length ) {
+		length = ring->length;
+	}
+
+	if ( 0 < length ) {
+		/* 読み込み位置所得 */
+		int prolog_length = length;
+		int epilog_length = 0;
+		if ( ring->buff_size < (ring->top + length) ) {
+			prolog_length = ring->buff_size - ring->top;
+			epilog_length = length - prolog_length;
+		}
+		memcpy(buff, ring->buff + ring->top, prolog_length);
+		if ( 0 < epilog_length ) {
+			memcpy((uint8_t*)buff + prolog_length, ring->buff, epilog_length);
+		}
+		ring->length -= length;
+		ring->top += length;
+		if ( ring->buff_size <= ring->top ) {
+			ring->top -= ring->buff_size;
+		}
+		ret = length;
+	}
+
+	return ret;
 }
 
 static UartObject* get_uart_object(uint32_t portno)
@@ -240,9 +308,10 @@ static UartDeviceInfo* get_uart_device_info(uint32_t portno)
 
 void uart_register(UartDeviceInfo* info, uint32_t info_num)
 {
+	int ix;
 	uart_obj_num = info_num;
 	uart_obj_tbl = sys_malloc(sizeof(UartObject) * info_num);
-	for ( int ix=0; ix < info_num; ix++ ) {
+	for ( ix=0; ix < info_num; ix++ ) {
 		uart_obj_tbl[ix].active = false;
 		uart_obj_tbl[ix].dev = &info[ix];
 		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
@@ -264,7 +333,7 @@ void uart_setConfig(uint32_t port_no, UartConfigParam* config)
 	iowrite32(port+UART_SRR, SRR_XMIT_FIFO_RESET|SRR_RCVR_FIFO_RESET|SRR_UART_RESET);
 	/* BUSY 待ち */
 	while ( ioread32(port+UART_USR) & USR_UART_BUSY ) {
-		task_sleep(MSEC(10));
+		task_tsleep(MSEC(10));
 	}
 
 	/* 設定 */
@@ -338,12 +407,14 @@ void uart_close(uint32_t port_no)
 	}
 }
 
-int uart_send(uint32_t port_no, void* buff, int req_size, TimeOut tmout)
+int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout)
 {
 	UartObject* uart_obj = get_uart_object(port_no);
 	if ( !uart_obj->active ) {
 		return RT_ERR;
 	}
+	UartDeviceInfo* info = uart_obj->dev;
+	uint8_t* port = info->io_addr;
 
 	int ret = 0;
 
@@ -352,14 +423,14 @@ int uart_send(uint32_t port_no, void* buff, int req_size, TimeOut tmout)
 
 	for (;;) {
 		/* リングバッファに最大req_sizeだけ書き込み */
-		int write_size = ringbuff_write(&uart_obj->tx, buff, req_size);
-		if ( 0 < write_size ) {
+		int write_length = ringbuff_write(&uart_obj->tx, buff, length);
+		if ( 0 < write_length ) {
 			/* 1バイト以上書き込んだのでtx_empty割り込み有効 */
-			tx_empty割り込み有効
-			ret = write_size;
+			ioset32(port+UART_IER, IER_PROG_THRE_INT_EN);
+			ret = write_length;
 			break;
 		}
-		else if ( write_size == 0 ) {
+		else {
 			if ( tmout != TMO_POLL ) {
 				/* tx_buff not full待ち */
 				uint32_t ret_ptn;
@@ -373,19 +444,123 @@ int uart_send(uint32_t port_no, void* buff, int req_size, TimeOut tmout)
 					break;
 				}
 			}
+			else {
+				ret = RT_TIMEOUT;
+				break;
+			}
 		}
 	}
-	irq_resore(psr);
-	return write_size;
+
+	irq_restore(psr);
+	return ret;
 }
 
-int uart_recv(uint32_t port_no, void* buff, int req_size, TimeOut tmout)
+int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout)
 {
+	UartObject* uart_obj = get_uart_object(port_no);
+	if ( !uart_obj->active ) {
+		return RT_ERR;
+	}
+	UartDeviceInfo* info = uart_obj->dev;
+	uint8_t* port = info->io_addr;
+
+	int ret = 0;
+
+	uint32_t psr;
+	irq_save(psr);
+
+	for (;;) {
+		/* リングバッファから最大req_size分読み込み */
+		int read_length = ringbuff_read(&uart_obj->rx, buff, length);
+		if ( 0 < read_length ) {
+			ret = read_length;
+			break;
+		}
+		else {
+			if ( tmout != TMO_POLL ) {
+				/* rx_buff not empty待ち */
+				uint32_t ret_ptn;
+				int sc_ret = flag_twait(uart_obj->rx_flg, 0x0001, FLAG_OR|FLAG_CLR, &ret_ptn, tmout);
+				if ( sc_ret == RT_OK ) {
+					/* rx_buff not empty になったので再度読み込み処理実行 */
+					continue;
+				}
+				else {
+					ret = sc_ret;
+					break;
+				}
+			}
+			else {
+				ret = RT_TIMEOUT;
+				break;
+			}
+		}
+	}
+
+	irq_restore(psr);
+	return ret;
 }
 
-static void uart_irq_handler(uint32_t irqno, void* info)
+static void uart_irq_tx(UartObject* uart_obj, UartDeviceInfo* info, uint8_t* port)
 {
-	UartObject* uart_obj = (UartObject*)info;
+	uint32_t tx_space = FIFO_DEPTH - (ioread32(port+UART_TFL) & 0x1f);
+	tx_space = ringbuff_read(&uart_obj->tx, uart_obj->tx_rx_temp_buff, tx_space);
+	if ( 0 < tx_space ) {
+		int ix;
+		for ( ix = 0; ix < tx_space; ix++ ) {
+			iowrite32(port+UART_THR, uart_obj->tx_rx_temp_buff[ix]);
+		}
+	}
+	else {
+		/* 送信するデータがなくなったので 送信THR割り込みを禁止する */
+		ioclr32(port+UART_IER, IER_PROG_THRE_INT_EN);
+	}
+}
+
+static void uart_irq_rx(UartObject* uart_obj, UartDeviceInfo* info, uint8_t* port)
+{
+	uint32_t rx_remain = ioread32(port+UART_RFL) & 0x1f;
+	if ( 0 < rx_remain ) {
+		int ix;
+		for ( ix = 0; ix < rx_remain; ix++ ) {
+			uart_obj->tx_rx_temp_buff[ix] = ioread32(port+UART_RBR);
+		}
+		rx_remain -= ringbuff_write(&uart_obj->rx, uart_obj->tx_rx_temp_buff, rx_remain);
+
+		if ( 0 < rx_remain ) {
+			/* 受信バッファオーバーフロー */
+		}
+	}
+}
+
+static void uart_irq_handler(uint32_t irqno, void* irq_info)
+{
+	UartObject* uart_obj = (UartObject*)irq_info;
+	UartDeviceInfo* info = uart_obj->dev;
+	uint8_t* port = info->io_addr;
+
+	uint32_t int_id = IIR_INT_ID(ioread32(port+UART_IIR));
+	switch (int_id) {
+	case IIR_INT_ID_THR_EMPTY: /* 送信 THR empty (送信キュー空きあり) */
+		uart_irq_tx(uart_obj, info, port);
+		break;
+
+	case IIR_INT_ID_RECEIVED_DATA_AVAILABLE: /* 受信データあり */
+	case IIR_INT_ID_CHARACTER_TIMEOUT: /* 受信データタイムアウト */
+		uart_irq_rx(uart_obj, info, port);
+		break;
+
+	case IIR_INT_ID_MODEM_STATUS:
+	case IIR_INT_ID_RECEIVER_LINE_STATUS:
+	case IIR_INT_ID_BUSY_DETECT:
+		break;
+
+	case IIR_INT_ID_NO_INTERRUPT_PENDING:
+		break;
+
+	default:
+		break;
+	}
 }
 
 /* Rockchip RK3288 UART */
