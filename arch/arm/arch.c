@@ -141,3 +141,8 @@ extern	uint32_t _irq_level; /* 多重割り込みレベル */
 	return ret;
 }
 
+void init_task_arch_depend(void)
+{
+extern void init_task_board_depend(void);
+	init_task_board_depend();
+}

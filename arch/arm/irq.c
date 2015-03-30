@@ -55,10 +55,10 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting)
 	off = irqno / 32;
 	bit = irqno % 32;
 	if ( setting == IRQ_ENABLE ) {
-		iowrite32(GICD_ISENABLER+off, 0x01<<bit);
+		iowrite32(GICD_ISENABLER+off*4, 0x01<<bit);
 	}
 	else {
-		iowrite32(GICD_ICENABLER+off, 0x01<<bit);
+		iowrite32(GICD_ICENABLER+off*4, 0x01<<bit);
 	}
 }
 
@@ -72,7 +72,7 @@ OSAPISTUB int __irq_get_enable(uint32_t irqno)
 
 	off = irqno / 32;
 	bit = irqno % 32;
-	int ret = (ioread32(GICD_ICENABLER+off) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
+	int ret = (ioread32(GICD_ICENABLER+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
 	return ret;
 }
 

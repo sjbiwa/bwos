@@ -2,4 +2,4 @@
 #
 #
 
-C_SRCS += uart.c
+C_SRCS += clock.c uart.c

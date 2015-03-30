@@ -14,7 +14,16 @@
 
 void board_mmgr_init(void)
 {
-	/* UART領域 */
-	mmgr_add_entry((void*)(0xFF690000u), 0x1000, ATTR_DEV);
+	/* CRU(Clock and Reset)領域 */
+	mmgr_add_entry((void*)(0xFF760000u), 0x10000, ATTR_DEV);
 
+	/* GRF(General Register)領域 */
+	mmgr_add_entry((void*)(0xFF770000u), 0x10000, ATTR_DEV);
+
+	/* UART領域 */
+	mmgr_add_entry((void*)(0xFF180000u), 0x10000, ATTR_DEV);
+	mmgr_add_entry((void*)(0xFF190000u), 0x10000, ATTR_DEV);
+	mmgr_add_entry((void*)(0xFF1B0000u), 0x10000, ATTR_DEV);
+	mmgr_add_entry((void*)(0xFF1C0000u), 0x10000, ATTR_DEV);
+	mmgr_add_entry((void*)(0xFF690000u), 0x10000, ATTR_DEV);
 }
