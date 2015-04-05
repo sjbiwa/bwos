@@ -10,12 +10,17 @@
 #include "driver/uart.h"
 #include "irqdefs.h"
 #include "ioregs.h"
+#include "cruregs.h"
+#include "grfregs.h"
 
 #define	CLOCK_UART0			0
 #define	CLOCK_UART1			1
 #define	CLOCK_UART2			2
 #define	CLOCK_UART3			3
 #define	CLOCK_UART4			4
+
+static const uint32_t	cru = CRU_REG_BASE;
+static const uint32_t	grf = GRF_REG_BASE;
 
 static ClockRegisterParam clock_params[] = {
 	[CLOCK_UART0] = { 24000000 },
@@ -36,8 +41,12 @@ static UartDeviceInfo uart_info[] = {
 void init_task_board_depend(void)
 {
 	/* pin configure */
+	iowrite32(grf+GRF_GPIO5B_IOMUX, 0x00ff0055); /* UART_BB rts/cts/in/out */
 
 	/* clock configure */
+	iowrite32(cru+CRU_CLKSEL14_CON, 0xffff0200); /* UART_BB / 24MHz */
+	iowrite32(cru+CRU_CLKSEL16_CON, 0xffff0200); /* UART_GPS / 24MHz */
+	iowrite32(cru+CRU_CLKSEL3_CON,  0xffff0200); /* UART_EXP / 24MHz */
 
 	clock_register(clock_params, arrayof(clock_params));
 	uart_register(&uart_info, arrayof(uart_info));

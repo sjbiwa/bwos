@@ -19,16 +19,16 @@
 #define	UART_BAUD19200					(19200)
 #define	UART_BAUD9600					(9600)
 
-/* Parity */
-#define	UART_PARITY_NONE				(0)
-#define	UART_PARITY_EVEN				(1)
-#define	UART_PARITY_ODD					(2)
-
 /* bit_width */
 #define	UART_BITS_5						(0)
 #define	UART_BITS_6						(1)
 #define	UART_BITS_7						(2)
 #define	UART_BITS_8						(3)
+
+/* Parity */
+#define	UART_PARITY_NONE				(0)
+#define	UART_PARITY_EVEN				(1)
+#define	UART_PARITY_ODD					(2)
 
 /* stop bit */
 #define	UART_STOPBIT_1					(0)

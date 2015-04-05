@@ -20,3 +20,7 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(0x01C28000), 0x1000, ATTR_DEV);
 
 }
+
+void init_task_board_depend(void)
+{
+}
