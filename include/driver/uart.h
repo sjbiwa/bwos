@@ -35,6 +35,11 @@
 #define	UART_STOPBIT_1_5				(1)
 #define	UART_STOPBIT_2					(2)
 
+/* flow control */
+#define	UART_FLOW_NONE					(0)
+#define	UART_FLOW_HARD					(1)
+#define	UART_FLOW_SOFT					(2)	/* not supported (RTS/CTS soft control) */
+#define	UART_FLOW_META					(3)	/* not supported (ex: XON/XOFF control) */
 
 typedef	struct {
 	uint8_t*		io_addr;				/* ベースアドレス */
@@ -47,6 +52,7 @@ typedef	struct {
 	uint32_t		bits;					/* データビット幅 */
 	uint32_t		parity;					/* パリティ設定 */
 	uint32_t		stop_bits;				/* ストップビット幅 */
+	uint32_t		flow_control;			/* フロー制御 */
 } UartConfigParam;
 
 typedef	struct {

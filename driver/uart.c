@@ -323,7 +323,12 @@ void uart_setConfig(uint32_t port_no, UartConfigParam* config)
 
 
 	iowrite32(port+UART_FCR, FCR_RCVR_TRIGGER_1_2|FCR_TX_TRIGGER_1_2|FCR_FIFO_EN);
-	iowrite32(port+UART_MCR, 0);
+	if ( config->flow_control == UART_FLOW_HARD ) {
+		iowrite32(port+UART_MCR, MCR_AUTO_FLOW_CTRL_EN);
+	}
+	else {
+		iowrite32(port+UART_MCR, 0);
+	}
 
 	iowrite32(port+UART_IER,
 						IER_PROG_THRE_INT_EN|

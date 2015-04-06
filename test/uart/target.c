@@ -22,6 +22,7 @@ void task1(void)
 			UART_BITS_8,
 			UART_PARITY_NONE,
 			UART_STOPBIT_1,
+			UART_FLOW_NONE
 	};
 	UartOpenParam open_param = {
 			1024, 1024
@@ -52,6 +53,7 @@ void task2(void)
 		ret = uart_recv(1, buff, sizeof(buff)-1, TMO_FEVER);
 		if ( ret <= 0 ) {
 			lprintf("recv error:%d\n", ret);
+			task_tsleep(MSEC(500));
 		}
 		else {
 			buff[ret] = '\0';
@@ -59,6 +61,7 @@ void task2(void)
 		}
 	}
 }
+
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5},
@@ -71,5 +74,6 @@ void main_task(void)
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
 		task_struct[ix] = task_create(&task_info[ix]);
 	}
+
 	task_sleep();
 }
