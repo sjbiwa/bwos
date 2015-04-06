@@ -36,7 +36,7 @@ void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 /*
  * 	irq_add_handler
  */
-OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
+OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 {
 	if ( irqno < IRQ_NUM ) {
 		irq_action[irqno].handler = func;
@@ -47,27 +47,33 @@ OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 /*
  * 	irq_set_enable
  */
-OSAPI void irq_set_enable(uint32_t irqno)
+OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting)
 {
 	uint32_t		off;
 	uint32_t		bit;
 
 	off = irqno / 32;
 	bit = irqno % 32;
-	iowrite32(GICD_ISENABLER+off, 0x01<<bit);
+	if ( setting == IRQ_ENABLE ) {
+		iowrite32(GICD_ISENABLER+off*4, 0x01<<bit);
+	}
+	else {
+		iowrite32(GICD_ICENABLER+off*4, 0x01<<bit);
+	}
 }
 
 /*
- * 	irq_set_disable
+ * 	irq_get_enable
  */
-OSAPI void irq_set_disable(uint32_t irqno)
+OSAPISTUB int __irq_get_enable(uint32_t irqno)
 {
 	uint32_t		off;
 	uint32_t		bit;
 
 	off = irqno / 32;
 	bit = irqno % 32;
-	iowrite32(GICD_ICENABLER+off, 0x01<<bit);
+	int ret = (ioread32(GICD_ICENABLER+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
+	return ret;
 }
 
 /*

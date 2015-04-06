@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "config.h"
 #include "types.h"
 #include "arch_common.h"
 #include "sys_irq.h"
@@ -29,6 +28,8 @@
 #define	containerof(ptr, type, member) ({ const typeof(((type *)0)->member) *__mptr = (ptr);(type *)((char*)__mptr-offsetof(type,member));})
 #define	iowrite32(a,d)		(*((volatile uint32_t*)(a))=(d))
 #define	ioread32(a)			(*((volatile uint32_t*)(a)))
+#define	ioset32(a,d)		iowrite32(a,ioread32(a)|(d))
+#define	ioclr32(a,d)		iowrite32(a,ioread32(a)&(~(d)))
 
 /* アドレスアラインメント演算用マクロ */
 #define	PRE_ALIGN_BY(x,n)		((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))

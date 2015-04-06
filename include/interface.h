@@ -47,6 +47,9 @@ typedef	struct {
 #define	FLAG_BITCLR		(0x00000001u<<3)
 
 
+/* 割り込みハンドラ関連API */
+#define	IRQ_DISABLE		(0)
+#define	IRQ_ENABLE		(1)
 
 
 #endif /* INTERFACE_H_ */

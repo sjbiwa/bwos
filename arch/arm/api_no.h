@@ -41,5 +41,8 @@
 #define	SYS_MALLOC_APINO					30
 #define	SYS_FREE_APINO						31
 #define	SYS_MALLOC_ALIGN_APINO				32
+#define	IRQ_ADD_HANDLER_APINO				33
+#define	IRQ_SET_ENABLE_APINO				34
+#define	IRQ_GET_ENABLE_APINO				35
 
 #endif /* API_NO_H_ */
