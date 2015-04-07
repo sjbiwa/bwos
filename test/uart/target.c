@@ -50,10 +50,10 @@ void task2(void)
 	int ret;
 	char buff[16];
 	for (;;) {
-		ret = uart_recv(1, buff, sizeof(buff)-1, TMO_FEVER);
+		ret = uart_recv(1, buff, sizeof(buff)-1, SEC(5));
 		if ( ret <= 0 ) {
 			lprintf("recv error:%d\n", ret);
-			task_tsleep(MSEC(500));
+			task_tsleep(MSEC(100));
 		}
 		else {
 			buff[ret] = '\0';

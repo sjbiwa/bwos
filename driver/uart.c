@@ -148,6 +148,10 @@
 /* UART configuration info */
 #define	FIFO_DEPTH						(64)	/* FIFOに格納できるサイズ */
 
+/* イベント待ちフラグ */
+#define	EVENT_SEND						(1u<<0)
+#define	EVENT_RECV						(1u<<1)
+#define	EVENT_ERROR						(1u<<2)
 
 typedef	struct {
 	uint8_t*		buff;					/* リングバッファ */
@@ -159,9 +163,8 @@ typedef	struct {
 typedef	struct {
 	bool			active;					/* UART 動作中 (open中) */
 	RingBuff		tx;						/* 送信リングバッファ */
-	int				tx_flg;					/* 送信完了待ち */
 	RingBuff		rx;						/* 受信リングバッファ */
-	int				rx_flg;					/* 受信待ち */
+	int				ev_flag;				/* イベント待ちフラグ */
 	uint8_t			tx_rx_temp_buff[FIFO_DEPTH]; /* 送信/受信時にテンポラリとして使うバッファ */
 	UartDeviceInfo*	dev;
 } UartObject;
@@ -272,6 +275,8 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 	for ( ix=0; ix < info_num; ix++ ) {
 		uart_obj_tbl[ix].active = false;
 		uart_obj_tbl[ix].dev = &info[ix];
+		uart_obj_tbl[ix].ev_flag = flag_create();
+
 		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
 		irq_add_handler(uart_obj_tbl[ix].dev->irq, uart_irq_handler, &uart_obj_tbl[ix]);
 	}
@@ -356,8 +361,6 @@ void uart_open(uint32_t port_no, UartOpenParam* open)
 	}
 	ringbuf_create(&(uart_obj->tx), open->tx_buff_size);
 	ringbuf_create(&(uart_obj->rx), open->rx_buff_size);
-	uart_obj->tx_flg = flag_create();
-	uart_obj->rx_flg = flag_create();
 	uart_obj->active = true;
 	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE);
 }
@@ -384,7 +387,7 @@ static void uart_tx_exec(UartObject* uart_obj, UartDeviceInfo* info, uint8_t* po
 		for ( ix = 0; ix < tx_sendable; ix++ ) {
 			iowrite32(port+UART_THR, uart_obj->tx_rx_temp_buff[ix]);
 		}
-		flag_set(uart_obj->tx_flg, 0x0001);
+		flag_set(uart_obj->ev_flag, EVENT_SEND);
 	}
 }
 
@@ -404,7 +407,7 @@ static void uart_rx_exec(UartObject* uart_obj, UartDeviceInfo* info, uint8_t* po
 		if ( 0 < rx_remain ) {
 			/* 受信バッファオーバーフロー */
 		}
-		flag_set(uart_obj->rx_flg, 0x0001);
+		flag_set(uart_obj->ev_flag, EVENT_RECV);
 	}
 }
 
@@ -435,7 +438,7 @@ int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout)
 			if ( tmout != TMO_POLL ) {
 				/* tx_buff not full待ち */
 				uint32_t ret_ptn;
-				int sc_ret = flag_twait(uart_obj->tx_flg, 0x0001, FLAG_OR|FLAG_CLR, &ret_ptn, tmout);
+				int sc_ret = flag_twait(uart_obj->ev_flag, EVENT_SEND, FLAG_OR|FLAG_BITCLR, &ret_ptn, tmout);
 				if ( sc_ret == RT_OK ) {
 					/* tx_buff not full になったので再度書き込み処理実行 */
 					continue;
@@ -481,7 +484,7 @@ int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout)
 			if ( tmout != TMO_POLL ) {
 				/* rx_buff not empty待ち */
 				uint32_t ret_ptn;
-				int sc_ret = flag_twait(uart_obj->rx_flg, 0x0001, FLAG_OR|FLAG_CLR, &ret_ptn, tmout);
+				int sc_ret = flag_twait(uart_obj->ev_flag, EVENT_RECV, FLAG_OR|FLAG_BITCLR, &ret_ptn, tmout);
 				if ( sc_ret == RT_OK ) {
 					/* rx_buff not empty になったので再度読み込み処理実行 */
 					continue;
