@@ -39,13 +39,30 @@
 	.text
 
 _undef_entry:
-	b		_undef_entry
+	push	{lr}
+	mov		lr, #0
+	b		_fault_entry
 
 _pref_entry:
-	b		_pref_entry
+	push	{lr}
+	mov		lr, #1
+	b		_fault_entry
 
 _dabort_entry:
-	b		_dabort_entry
+	push	{lr}
+	mov		lr, #2
+	b		_fault_entry
+
+_fault_entry:
+	push	{r0-r12}
+	mrs		r0, spsr
+	mrs		r1, SP_usr
+	mrs		r2, SP_svc
+	mrs		r3, SP_irq
+	push	{r0-r3}
+	mov		r0, lr
+	mov		r1, sp
+	bl		fault_handler
 
 /*
 ** _irq_entry
