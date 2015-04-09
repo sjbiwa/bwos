@@ -42,6 +42,10 @@ void init_task_board_depend(void)
 {
 	/* pin configure */
 	iowrite32(grf+GRF_GPIO5B_IOMUX, 0x00ff0055); /* UART_BB rts/cts/in/out */
+	iowrite32(grf+GRF_GPIO1D_IOMUX, 0x00550055); /* LCDC0 DCLK/DEN/VSYNC/HSYNC */
+	iowrite32(grf+GRF_SOC_CON6, 0x00080008); /* grf_con_lvds_lcdc_sel */
+	iowrite32(grf+GRF_SOC_CON7, 0xa0000000); /* grf_lvds_pwrdwn/grf_lvds_lcdc_trace_sel */
+	iowrite32(grf+GRF_IO_VSEL, 0x00010000); /* lcdc_v18sel */
 
 	/* clock configure */
 	iowrite32(cru+CRU_CLKSEL14_CON, 0xffff0200); /* UART_BB / 24MHz */
