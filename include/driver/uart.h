@@ -41,6 +41,12 @@
 #define	UART_FLOW_SOFT					(2)	/* not supported (RTS/CTS soft control) */
 #define	UART_FLOW_META					(3)	/* not supported (ex: XON/XOFF control) */
 
+/* UART error bit */
+#define	UART_ERR_FRAMING				(0x1u<<0)
+#define	UART_ERR_PARITY					(0x1u<<1)
+#define	UART_ERR_OVERRUN				(0x1u<<2)
+
+
 typedef	struct {
 	uint8_t*		io_addr;				/* ベースアドレス */
 	uint32_t		irq;					/* IRQ番号 */
@@ -66,5 +72,6 @@ extern void uart_open(uint32_t port_no, UartOpenParam* open);
 extern void uart_close(uint32_t port_no);
 extern int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout);
 extern int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout);
+extern int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout);
 
 #endif /* UART_H_ */
