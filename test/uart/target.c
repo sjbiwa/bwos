@@ -11,7 +11,7 @@
 int		task_struct[16];
 
 
-static char buff[] = "Hello world\n";
+static char buff[] = "Hello world1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n";
 
 void task1(void)
 {
@@ -19,8 +19,8 @@ void task1(void)
 	int sent_bytes;
 	UartConfigParam config_param = {
 			UART_BAUD115200,
-			UART_BITS_7,
-			UART_PARITY_ODD,
+			UART_BITS_8,
+			UART_PARITY_NONE,
 			UART_STOPBIT_1,
 			UART_FLOW_NONE
 	};

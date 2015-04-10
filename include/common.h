@@ -31,14 +31,13 @@
 #define	ioset32(a,d)		iowrite32(a,ioread32(a)|(d))
 #define	ioclr32(a,d)		iowrite32(a,ioread32(a)&(~(d)))
 
+#define	MIN(a,b)			((a)<(b)?(a):(b))
+#define	MAX(a,b)			((a)>(b)?(a):(b))
+
 /* アドレスアラインメント演算用マクロ */
 #define	PRE_ALIGN_BY(x,n)		((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
 #define	POST_ALIGN_BY(x,n)		((void*)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
 
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 #define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 
 /* メモリサイズ用 */
