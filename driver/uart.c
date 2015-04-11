@@ -276,6 +276,7 @@ static bool ringbuff_threshold(RingBuff* ring)
 	return ret;
 }
 
+/* リニアに読み込めるバッファ領域取得 */
 int ringbuff_get_linearreadable(RingBuff* ring, void** ptr)
 {
 	*ptr = &(ring->buff[ring->top]);
@@ -286,6 +287,7 @@ int ringbuff_get_linearreadable(RingBuff* ring, void** ptr)
 	return ret;
 }
 
+/* リニアに書き込めるバッファ領域取得 */
 int ringbuff_get_linearwriteable(RingBuff* ring, void** ptr)
 {
 	int pos = ring->top + ring->length;
@@ -300,6 +302,7 @@ int ringbuff_get_linearwriteable(RingBuff* ring, void** ptr)
 	return ret;
 }
 
+/* 読み込み領域を先頭から開放 */
 void ringbuff_free(RingBuff* ring, int length)
 {
 	if ( ring->length < length ) {
@@ -312,6 +315,7 @@ void ringbuff_free(RingBuff* ring, int length)
 	}
 }
 
+/* 書き込み領域を末尾から確保 */
 void ringbuff_alloc(RingBuff* ring, int length)
 {
 	ring->length += length;
@@ -320,6 +324,7 @@ void ringbuff_alloc(RingBuff* ring, int length)
 	}
 }
 
+/* リングバッファが一杯か判定 */
 bool ringbuff_full(RingBuff* ring)
 {
 	bool ret = false;
@@ -329,6 +334,7 @@ bool ringbuff_full(RingBuff* ring)
 	return ret;
 }
 
+/* リングバッファのデータ長 */
 int ringbuff_length(RingBuff* ring)
 {
 	return ring->length;
@@ -722,10 +728,10 @@ int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout)
 			else {
 				ret = RT_TIMEOUT;
 			}
-			/* ここまできたらループを抜ける*/
-			break;
-			/* */
 		}
+		/* ここまできたらループを抜ける*/
+		break;
+		/* */
 	}
 
 	return ret;

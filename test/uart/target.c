@@ -18,14 +18,14 @@ void task1(void)
 	int ret;
 	int sent_bytes;
 	UartConfigParam config_param = {
-			UART_BAUD115200,
-			UART_BITS_8,
-			UART_PARITY_NONE,
+			UART_BAUD9600,
+			UART_BITS_7,
+			UART_PARITY_ODD,
 			UART_STOPBIT_1,
 			UART_FLOW_NONE
 	};
 	UartOpenParam open_param = {
-			1024, 1024
+			256, 256
 	};
 	uart_setConfig(1, &config_param);
 	uart_open(1, &open_param);
