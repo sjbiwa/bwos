@@ -386,7 +386,7 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 	}
 }
 
-void uart_setConfig(uint32_t port_no, UartConfigParam* config)
+void uart_set_config(uint32_t port_no, UartConfigParam* config)
 {
 	UartObject* uart_obj = uart_get_object(port_no);
 	UartDeviceInfo* info = uart_obj->dev;

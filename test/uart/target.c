@@ -6,12 +6,16 @@
  */
 #include "bwos.h"
 #include "driver/uart.h"
+#include "ioregs.h"
+#include "gpioregs.h"
 
 /* configuration task */
 int		task_struct[16];
 
 
 static char buff[] = "Hello world1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n";
+
+static uint32_t counter = 0;
 
 void task1(void)
 {
@@ -27,7 +31,7 @@ void task1(void)
 	UartOpenParam open_param = {
 			256, 256
 	};
-	uart_setConfig(1, &config_param);
+	uart_set_config(1, &config_param);
 	uart_open(1, &open_param);
 	task_active(task_struct[1]);
 	task_active(task_struct[2]);
@@ -45,6 +49,13 @@ void task1(void)
 			}
 		}
 		task_tsleep(MSEC(500));
+		counter++;
+		if ( counter & 0x01 ) {
+			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000002);
+		}
+		else {
+			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000000);
+		}
 	}
 }
 
@@ -71,9 +82,12 @@ void task3(void)
 {
 	int ret;
 	uint32_t error;
+	double d;
 
+	d = 10.0;
 	/* エラー処理 */
 	for (;;) {
+		d *= 12.3 + 3.3;
 		ret = uart_error(1, &error, TMO_FEVER);
 		if ( ret < 0 ) {
 			task_tsleep(MSEC(100));
