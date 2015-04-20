@@ -37,6 +37,5 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(UART_BB_BASE), UART_BB_SIZE, ATTR_DEV);
 	mmgr_add_entry((void*)(UART_DBG_BASE), UART_DBG_SIZE, ATTR_DEV);
 	mmgr_add_entry((void*)(UART_GPS_BASE), UART_GPS_SIZE, ATTR_DEV);
-//	mmgr_add_entry((void*)(UART_EXP_BASE), UART_EXP_SIZE, ATTR_DEV);
-	mmgr_add_entry((void*)(UART_EXP_BASE), UART_EXP_SIZE, ATTR_DATA);
+	mmgr_add_entry((void*)(UART_EXP_BASE), UART_EXP_SIZE, ATTR_DEV);
 }
