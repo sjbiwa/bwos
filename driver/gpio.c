@@ -1,13 +1,15 @@
 /*
- * gpioregs.h
+ * gpio.c
  *
- *  Created on: 2015/04/11
+ *  Created on: 2015/04/19
  *      Author: biwa
  */
+#include "bwos.h"
+#include "driver/gpio.h"
+#include "driver/clock.h"
 
-#ifndef _GPIOREGS_H_
-#define _GPIOREGS_H_
 
+/* GOIOレジスタ定義 */
 #define	GPIO_SWPORTA_DR 	(0x0000u) 	/* Port A data register */
 #define	GPIO_SWPORTA_DDR 	(0x0004u) 	/* Port A data direction register */
 #define	GPIO_INTEN 			(0x0030u) 	/* Interrupt enable register */
@@ -21,4 +23,27 @@
 #define	GPIO_EXT_PORTA 		(0x0050u) 	/* Port A external port register */
 #define	GPIO_LS_SYNC 		(0x0060u) 	/* Level_sensitive synchronization enable register */
 
-#endif /* ARCH_ARM_BOARD_FIREFLY_RK3288_GPIOREGS_H_ */
+typedef	struct {
+	GpioDeviceInfo*	dev;					/* デバイス情報 */
+} GpioObject;
+
+static GpioObject*		gpio_obj_tbl;
+static uint32_t			gpio_obj_num;
+
+
+void gpio_register(GpioDeviceInfo* info, uint32_t info_num)
+{
+	int ix;
+	gpio_obj_num = info_num;
+
+	gpio_obj_tbl = sys_malloc(sizeof(GpioObject) * info_num);
+	for ( ix=0; ix < info_num; ix++ ) {
+		gpio_obj_tbl[ix].dev = &info[ix];
+	}
+}
+
+//void gpio_set_dirport(uint32_t port_no, UartConfigParam* config)
+//{
+//	iowrite32(gpio8+GPIO_SWPORTA_DR, 0x00000002);	/* GPIO direction */
+//	iowrite32(gpio8+GPIO_SWPORTA_DDR, 0x00000002);	/* GPIO direction */
+//}

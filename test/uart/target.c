@@ -7,7 +7,7 @@
 #include "bwos.h"
 #include "driver/uart.h"
 #include "ioregs.h"
-#include "gpioregs.h"
+//#include "gpioregs.h"
 
 /* configuration task */
 int		task_struct[16];
@@ -51,10 +51,10 @@ void task1(void)
 		task_tsleep(MSEC(500));
 		counter++;
 		if ( counter & 0x01 ) {
-			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000002);
+//			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000002);
 		}
 		else {
-			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000000);
+//			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000000);
 		}
 	}
 }

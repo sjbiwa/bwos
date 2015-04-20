@@ -10,7 +10,7 @@ extern void main_task(void);
 extern void init_task_arch_depend();
 
 static TaskCreateInfo	main_task_info = {
-	"MAIN_TASK", TASK_ACT|TASK_FPU, main_task, 0, 1024, 1024, 1,
+	"MAIN_TASK", TASK_ACT|TASK_SYS|TASK_FPU, main_task, 0, 1024, 1024, 1,
 };
 
 void init_task(void)

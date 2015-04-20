@@ -8,11 +8,11 @@
 #include "bwos.h"
 #include "driver/clock.h"
 #include "driver/uart.h"
+#include "driver/gpio.h"
 #include "irqdefs.h"
 #include "ioregs.h"
 #include "cruregs.h"
 #include "grfregs.h"
-#include "gpioregs.h"
 
 #define	CLOCK_UART0			0
 #define	CLOCK_UART1			1
@@ -22,15 +22,6 @@
 
 static const uint32_t	cru = CRU_REG_BASE;
 static const uint32_t	grf = GRF_REG_BASE;
-static const uint32_t	gpio0 = GPIO0_REG_BASE;
-static const uint32_t	gpio1 = GPIO1_REG_BASE;
-static const uint32_t	gpio2 = GPIO2_REG_BASE;
-static const uint32_t	gpio3 = GPIO3_REG_BASE;
-static const uint32_t	gpio4 = GPIO4_REG_BASE;
-static const uint32_t	gpio5 = GPIO5_REG_BASE;
-static const uint32_t	gpio6 = GPIO6_REG_BASE;
-static const uint32_t	gpio7 = GPIO7_REG_BASE;
-static const uint32_t	gpio8 = GPIO8_REG_BASE;
 
 static ClockRegisterParam clock_params[] = {
 	[CLOCK_UART0] = { 24000000 },
@@ -46,6 +37,18 @@ static UartDeviceInfo uart_info[] = {
 		{ UART_DBG_BASE, IRQ_UART_DBG, CLOCK_UART2},	/* UART_DBG */
 		{ UART_GPS_BASE, IRQ_UART_GPS, CLOCK_UART3},	/* UART_GPS */
 		{ UART_EXP_BASE, IRQ_UART_EXP, CLOCK_UART4},	/* UART_EXP */
+};
+
+static GpioDeviceInfo gpio_info[] = {
+		{ GPIO0_REG_BASE },								/* GPIO0 */
+		{ GPIO1_REG_BASE },								/* GPIO1 */
+		{ GPIO2_REG_BASE },								/* GPIO2 */
+		{ GPIO3_REG_BASE },								/* GPIO3 */
+		{ GPIO4_REG_BASE },								/* GPIO4 */
+		{ GPIO5_REG_BASE },								/* GPIO5 */
+		{ GPIO6_REG_BASE },								/* GPIO6 */
+		{ GPIO7_REG_BASE },								/* GPIO7 */
+		{ GPIO8_REG_BASE },								/* GPIO8 */
 };
 
 void init_task_board_depend(void)
@@ -67,10 +70,9 @@ void init_task_board_depend(void)
 	iowrite32(grf+GRF_IO_VSEL, 0x00010000); /* lcdc_v18sel */
 
 	iowrite32(grf+GRF_GPIO8A_IOMUX, 0x000c0000); /* GPIO8A[1](WORK_LED) */
-	iowrite32(gpio8+GPIO_SWPORTA_DR, 0x00000002);	/* GPIO direction */
-	iowrite32(gpio8+GPIO_SWPORTA_DDR, 0x00000002);	/* GPIO direction */
 
 
 	/* register device */
 	uart_register(&uart_info, arrayof(uart_info));
+	gpio_register(&gpio_info, arrayof(gpio_info));
 }
