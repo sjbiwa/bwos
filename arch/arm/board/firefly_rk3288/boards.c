@@ -69,7 +69,7 @@ void init_task_board_depend(void)
 	iowrite32(grf+GRF_SOC_CON7, 0xa0000000); /* grf_lvds_pwrdwn/grf_lvds_lcdc_trace_sel */
 	iowrite32(grf+GRF_IO_VSEL, 0x00010000); /* lcdc_v18sel */
 
-	iowrite32(grf+GRF_GPIO8A_IOMUX, 0x000c0000); /* GPIO8A[1](WORK_LED) */
+	iowrite32(grf+GRF_GPIO8A_IOMUX, 0x003c0000); /* GPIO8A[2](POWER_LED)/[1](WORK_LED) */
 
 
 	/* register device */

@@ -30,7 +30,7 @@ void task1(void)
 	UartOpenParam open_param = {
 			256, 256
 	};
-	gpio_set_direction(8, 0x00000002, 0x00000002);
+	gpio_set_direction(8, 0x00000006, 0x00000006);
 	uart_set_config(1, &config_param);
 	uart_open(1, &open_param);
 	task_active(task_struct[1]);
@@ -63,12 +63,19 @@ void task2(void)
 {
 	int ret;
 	char buff[16];
+	uint32_t count = 0;
 
 	/* 受信処理 */
 	for (;;) {
-		ret = uart_recv(1, buff, sizeof(buff)-1, SEC(5));
+		ret = uart_recv(1, buff, sizeof(buff)-1, SEC(1));
 		if ( ret <= 0 ) {
-			lprintf("recv error:%d\n", ret);
+			count++;
+			if ( count & 1 ) {
+				gpio_set_bit(8, 2, 1);
+			}
+			else {
+				gpio_set_bit(8, 2, 0);
+			}
 			task_tsleep(MSEC(100));
 		}
 		else {
