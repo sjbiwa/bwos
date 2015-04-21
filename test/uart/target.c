@@ -6,8 +6,7 @@
  */
 #include "bwos.h"
 #include "driver/uart.h"
-#include "ioregs.h"
-//#include "gpioregs.h"
+#include "driver/gpio.h"
 
 /* configuration task */
 int		task_struct[16];
@@ -31,6 +30,7 @@ void task1(void)
 	UartOpenParam open_param = {
 			256, 256
 	};
+	gpio_set_direction(8, 0x00000002, 0x00000002);
 	uart_set_config(1, &config_param);
 	uart_open(1, &open_param);
 	task_active(task_struct[1]);
@@ -48,13 +48,13 @@ void task1(void)
 				sent_bytes += ret;
 			}
 		}
-		task_tsleep(MSEC(500));
+		task_tsleep(MSEC(100));
 		counter++;
 		if ( counter & 0x01 ) {
-//			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000002);
+			gpio_set_bit(8, 1, 1);
 		}
 		else {
-//			iowrite32(GPIO8_REG_BASE+GPIO_SWPORTA_DR, 0x00000000);
+			gpio_set_bit(8, 1, 0);
 		}
 	}
 }

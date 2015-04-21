@@ -48,7 +48,7 @@
 
 
 typedef	struct {
-	uint8_t*		io_addr;				/* ベースアドレス */
+	uint32_t		io_addr;				/* ベースアドレス */
 	uint32_t		irq;					/* IRQ番号 */
 	uint32_t		clock_src;				/* クロック識別子 */
 } UartDeviceInfo;

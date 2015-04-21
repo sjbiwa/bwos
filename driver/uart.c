@@ -342,7 +342,7 @@ int ringbuff_length(RingBuff* ring)
 
 void uart_rx_reset(UartObject* uart_obj)
 {
-	uint8_t* port = uart_obj->dev->io_addr;
+	uint32_t port = uart_obj->dev->io_addr;
 	iowrite32(port+UART_SRR,SRR_RCVR_FIFO_RESET);
 }
 
@@ -390,7 +390,7 @@ void uart_set_config(uint32_t port_no, UartConfigParam* config)
 {
 	UartObject* uart_obj = uart_get_object(port_no);
 	UartDeviceInfo* info = uart_obj->dev;
-	uint8_t* port = info->io_addr;
+	uint32_t port = info->io_addr;
 	bool irq_enable_org = irq_get_enable(info->irq);
 
 	/* UART割り込み禁止 */
@@ -494,7 +494,7 @@ static int uart_tx_write(UartObject* uart_obj, void* buff, int length)
 		return 0;
 	}
 
-	uint8_t* port = uart_obj->dev->io_addr;
+	uint32_t port = uart_obj->dev->io_addr;
 
 	/* TX-FIFOに書き込めるバイト数取得 */
 	uint32_t tx_length = ioread32(port+UART_TFL) & 0x7f;
@@ -513,7 +513,7 @@ static int uart_tx_write(UartObject* uart_obj, void* buff, int length)
 	return tx_sendable;
 }
 
-static void uart_tx_exec(UartObject* uart_obj, uint8_t* port)
+static void uart_tx_exec(UartObject* uart_obj, uint32_t port)
 {
 	for (;;) {
 		bool do_loop = false;
@@ -538,7 +538,7 @@ static void uart_tx_exec(UartObject* uart_obj, uint8_t* port)
 
 static int uart_rx_read(UartObject* uart_obj, void* buff, int length)
 {
-	uint8_t* port = uart_obj->dev->io_addr;
+	uint32_t port = uart_obj->dev->io_addr;
 	/* RX-FIFO内のバイト数取得 */
 	uint32_t rx_remain = ioread32(port+UART_RFL) & 0x7f;
 	if ( FIFO_DEPTH < rx_remain ) {
@@ -560,7 +560,7 @@ static int uart_rx_read(UartObject* uart_obj, void* buff, int length)
 	return rx_readable;
 }
 
-static void uart_rx_exec(UartObject* uart_obj, uint8_t* port)
+static void uart_rx_exec(UartObject* uart_obj, uint32_t port)
 {
 	for (;;) {
 		bool do_loop = false;
@@ -650,7 +650,7 @@ int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout)
 	if ( !uart_obj->active ) {
 		return RT_ERR;
 	}
-	uint8_t* port = uart_obj->dev->io_addr;
+	uint32_t port = uart_obj->dev->io_addr;
 
 	int ret = 0;
 
@@ -700,7 +700,7 @@ int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout)
 		return RT_ERR;
 	}
 	UartDeviceInfo* info = uart_obj->dev;
-	uint8_t* port = info->io_addr;
+	uint32_t port = info->io_addr;
 
 	int ret = 0;
 
@@ -737,7 +737,7 @@ int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout)
 	return ret;
 }
 
-static void uart_modemstatus_exec(UartObject* uart_obj, uint8_t* port)
+static void uart_modemstatus_exec(UartObject* uart_obj, uint32_t port)
 {
 	uint32_t stat = ioread32(port+UART_MSR);
 	if ( stat & MSR_CLEAR_TO_SEND ) {
@@ -748,7 +748,7 @@ static void uart_modemstatus_exec(UartObject* uart_obj, uint8_t* port)
 	}
 }
 
-static void uart_linestatus_exec(UartObject* uart_obj, uint8_t* port)
+static void uart_linestatus_exec(UartObject* uart_obj, uint32_t port)
 {
 	uint32_t stat = ioread32(port+UART_LSR);
 
@@ -771,7 +771,7 @@ static void uart_linestatus_exec(UartObject* uart_obj, uint8_t* port)
 static void uart_irq_handler(uint32_t irqno, void* irq_info)
 {
 	UartObject* uart_obj = (UartObject*)irq_info;
-	uint8_t* port = uart_obj->dev->io_addr;
+	uint32_t port = uart_obj->dev->io_addr;
 
 	uint32_t int_id = IIR_INT_ID(ioread32(port+UART_IIR));
 	switch (int_id) {

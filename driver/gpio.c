@@ -27,9 +27,18 @@ typedef	struct {
 	GpioDeviceInfo*	dev;					/* デバイス情報 */
 } GpioObject;
 
-static GpioObject*		gpio_obj_tbl;
-static uint32_t			gpio_obj_num;
+static GpioObject*		gpio_obj_tbl = 0;
+static uint32_t			gpio_obj_num = 0;
 
+static GpioObject* gpio_get_object(uint32_t portno)
+{
+	return &gpio_obj_tbl[portno];
+}
+
+static uint32_t gpio_get_addr(uint32_t portno)
+{
+	return gpio_get_object(portno)->dev->io_addr;
+}
 
 void gpio_register(GpioDeviceInfo* info, uint32_t info_num)
 {
@@ -42,8 +51,46 @@ void gpio_register(GpioDeviceInfo* info, uint32_t info_num)
 	}
 }
 
-//void gpio_set_dirport(uint32_t port_no, UartConfigParam* config)
-//{
-//	iowrite32(gpio8+GPIO_SWPORTA_DR, 0x00000002);	/* GPIO direction */
-//	iowrite32(gpio8+GPIO_SWPORTA_DDR, 0x00000002);	/* GPIO direction */
-//}
+void gpio_set_direction(uint32_t port_no, uint32_t dir, uint32_t mask)
+{
+	if ( port_no < gpio_obj_num ) {
+		uint32_t port = gpio_get_addr(port_no) + GPIO_SWPORTA_DDR;
+		iowrite32(port, (ioread32(port) & ~mask) | dir);
+	}
+}
+
+void gpio_set_value(uint32_t port_no, uint32_t value, uint32_t mask)
+{
+	if ( port_no < gpio_obj_num ) {
+		uint32_t port = gpio_get_addr(port_no) + GPIO_SWPORTA_DR;
+		iowrite32(port, (ioread32(port) & ~mask) | value);
+	}
+}
+
+uint32_t gpio_get_value(uint32_t port_no)
+{
+	uint32_t ret = 0;
+	if ( port_no < gpio_obj_num ) {
+		uint32_t port = gpio_get_addr(port_no) + GPIO_SWPORTA_DR;
+		ret = ioread32(port);
+	}
+	return ret;
+}
+
+void gpio_set_bit(uint32_t port_no, uint32_t bit, uint32_t value)
+{
+	if ( port_no < gpio_obj_num ) {
+		uint32_t port = gpio_get_addr(port_no) + GPIO_SWPORTA_DR;
+		iowrite32(port, (ioread32(port) & ~(1u<<bit)) | ((value?1u:0u)<<bit));
+	}
+}
+
+uint32_t gpio_get_bit(uint32_t port_no, uint32_t bit)
+{
+	uint32_t ret = 0;
+	if ( port_no < gpio_obj_num ) {
+		uint32_t port = gpio_get_addr(port_no) + GPIO_SWPORTA_DR;
+		ret = (ioread32(port) & (1u<<bit)) ? 1 : 0;
+	}
+	return ret;
+}
