@@ -276,7 +276,7 @@ void task_init_task_create(void)
 	/* 初期タスクの生成 */
 	task_init_struct(&init_task_struct,
 						"INIT_TASK",
-						TASK_ACT,
+						TASK_ACT|TASK_SYS,
 						init_task,
 						0,
 						1024, /* USRスタックサイズ */

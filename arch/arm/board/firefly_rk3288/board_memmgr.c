@@ -21,6 +21,17 @@ void board_mmgr_init(void)
 	/* GRF(General Register)領域 */
 	mmgr_add_entry((void*)(GRF_REG_BASE), GRF_REG_SIZE, ATTR_DEV);
 
+	/* GPIO領域 */
+	mmgr_add_entry((void*)(GPIO0_REG_BASE), GPIO0_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO1_REG_BASE), GPIO1_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO2_REG_BASE), GPIO2_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO3_REG_BASE), GPIO3_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO4_REG_BASE), GPIO4_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO5_REG_BASE), GPIO5_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO6_REG_BASE), GPIO6_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO7_REG_BASE), GPIO7_REG_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(GPIO8_REG_BASE), GPIO8_REG_SIZE, ATTR_DEV);
+
 	/* UART領域 */
 	mmgr_add_entry((void*)(UART_BT_BASE), UART_BT_SIZE, ATTR_DEV);
 	mmgr_add_entry((void*)(UART_BB_BASE), UART_BB_SIZE, ATTR_DEV);

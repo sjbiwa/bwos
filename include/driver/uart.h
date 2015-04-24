@@ -48,7 +48,7 @@
 
 
 typedef	struct {
-	uint8_t*		io_addr;				/* ベースアドレス */
+	uint32_t		io_addr;				/* ベースアドレス */
 	uint32_t		irq;					/* IRQ番号 */
 	uint32_t		clock_src;				/* クロック識別子 */
 } UartDeviceInfo;
@@ -67,7 +67,7 @@ typedef	struct {
 } UartOpenParam;
 
 extern void uart_register(UartDeviceInfo* info, uint32_t info_num);
-extern void uart_setConfig(uint32_t port_no, UartConfigParam* config);
+extern void uart_set_config(uint32_t port_no, UartConfigParam* config);
 extern void uart_open(uint32_t port_no, UartOpenParam* open);
 extern void uart_close(uint32_t port_no);
 extern int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout);

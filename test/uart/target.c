@@ -6,12 +6,15 @@
  */
 #include "bwos.h"
 #include "driver/uart.h"
+#include "driver/gpio.h"
 
 /* configuration task */
 int		task_struct[16];
 
 
 static char buff[] = "Hello world1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n";
+
+static uint32_t counter = 0;
 
 void task1(void)
 {
@@ -27,7 +30,8 @@ void task1(void)
 	UartOpenParam open_param = {
 			256, 256
 	};
-	uart_setConfig(1, &config_param);
+	gpio_set_direction(8, 0x00000006, 0x00000006);
+	uart_set_config(1, &config_param);
 	uart_open(1, &open_param);
 	task_active(task_struct[1]);
 	task_active(task_struct[2]);
@@ -44,7 +48,14 @@ void task1(void)
 				sent_bytes += ret;
 			}
 		}
-		task_tsleep(MSEC(500));
+		task_tsleep(MSEC(100));
+		counter++;
+		if ( counter & 0x01 ) {
+			gpio_set_bit(8, 1, 1);
+		}
+		else {
+			gpio_set_bit(8, 1, 0);
+		}
 	}
 }
 
@@ -52,12 +63,19 @@ void task2(void)
 {
 	int ret;
 	char buff[16];
+	uint32_t count = 0;
 
 	/* 受信処理 */
 	for (;;) {
-		ret = uart_recv(1, buff, sizeof(buff)-1, SEC(5));
+		ret = uart_recv(1, buff, sizeof(buff)-1, SEC(1));
 		if ( ret <= 0 ) {
-			lprintf("recv error:%d\n", ret);
+			count++;
+			if ( count & 1 ) {
+				gpio_set_bit(8, 2, 1);
+			}
+			else {
+				gpio_set_bit(8, 2, 0);
+			}
 			task_tsleep(MSEC(100));
 		}
 		else {
@@ -71,9 +89,12 @@ void task3(void)
 {
 	int ret;
 	uint32_t error;
+	double d;
 
+	d = 10.0;
 	/* エラー処理 */
 	for (;;) {
+		d *= 12.3 + 3.3;
 		ret = uart_error(1, &error, TMO_FEVER);
 		if ( ret < 0 ) {
 			task_tsleep(MSEC(100));
