@@ -22,6 +22,8 @@
 
 static const uint32_t	cru = CRU_REG_BASE;
 static const uint32_t	grf = GRF_REG_BASE;
+static const uint32_t	lvds = LVDS_REG_BASE;
+static const uint32_t	pmu = PMU_REG_BASE;
 
 static ClockRegisterParam clock_params[] = {
 	[CLOCK_UART0] = { 24000000 },
@@ -53,22 +55,49 @@ static GpioDeviceInfo gpio_info[] = {
 
 void init_task_board_depend(void)
 {
-	/* clock configure */
+	/************************/
+	/* clock configure		*/
+	/************************/
 	iowrite32(cru+CRU_CLKSEL13_CON, 0xffff0200); /* UART_BT / 24MHz */
 	iowrite32(cru+CRU_CLKSEL14_CON, 0xffff0200); /* UART_BB / 24MHz */
 	iowrite32(cru+CRU_CLKSEL16_CON, 0xffff0200); /* UART_GPS / 24MHz */
 	iowrite32(cru+CRU_CLKSEL3_CON,  0xffff0200); /* UART_EXP / 24MHz */
+	ioset32(cru+CRU_CLKSEL27_CON, 0xff008000); /* LCDC0 clock */
 	clock_register(clock_params, arrayof(clock_params));
 
-	/* pin configure */
+	/************************/
+	/* pin configure		*/
+	/************************/
+	/* for UART */
 	iowrite32(grf+GRF_GPIO4C_IOMUX, 0x00550055); /* UART_BT rts/cts/in/out */
 	iowrite32(grf+GRF_GPIO5B_IOMUX, 0x00ff0055); /* UART_BB rts/cts/in/out */
-
+	/* for LCDC */
 	iowrite32(grf+GRF_GPIO1D_IOMUX, 0x00550055); /* LCDC0 DCLK/DEN/VSYNC/HSYNC */
-	iowrite32(grf+GRF_SOC_CON6, 0x00080008); /* grf_con_lvds_lcdc_sel */
-	iowrite32(grf+GRF_SOC_CON7, 0xa0000000); /* grf_lvds_pwrdwn/grf_lvds_lcdc_trace_sel */
-	iowrite32(grf+GRF_IO_VSEL, 0x00010000); /* lcdc_v18sel */
+	iowrite32(grf+GRF_GPIO1H_SR, 0x0f000f00); /* GPIO1C/D fast */
+	iowrite32(grf+GRF_GPIO1D_E, 0x00ff00ff); /* GPIO1D drive strength */
+	iowrite32(grf+GRF_SOC_CON6, 0x00080000); /* grf_con_lvds_lcdc_sel(VOP_BIG) */
+	iowrite32(grf+GRF_SOC_CON7, 0x1fff1840); /* grf_lvds_con_enable_2/grf_lvds_con_enable_1/grf_lvds_con_ttl_en */
+	/* for LVDS (for LCDC) */
+	iowrite32(lvds+0x00*4, 0x7f);
+	iowrite32(lvds+0x01*4, 0x40);
+	iowrite32(lvds+0x02*4, 0x00);
+	iowrite32(lvds+0x03*4, 0x46);
+	iowrite32(lvds+0x04*4, 0x3f);
+	iowrite32(lvds+0x05*4, 0x3f);
+	iowrite32(lvds+0x0d*4, 0x0a);
+	iowrite32(lvds+0x40*4, 0x7f);
+	iowrite32(lvds+0x41*4, 0x40);
+	iowrite32(lvds+0x42*4, 0x00);
+	iowrite32(lvds+0x43*4, 0x46);
+	iowrite32(lvds+0x44*4, 0x3f);
+	iowrite32(lvds+0x45*4, 0x3f);
+	iowrite32(lvds+0x4d*4, 0x0a);
 
+	iowrite32(pmu+0x6c/*PMU_GPIO0_C_PULL*/, 0x3ff);
+	iowrite32(pmu+0x78/*PMU_GPIO0_C_DRV*/, 0x3f);
+	iowrite32(pmu+0x8c/*PMU_GPIO0_C_IOMUX*/, 0x00000000);
+
+	/* for LED */
 	iowrite32(grf+GRF_GPIO8A_IOMUX, 0x003c0000); /* GPIO8A[2](POWER_LED)/[1](WORK_LED) */
 
 

@@ -38,4 +38,14 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(UART_DBG_BASE), UART_DBG_SIZE, ATTR_DEV);
 	mmgr_add_entry((void*)(UART_GPS_BASE), UART_GPS_SIZE, ATTR_DEV);
 	mmgr_add_entry((void*)(UART_EXP_BASE), UART_EXP_SIZE, ATTR_DEV);
+
+	/* LVDS */
+	mmgr_add_entry((void*)(LVDS_REG_BASE), LVDS_REG_SIZE, ATTR_DEV);
+	/* VOP BIG */
+	mmgr_add_entry((void*)(VOPBIG_REG_BASE), VOPBIG_REG_SIZE, ATTR_DEV);
+	/* VOP LIT */
+	mmgr_add_entry((void*)(VOPLIT_REG_BASE), VOPLIT_REG_SIZE, ATTR_DEV);
+
+	/* PMU */
+	mmgr_add_entry((void*)(PMU_REG_BASE), PMU_REG_SIZE, ATTR_DEV);
 }
