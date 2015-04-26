@@ -159,14 +159,23 @@ static uint32_t regbase = VOPBIG_REG_BASE;
 void video_init(void)
 {
 	ioset32(regbase+VOP_SYS_CTRL, 0x01u<<21);
-	/*
-	VOP_DSP_HTOTAL_HS_END
-	VOP_DSP_HACT_ST_END
-	VOP_DSP_VTOTAL_HS_END
-	VOP_DSP_VACT_ST_END
-	VOP_DSP_VS_ST_END_F1
-	VOP_DSP_VACT_ST_END_F1
-	*/
-	iowrite32(regbase+VOP_DSP_BG, (0xff<<20)|(0x3f<<10)|(0xf));
+
+	iowrite32(regbase+VOP_DSP_HTOTAL_HS_END, 0x03200060);
+	iowrite32(regbase+VOP_DSP_HACT_ST_END, 0x00900310);
+	iowrite32(regbase+VOP_DSP_VTOTAL_VS_END, 0x020d0002);
+	iowrite32(regbase+VOP_DSP_VACT_ST_END, 0x00230203);
+	//iowrite32(regbase+VOP_DSP_VS_ST_END_F1, 0);
+	//iowrite32(regbase+VOP_DSP_VACT_ST_END_F1, 0);
+
+	iowrite32(regbase+VOP_DSP_CTRL0, 0x00000030u);
+	//iowrite32(regbase+VOP_DSP_CTRL1, 0x00032100u);
+
+	iowrite32(regbase+VOP_DSP_BG, (0xff<<20)|(0xff<<10)|(0xff));
 	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
+}
+
+void video_set_background(uint32_t col)
+{
+	iowrite32(regbase+VOP_DSP_BG, col);
+//	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
 }
