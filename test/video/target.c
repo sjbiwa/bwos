@@ -23,7 +23,7 @@ void task1(void)
 	uint32_t col = 0;
 	for ( col=0;; col++ ) {
 		video_set_background(col);
-		task_tsleep(MSEC(10));
+		task_tsleep(MSEC(1));
 	}
 }
 

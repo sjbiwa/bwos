@@ -48,4 +48,7 @@ void board_mmgr_init(void)
 
 	/* PMU */
 	mmgr_add_entry((void*)(PMU_REG_BASE), PMU_REG_SIZE, ATTR_DEV);
+
+	/* FRAME BUFFER */
+	mmgr_add_entry((void*)(FRAME_BUFFER_ADDR), FRAME_BUFFER_SIZE, ATTR_DEV);
 }

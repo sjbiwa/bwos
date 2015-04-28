@@ -158,7 +158,12 @@ static uint32_t regbase = VOPBIG_REG_BASE;
 
 void video_init(void)
 {
-	ioset32(regbase+VOP_SYS_CTRL, 0x01u<<21);
+	ioset32(regbase+VOP_SYS_CTRL, 0x00801000);
+	ioset32(regbase+VOP_SYS_CTRL1, 0x00000000);
+	iowrite32(regbase+VOP_DSP_CTRL0, 0x00000030);
+	iowrite32(regbase+VOP_DSP_CTRL1, 0x0000e400);
+	iowrite32(regbase+VOP_DSP_BG, 0x00000000);
+	iowrite32(regbase+VOP_MCU_CTRL, 0x00711c08);
 
 	iowrite32(regbase+VOP_DSP_HTOTAL_HS_END, 0x03200060);
 	iowrite32(regbase+VOP_DSP_HACT_ST_END, 0x00900310);
@@ -167,15 +172,41 @@ void video_init(void)
 	//iowrite32(regbase+VOP_DSP_VS_ST_END_F1, 0);
 	//iowrite32(regbase+VOP_DSP_VACT_ST_END_F1, 0);
 
-	iowrite32(regbase+VOP_DSP_CTRL0, 0x00000030u);
-	//iowrite32(regbase+VOP_DSP_CTRL1, 0x00032100u);
+	iowrite32(regbase+VOP_POST_DSP_HACT_INFO, 0x00900310);
+	iowrite32(regbase+VOP_POST_DSP_VACT_INFO, 0x00230203);
+	iowrite32(regbase+VOP_POST_SCL_FACTOR_YRGB, 0x10001000);
+	iowrite32(regbase+VOP_POST_SCL_CTRL, 0x03);
+	iowrite32(regbase+VOP_POST_DSP_VACT_INFO_F1, 0x00900310);
 
-	iowrite32(regbase+VOP_DSP_BG, (0xff<<20)|(0xff<<10)|(0xff));
+//	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
+
+	/* win0 */
+	iowrite32(regbase+VOP_WIN0_CTRL0, 0x00001043);
+	iowrite32(regbase+VOP_WIN0_CTRL1, 0x00000000);
+	iowrite32(regbase+VOP_WIN0_COLOR_KEY, 0x00000000);
+	iowrite32(regbase+VOP_WIN0_VIR, 0x000001E1);
+	iowrite32(regbase+VOP_WIN0_YRGB_MST, 0x20000000);
+	iowrite32(regbase+VOP_WIN0_CBR_MST,  0x20000000);
+	iowrite32(regbase+VOP_WIN0_ACT_INFO, 0x01DF027F);
+	iowrite32(regbase+VOP_WIN0_DSP_INFO, 0x01DF027F);
+	iowrite32(regbase+VOP_WIN0_DSP_ST, 0x00230090);
+	iowrite32(regbase+VOP_WIN0_SCL_FACTOR_YRGB, 0x10001000);
+	iowrite32(regbase+VOP_WIN0_SCL_FACTOR_CBR, 0x10001000);
+	iowrite32(regbase+VOP_WIN0_SCL_OFFSET, 0x00000000);
+	iowrite32(regbase+VOP_WIN0_SRC_ALPHA_CTRL, 0x00000000);
+	iowrite32(regbase+VOP_WIN0_DST_ALPHA_CTRL, 0x00000000);
+	iowrite32(regbase+VOP_WIN0_FADING_CTRL, 0x00000000);
+
 	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
 }
 
 void video_set_background(uint32_t col)
 {
-	iowrite32(regbase+VOP_DSP_BG, col);
-//	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
+	uint8_t* dst = (uint8_t*)0x20000000;
+	uint8_t* src = (uint8_t*)0x28000000;
+	int idx;
+	src += 640*3*479;
+	for (idx=0; idx<480; idx++, src -= 640*3) {
+		memcpy(dst+idx*1924, src, 640*3);
+	}
 }
