@@ -62,7 +62,7 @@ void init_task_board_depend(void)
 	iowrite32(cru+CRU_CLKSEL14_CON, 0xffff0200); /* UART_BB / 24MHz */
 	iowrite32(cru+CRU_CLKSEL16_CON, 0xffff0200); /* UART_GPS / 24MHz */
 	iowrite32(cru+CRU_CLKSEL3_CON, 0xffff0200); /* UART_EXP / 24MHz */
-	ioset32(cru+CRU_CLKSEL27_CON, 0xff000900); /* LCDC0 clock */
+	iowrite32(cru+CRU_CLKSEL27_CON, 0xffff0400); /* LCDC0 clock */
 	clock_register(clock_params, arrayof(clock_params));
 
 	/************************/

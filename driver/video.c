@@ -8,6 +8,7 @@
 #include "driver/clock.h"
 #include "driver/video.h"
 #include "ioregs.h"
+#include "irqdefs.h"
 
 #define	VOP_REG_CFG_DONE			(0x0000u)			/*0x00000000*/	/* Register config done flag */
 #define	VOP_VERSION_INFO			(0x0004u)			/*0x00000000*/	/*  */
@@ -154,7 +155,158 @@
 #define	VOP_MCU_BYPASS_WPORT		(0x2200u)			/*0x00000000*/	/* Register0000 Abstract */
 #define	VOP_MCU_BYPASS_RPORT		(0x2300u)			/*0x00000000*/	/* Register0001 Abstract */
 
-static uint32_t regbase = VOPBIG_REG_BASE;
+typedef	struct {
+	uint32_t	ctrl0;
+	uint32_t	ctrl1;
+	uint32_t	color_key;
+	uint32_t	vir;
+	uint32_t	yrgb_mst;
+	uint32_t	cbr_mst;
+	uint32_t	act_info;
+	uint32_t	dsp_info;
+	uint32_t	dsp_st;
+	uint32_t	scl_factor_yrgb;
+	uint32_t	scl_factor_cbr;
+	uint32_t	scl_offset;
+	uint32_t	src_alpha_ctrl;
+	uint32_t	dst_alpha_ctrl;
+	uint32_t	fading_ctrl;
+	uint32_t	reserved0;
+} VopLayer01Reg;
+
+typedef	struct {
+	uint32_t	ctrl0;
+	uint32_t	ctrl1;
+	uint32_t	vir0_1;
+	uint32_t	vir2_3;
+	uint32_t	mst0;
+	uint32_t	dsp_info0;
+	uint32_t	dsp_st0;
+	uint32_t	color_key;
+	uint32_t	mst1;
+	uint32_t	dsp_info1;
+	uint32_t	dsp_st1;
+	uint32_t	src_alpha_ctrl;
+	uint32_t	mst2;
+	uint32_t	dsp_info2;
+	uint32_t	dsp_st2;
+	uint32_t	dst_alpha_ctrl;
+	uint32_t	mst3;
+	uint32_t	dsp_info3;
+	uint32_t	dsp_st3;
+	uint32_t	fading_ctrl;
+} VopLayer23Reg;
+
+typedef	union {
+	VopLayer01Reg	l01;
+	VopLayer23Reg	l23;
+} VopLayerReg;
+static const uint32_t regbase = VOPBIG_REG_BASE;
+static volatile VopLayerReg* const layerbase[VIDEO_LAYER_NUM] = {
+		(volatile VopLayerReg*)(VOPBIG_REG_BASE + VOP_WIN0_CTRL0),
+		(volatile VopLayerReg*)(VOPBIG_REG_BASE + VOP_WIN1_CTRL0),
+		(volatile VopLayerReg*)(VOPBIG_REG_BASE + VOP_WIN2_CTRL0),
+		(volatile VopLayerReg*)(VOPBIG_REG_BASE + VOP_WIN3_CTRL0),
+};
+static void (*irq_handler)(uint32_t event) = NULL;
+
+static void video_irq_handler(uint32_t irqno, void* irq_info)
+{
+	uint32_t ctrl0 = ioread32(regbase+VOP_INTR_CTRL0);
+	iowrite32(regbase+VOP_INTR_CTRL0, (ctrl0 & 0x00fff0f0) | ((ctrl0 & 0x00f) << 8));
+	if ( irq_handler != NULL ) {
+		(*irq_handler)(ctrl0 & VIDEO_IRQ_MASK);
+	}
+}
+
+void video_register_handler(void (*handler)(uint32_t event))
+{
+	irq_handler = handler;
+}
+
+void video_layer_init(VideoLayer layer, uint32_t addr)
+{
+	switch (layer) {
+	case VIDEO_LAYER_0:
+	case VIDEO_LAYER_1:
+		layerbase[layer]->l01.ctrl0				= 0x00000041;
+		layerbase[layer]->l01.ctrl1				= 0x00000000;
+		layerbase[layer]->l01.color_key			= 0x00000000;
+		layerbase[layer]->l01.vir				= 0x00000000;
+		layerbase[layer]->l01.yrgb_mst			= addr;
+		layerbase[layer]->l01.cbr_mst			= addr;
+		layerbase[layer]->l01.act_info			= 0x00000000;
+		layerbase[layer]->l01.dsp_info			= 0x00000000;
+		layerbase[layer]->l01.dsp_st			= 0x00000000;
+		layerbase[layer]->l01.scl_factor_yrgb	= 0x10001000;
+		layerbase[layer]->l01.scl_factor_cbr	= 0x10001000;
+		layerbase[layer]->l01.scl_offset		= 0x00000000;
+		layerbase[layer]->l01.src_alpha_ctrl	= 0x00000000;
+		layerbase[layer]->l01.dst_alpha_ctrl	= 0x00000000;
+		layerbase[layer]->l01.fading_ctrl		= 0x00000000;
+		break;
+
+	case VIDEO_LAYER_2:
+	case VIDEO_LAYER_3:
+		layerbase[layer]->l23.ctrl0				= 0x00000011;
+		layerbase[layer]->l23.ctrl1				= 0x00000000;
+		layerbase[layer]->l23.vir0_1			= 0x00000000;
+		layerbase[layer]->l23.vir2_3			= 0x00000000;
+		layerbase[layer]->l23.mst0				= addr;
+		layerbase[layer]->l23.dsp_info0			= 0x00000000;
+		layerbase[layer]->l23.dsp_st0			= 0x00000000;
+		layerbase[layer]->l23.color_key			= 0x00000000;
+		layerbase[layer]->l23.mst1				= 0x00000000;
+		layerbase[layer]->l23.dsp_info1			= 0x00000000;
+		layerbase[layer]->l23.dsp_st1			= 0x00000000;
+		layerbase[layer]->l23.src_alpha_ctrl	= 0x00000000;
+		layerbase[layer]->l23.mst2		 		= 0x00000000;
+		layerbase[layer]->l23.dsp_info2			= 0x00000000;
+		layerbase[layer]->l23.dsp_st2			= 0x00000000;
+		layerbase[layer]->l23.dst_alpha_ctrl	= 0x00000000;
+		layerbase[layer]->l23.mst3				= 0x00000000;
+		layerbase[layer]->l23.dsp_info3			= 0x00000000;
+		layerbase[layer]->l23.dsp_st3			= 0x00000000;
+		layerbase[layer]->l23.fading_ctrl		= 0x00000000;
+		break;
+	}
+
+	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
+}
+
+void video_layer_set(VideoLayer layer, uint32_t pos_x, uint32_t pos_y, uint32_t width, uint32_t height, uint32_t addr, uint32_t stride)
+{
+	uint32_t area_info = ((height-1u) << 16) | (width-1u);
+	switch (layer) {
+	case VIDEO_LAYER_0:
+	case VIDEO_LAYER_1:
+		if ( addr != 0 ) {
+			layerbase[layer]->l01.yrgb_mst		= addr;
+			layerbase[layer]->l01.cbr_mst		= addr;
+		}
+		if ( stride != 0 ) {
+			layerbase[layer]->l01.vir			= stride;
+		}
+		layerbase[layer]->l01.act_info		= area_info;
+		layerbase[layer]->l01.dsp_info		= area_info;
+		layerbase[layer]->l01.dsp_st		= ((0x0029u+pos_y) << 16) | (0x1B0u+pos_x);
+		break;
+
+	case VIDEO_LAYER_2:
+	case VIDEO_LAYER_3:
+		if ( addr != 0 ) {
+			layerbase[layer]->l23.mst0		= addr;
+		}
+		if ( stride != 0 ) {
+			layerbase[layer]->l23.vir0_1	= stride;
+		}
+		layerbase[layer]->l23.dsp_info0		= area_info;
+		layerbase[layer]->l23.dsp_st0		= ((0x0029u+pos_y) << 16) | (0x1B0u+pos_x);
+		break;
+	}
+
+	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
+}
 
 void video_init(void)
 {
@@ -162,51 +314,23 @@ void video_init(void)
 	ioset32(regbase+VOP_SYS_CTRL1, 0x00000000);
 	iowrite32(regbase+VOP_DSP_CTRL0, 0x00000030);
 	iowrite32(regbase+VOP_DSP_CTRL1, 0x0000e400);
-	iowrite32(regbase+VOP_DSP_BG, 0x00000000);
+	iowrite32(regbase+VOP_DSP_BG, 0xFFFFFFFF);
 	iowrite32(regbase+VOP_MCU_CTRL, 0x00711c08);
-
-	iowrite32(regbase+VOP_DSP_HTOTAL_HS_END, 0x03200060);
-	iowrite32(regbase+VOP_DSP_HACT_ST_END, 0x00900310);
-	iowrite32(regbase+VOP_DSP_VTOTAL_VS_END, 0x020d0002);
-	iowrite32(regbase+VOP_DSP_VACT_ST_END, 0x00230203);
-	//iowrite32(regbase+VOP_DSP_VS_ST_END_F1, 0);
-	//iowrite32(regbase+VOP_DSP_VACT_ST_END_F1, 0);
-
-	iowrite32(regbase+VOP_POST_DSP_HACT_INFO, 0x00900310);
-	iowrite32(regbase+VOP_POST_DSP_VACT_INFO, 0x00230203);
+	iowrite32(regbase+VOP_DSP_HTOTAL_HS_END, 0x05C80088);
+	iowrite32(regbase+VOP_DSP_HACT_ST_END, 0x01B005B0);
+	iowrite32(regbase+VOP_DSP_VTOTAL_VS_END, 0x032C0006);
+	iowrite32(regbase+VOP_DSP_VACT_ST_END, 0x00290329);
+	iowrite32(regbase+VOP_POST_DSP_HACT_INFO, 0x01B005B0);
+	iowrite32(regbase+VOP_POST_DSP_VACT_INFO, 0x00290329);
 	iowrite32(regbase+VOP_POST_SCL_FACTOR_YRGB, 0x10001000);
-	iowrite32(regbase+VOP_POST_SCL_CTRL, 0x03);
-	iowrite32(regbase+VOP_POST_DSP_VACT_INFO_F1, 0x00900310);
-
-//	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
-
-	/* win0 */
-	iowrite32(regbase+VOP_WIN0_CTRL0, 0x00001043);
-	iowrite32(regbase+VOP_WIN0_CTRL1, 0x00000000);
-	iowrite32(regbase+VOP_WIN0_COLOR_KEY, 0x00000000);
-	iowrite32(regbase+VOP_WIN0_VIR, 0x000001E1);
-	iowrite32(regbase+VOP_WIN0_YRGB_MST, 0x20000000);
-	iowrite32(regbase+VOP_WIN0_CBR_MST,  0x20000000);
-	iowrite32(regbase+VOP_WIN0_ACT_INFO, 0x01DF027F);
-	iowrite32(regbase+VOP_WIN0_DSP_INFO, 0x01DF027F);
-	iowrite32(regbase+VOP_WIN0_DSP_ST, 0x00230090);
-	iowrite32(regbase+VOP_WIN0_SCL_FACTOR_YRGB, 0x10001000);
-	iowrite32(regbase+VOP_WIN0_SCL_FACTOR_CBR, 0x10001000);
-	iowrite32(regbase+VOP_WIN0_SCL_OFFSET, 0x00000000);
-	iowrite32(regbase+VOP_WIN0_SRC_ALPHA_CTRL, 0x00000000);
-	iowrite32(regbase+VOP_WIN0_DST_ALPHA_CTRL, 0x00000000);
-	iowrite32(regbase+VOP_WIN0_FADING_CTRL, 0x00000000);
+	iowrite32(regbase+VOP_POST_SCL_CTRL, 0x00);
+	iowrite32(regbase+VOP_POST_DSP_VACT_INFO_F1, 0);
 
 	iowrite32(regbase+VOP_REG_CFG_DONE, 0x01); /* DONE */
-}
 
-void video_set_background(uint32_t col)
-{
-	uint8_t* dst = (uint8_t*)0x20000000;
-	uint8_t* src = (uint8_t*)0x28000000;
-	int idx;
-	src += 640*3*479;
-	for (idx=0; idx<480; idx++, src -= 640*3) {
-		memcpy(dst+idx*1924, src, 640*3);
-	}
+	/* 割り込み設定 */
+	iowrite32(regbase+VOP_INTR_CTRL0, 0x00203f60);
+	iowrite32(regbase+VOP_INTR_CTRL1, 0x00000000);
+	irq_add_handler(IRQ_VOP_BIG, video_irq_handler, NULL);
+	irq_set_enable(IRQ_VOP_BIG, IRQ_ENABLE);
 }
