@@ -30,7 +30,13 @@ void task1(void)
 	UartOpenParam open_param = {
 			256, 256
 	};
-	gpio_set_direction(8, 0x00000006, 0x00000006);
+	gpio_set_direction(8, 0x00000006, 0x00000006); /* LED */
+	gpio_set_direction(0, 0x02000000, 0x02000000); /* SDA7123 */
+	gpio_set_bit(0, 1, 1);
+
+	task_tsleep(MSEC(100));
+	lprintf("video init\n");
+	video_init();
 	uart_set_config(1, &config_param);
 	uart_open(1, &open_param);
 	task_active(task_struct[1]);

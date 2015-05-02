@@ -12,6 +12,8 @@
 
 #define	START_MEM_ADDR		(0x00000000u)
 #define	END_MEM_ADDR		(0x1FFFFFFFu)
+#define	FRAME_BUFFER_ADDR	(0x20000000u)
+#define	FRAME_BUFFER_SIZE	(0x0FFFFFFFu)
 
 #define	IRQ_NUM				(256)
 

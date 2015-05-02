@@ -30,6 +30,8 @@
 #define	ioread32(a)			(*((volatile uint32_t*)(a)))
 #define	ioset32(a,d)		iowrite32(a,ioread32(a)|(d))
 #define	ioclr32(a,d)		iowrite32(a,ioread32(a)&(~(d)))
+#define	ioset32mask(a,d,m)	iowrite32(a,(ioread32(a)&~(m))|(d))
+
 
 #define	MIN(a,b)			((a)<(b)?(a):(b))
 #define	MAX(a,b)			((a)>(b)?(a):(b))
