@@ -36,9 +36,9 @@ static ClockRegisterParam clock_params[] = {
 	[CLOCK_UART2] 	= { 24000000 },
 	[CLOCK_UART3] 	= { 24000000 },
 	[CLOCK_UART4] 	= { 24000000 },
-	[CLOCK_SPI0]	= { 96000000 },
+	[CLOCK_SPI0]	= { 48000000 },
 	[CLOCK_SPI1]	= {        0 },	/* not used */
-	[CLOCK_SPI2]	= { 96000000 },
+	[CLOCK_SPI2]	= { 48000000 },
 };
 
 static UartDeviceInfo uart_info[] = {
