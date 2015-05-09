@@ -129,3 +129,139 @@
 /* DMA */
 #define	DMACR_TDE_ENABLE		(0x01u<<1)		/* Transmit DMA Enable */
 #define	DMACR_RDE_ENABLE		(0x01u<<0)		/* Receive DMA Enable */
+
+#define	FIFO_DEPATH				(32)			/* Tx/Rx FIFO depth */
+
+#define	CHANNEL_NUM				(2)				/* チャネル数 */
+#define	DEFAULT_BAUDRATE		(100000)		/* デフォルトのボーレート */
+#define	DEFAULT_BITS			(8)				/* デフォルトのビット数 */
+
+typedef	struct {
+	SpiDeviceInfo*		dev;					/* デバイス情報 */
+	bool				active;					/* SPI動作可能 */
+	SpiChannelConfig	ch_config[CHANNEL_NUM];	/* チャネル情報 */
+	int					mutex;					/* チャネル毎の排他用 */
+	int					ev_flag;				/* 処理完了用イベントフラグ */
+	uint32_t			curr_channel;			/* 現在使用しているチャネル番号 */
+} SpiObject;
+
+static SpiObject*		spi_obj_tbl;
+static uint32_t			spi_obj_num;
+
+static void spi_irq_handler(uint32_t irqno, void* irq_info)
+{
+}
+
+
+void spi_register(SpiDeviceInfo* info, uint32_t info_num)
+{
+	spi_obj_num = info_num;
+
+	spi_obj_tbl = sys_malloc(sizeof(SpiObject) * info_num);
+	for ( int ix=0; ix < info_num; ix++ ) {
+		spi_obj_tbl[ix].dev = &info[ix];
+		spi_obj_tbl[ix].active = false;
+		spi_obj_tbl[ix].mutex = mutex_create();
+		spi_obj_tbl[ix].ev_flag = flag_create();
+		spi_obj_tbl[ix].curr_channel = CHANNEL_NUM;
+		irq_set_enable(spi_obj_tbl[ix].dev->irq, IRQ_DISABLE);
+		irq_add_handler(spi_obj_tbl[ix].dev->irq, spi_irq_handler, &spi_obj_tbl[ix]);
+		for ( int ch=0; ch < CHANNEL_NUM; ++ch ) {
+			spi_obj_tbl[ix].ch_config[ch].baudrate = DEFAULT_BAUDRATE;
+			spi_obj_tbl[ix].ch_config[ch].bits = DEFAULT_BITS;
+		}
+	}
+
+}
+
+int spi_set_port_config(uint32_t port_no, SpiPortConfig* config)
+{
+	int ret = RT_ERR;
+	if ( (port_no < spi_obj_num) && !spi_obj_tbl[port_no].active ) {
+		uint32_t port = spi_obj_tbl[port_no].dev->io_addr;
+		spi_obj_tbl[port_no].curr_channel = 0; /* デフォルトチャネルは0とする */
+
+		/* デバイスの初期化 */
+		iowrite32(port+SPI_ENR, 0x00);
+		iowrite32(port+SPI_CTRLR0,
+							CTRL_OPM_MASTER|
+							CTRL_XFM_TXRX|
+							CTRL_FRF_SPI|
+							CTRL_RSD_NOT|
+							CTRL_BHT_APB16|
+							CTRL_FBM_MSB|
+							CTRL_EM_LITTLE|
+							CTRL_SSD_HALF|
+							CTRL_CSM_KEEP|
+							CTRL_SCPOL_LOW|
+							CTRL_SCPH_MIDDLE|
+							CTRL_DFS_8
+							);
+		iowrite32(port+SPI_SER, 0x00);
+
+		uint32_t clock = clock_get(spi_obj_tbl[port_no].dev->clock_src);
+		uint32_t req_baudrate = spi_obj_tbl[port_no].ch_config[spi_obj_tbl[port_no].curr_channel].baudrate;
+		uint32_t divider = (clock / req_baudrate) & 0xfffffffe;
+
+		iowrite32(port+SPI_BAUDR, divider);
+		iowrite32(port+SPI_TXFTLR, FIFO_DEPATH/2);
+		iowrite32(port+SPI_RXFTLR, FIFO_DEPATH/2);
+
+		iowrite32(port+SPI_IPR, IPR_HIGH);
+		iowrite32(port+SPI_IMR, 0);	 /* 全割り込み禁止 */
+		iowrite32(port+SPI_DMACR, 0);
+
+		iowrite32(port+SPI_ENR, 0x01); /* SPI有効化 */
+
+		spi_obj_tbl[port_no].active = true;
+		ret = RT_OK;
+	}
+	return ret;
+}
+
+int spi_set_channel_config(uint32_t port_no, uint32_t ch_no, SpiChannelConfig* config)
+{
+	return 0;
+}
+
+int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
+{
+	int ret = RT_ERR;
+	if ( (port_no < spi_obj_num) && (ch_no < CHANNEL_NUM) && spi_obj_tbl[port_no].active ) {
+		uint32_t port = spi_obj_tbl[port_no].dev->io_addr;
+		/* チャネル間排他 */
+		mutex_lock(spi_obj_tbl[port_no].mutex);
+
+		/* カレントチャネルが違う場合は切り替える */
+		if ( ch_no != spi_obj_tbl[port_no].curr_channel ) {
+			/* チャネル切り替え(パラメータ切り替え) */
+			spi_obj_tbl[port_no].curr_channel = ch_no;
+		}
+		for (;;) {
+			/* SS有効 */
+			iowrite32(port+SPI_SER, 0x01 << ch_no);
+
+			iowrite32(port+SPI_TXDR, 0x00000067);
+			iowrite32(port+SPI_TXDR, 0x000000CD);
+
+			task_tsleep(MSEC(10));
+			for (;;) {
+				uint32_t tval = ioread32(port+SPI_TXFLR) & 0x3f;
+				uint32_t rval = ioread32(port+SPI_RXFLR) & 0x3f;
+				tprintf("TX=%d RX=%d\n", tval, rval);
+				if ( (tval == 0) && (rval == 0) ) {
+					break;
+				}
+				for (; 0 < rval; rval--) {
+					ioread32(port+SPI_RXDR);
+				}
+			}
+			/* SS無効 */
+			iowrite32(port+SPI_SER, 0x00);
+			task_tsleep(MSEC(100));
+		}
+
+		mutex_unlock(spi_obj_tbl[port_no].mutex);
+	}
+	return ret;
+}

@@ -30,7 +30,7 @@ LDSCRIPT = $(ARCHDIR)/link.lds
 
 #DEFS = -DCYGWIN
 DEFS += -DUSE_TICKLESS
-CFLAGS  +=  -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=vfpv4 -mno-thumb-interwork -mthumb $(DEFS)
+CFLAGS  +=  -std=gnu11 -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=vfpv4 -mno-thumb-interwork -mthumb $(DEFS)
 CFLAGS  += -g -O0 -fno-builtin
 AFLAGS  += $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
 LDFLAGS += -v -mcpu=cortex-a7 -mno-thumb-interwork -g -T $(LDSCRIPT) -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none -static -nostdlib
