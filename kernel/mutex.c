@@ -33,6 +33,9 @@ int _kernel_mutex_unlock(MutexStruct* mtx)
 				link_remove(link);
 				TaskStruct* task = containerof(link, TaskStruct, link);
 				task_wakeup_stub(task, RT_OK);
+				/* 起床したタスクにmutexの所有権設定 */
+				mtx->task = task;
+				mtx->count = 1;
 				schedule();
 			}
 		}
