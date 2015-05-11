@@ -14,7 +14,7 @@
 
 /* タスク関連API */
 OSAPI int task_create(TaskCreateInfo* info);
-OSAPI int task_active(int id);
+OSAPI int task_active(int id, void* act_param);
 OSAPI int task_sleep(void);
 OSAPI int task_wakeup(int id);
 OSAPI int task_tsleep(TimeOut tm);
@@ -62,5 +62,11 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
 OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
 OSAPI void irq_set_enable(uint32_t irqno, int setting);
 OSAPI int irq_get_enable(uint32_t irqno);
+
+/* タイマハンドラ関連API */
+OSAPI int timer_create(void);
+OSAPI int timer_set(int id, TimerInfo* info);
+OSAPI int timer_start(int id);
+OSAPI int timer_stop(int id);
 
 #endif /* INC_API_H_ */

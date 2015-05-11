@@ -23,6 +23,10 @@
 /* タスクスタック上の位置(スタックに退避する情報に依存) */
 #define	TASK_FRAME_SIZE		(4*22)	/* タスク情報退避エリアのサイズ(スタック上) */
 #define	TASK_FRAME_FPEXC	(3)		/* タスク情報退避エリアのFPEXC位置 */
+#define	TASK_FRAME_R0		(14)	/* タスク情報退避エリアのR0 */
+#define	TASK_FRAME_R1		(15)	/* タスク情報退避エリアのR1 */
+#define	TASK_FRAME_R2		(16)	/* タスク情報退避エリアのR2 */
+#define	TASK_FRAME_R3		(17)	/* タスク情報退避エリアのR3 */
 #define	TASK_FRAME_PC		(20)	/* タスク情報退避エリアのPC位置 */
 #define	TASK_FRAME_PSR		(21)	/* タスク情報退避エリアのCPSR位置 */
 #define	TASK_FRAME_STUB		(13)	/* タスク情報退避エリアの割り込みハンドラスタブ位置 */

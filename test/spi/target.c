@@ -11,26 +11,28 @@
 static int		task_struct[16];
 
 
-void task1(void)
+void task1(uint32_t arg0, uint32_t arg1)
 {
 	SpiPortConfig pconfig;
 	SpiChannelConfig chconfig;
 	SpiTransferParam param;
 
+	lprintf("task1:%d %d\n", arg0, arg1);
 	spi_set_port_config(0, &pconfig);
 	chconfig.baudrate = 4000000;
 	spi_set_channel_config(0, 0, &chconfig);
 	chconfig.baudrate = 1000000;
 	spi_set_channel_config(0, 1, &chconfig);
 
-	task_active(task_struct[1]);
-	task_active(task_struct[2]);
+	task_active(task_struct[1], (void*)2048);
+	task_active(task_struct[2], (void*)4096);
 
 	task_sleep();
 }
 
-void task2(void)
+void task2(uint32_t arg0, uint32_t arg1)
 {
+	lprintf("task2:%d %d\n", arg0, arg1);
 	for (;;) {
 		uint8_t tx_buff[] = { 0x1A, 0x2B, 0x3C, 0x4D, 0x5E, 0x6F };
 		uint8_t rx_buff[64];
@@ -45,8 +47,9 @@ void task2(void)
 	}
 }
 
-void task3(void)
+void task3(uint32_t arg0, uint32_t arg1)
 {
+	lprintf("task3:%d %d\n", arg0, arg1);
 	for (;;) {
 		uint8_t tx_buff[] = { 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55 };
 		uint8_t rx_buff[64];
@@ -62,9 +65,9 @@ void task3(void)
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5},
-		{"TASK2", TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6},
-		{"TASK3", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 6},
+		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5, (void*)128},
+		{"TASK2", TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
+		{"TASK3", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 6, (void*)512},
 };
 
 void main_task(void)

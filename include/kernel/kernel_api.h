@@ -55,7 +55,7 @@ void OBJNAME##_init(void) \
 /********************************************************/
 /* タスク関連API */
 OSAPISTUB int __task_create(TaskCreateInfo* info);
-OSAPISTUB int __task_active(int id);
+OSAPISTUB int __task_active(int id, void* act_param);
 OSAPISTUB int __task_sleep(void);
 OSAPISTUB int __task_wakeup(int id);
 OSAPISTUB int __task_tsleep(TimeOut tm);
@@ -111,7 +111,7 @@ OSAPISTUB int __irq_get_enable(uint32_t irqno);
 /********************************************************/
 /* タスク関連API */
 int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info);
-int _kernel_task_active(TaskStruct* task);
+int _kernel_task_active(TaskStruct* task, void* act_param);
 int _kernel_task_sleep(void);
 int _kernel_task_wakeup(TaskStruct* task);
 int _kernel_task_tsleep(TimeOut tm);
@@ -150,5 +150,6 @@ int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr);
 int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
 int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr);
 
+void _dispatch();
 
 #endif /* INC_KERNEL_API_H_ */
