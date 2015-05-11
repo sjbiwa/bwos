@@ -4,7 +4,7 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "api.h"
+#include "bwos.h"
 
 typedef	struct {
 	uint32_t id;

@@ -4,10 +4,9 @@
  *  Created on: 2012/12/07
  *      Author: biwa
  */
-#include "common.h"
+#include "kernel.h"
 #include "mpcore.h"
 #include "cp15reg.h"
-#include "task.h"
 
 
 /* Tick処理 */
@@ -95,6 +94,6 @@ timer_init(void)
 	CNTP_CTL_set(0x00000001);
 #endif
 #endif
-	irq_add_handler(29, timer_handler, NULL);
-	irq_set_enable(29);
+	__irq_add_handler(29, timer_handler, NULL);
+	__irq_set_enable(29, IRQ_ENABLE);
 }

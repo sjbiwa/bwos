@@ -4,7 +4,7 @@
  *  Created on: 2015/01/29
  *      Author: biwa
  */
-#include "api.h"
+#include "bwos.h"
 #include "api_caller_callee.h"
 
 OSAPI int flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)

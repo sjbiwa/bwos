@@ -4,11 +4,8 @@
  *  Created on: 2012/12/01
  *      Author: biwa
  */
-#include "common.h"
-#include "task.h"
-#include "malloc.h"
+#include "kernel.h"
 #include "version.h"
-#include "kernel_api.h"
 
 void startup(void)
 {

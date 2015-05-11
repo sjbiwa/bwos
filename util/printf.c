@@ -1,8 +1,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "common.h"
-#include "mutex.h"
+#include "bwos.h"
 
 extern void debug_print(uint8_t* str);
 extern void debug_print_init(void);

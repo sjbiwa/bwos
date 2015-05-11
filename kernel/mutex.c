@@ -5,11 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "task.h"
-#include "mutex.h"
-#include "link.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 /* オブジェクト<->インデックス変換用 */
 OBJECT_INDEX_FUNC(mutex,MutexStruct,MUTEX_MAX_NUM);
@@ -37,6 +33,9 @@ int _kernel_mutex_unlock(MutexStruct* mtx)
 				link_remove(link);
 				TaskStruct* task = containerof(link, TaskStruct, link);
 				task_wakeup_stub(task, RT_OK);
+				/* 起床したタスクにmutexの所有権設定 */
+				mtx->task = task;
+				mtx->count = 1;
 				schedule();
 			}
 		}

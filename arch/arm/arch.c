@@ -5,9 +5,8 @@
  *      Author: biwa
  */
 
-#include "common.h"
-#include "api.h"
-#include "task.h"
+#include "kernel.h"
+#include "bwos.h"
 #include "arm.h"
 #include "cp15reg.h"
 #include "my_board.h"
@@ -142,3 +141,8 @@ extern	uint32_t _irq_level; /* 多重割り込みレベル */
 	return ret;
 }
 
+void init_task_arch_depend(void)
+{
+extern void init_task_board_depend(void);
+	init_task_board_depend();
+}

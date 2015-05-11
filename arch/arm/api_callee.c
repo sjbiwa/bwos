@@ -5,7 +5,7 @@
  *      Author: biwa
  */
 
-#include "kernel_api.h"
+#include "kernel.h"
 #include "api_caller_callee.h"
 
 int __flag_twait_stub(APIFlagTwaitParam* param)

@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "config.h"
 #include "types.h"
 #include "arch_common.h"
 #include "sys_irq.h"
@@ -29,15 +28,18 @@
 #define	containerof(ptr, type, member) ({ const typeof(((type *)0)->member) *__mptr = (ptr);(type *)((char*)__mptr-offsetof(type,member));})
 #define	iowrite32(a,d)		(*((volatile uint32_t*)(a))=(d))
 #define	ioread32(a)			(*((volatile uint32_t*)(a)))
+#define	ioset32(a,d)		iowrite32(a,ioread32(a)|(d))
+#define	ioclr32(a,d)		iowrite32(a,ioread32(a)&(~(d)))
+#define	ioset32mask(a,d,m)	iowrite32(a,(ioread32(a)&~(m))|(d))
+
+
+#define	MIN(a,b)			((a)<(b)?(a):(b))
+#define	MAX(a,b)			((a)>(b)?(a):(b))
 
 /* アドレスアラインメント演算用マクロ */
 #define	PRE_ALIGN_BY(x,n)		((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
 #define	POST_ALIGN_BY(x,n)		((void*)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
 
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 #define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 
 /* メモリサイズ用 */

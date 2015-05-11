@@ -5,7 +5,7 @@
  *      Author: biwa
  */
 
-#include "common.h"
+#include "kernel.h"
 #include "arm.h"
 #include "mpcore.h"
 #include "cp15reg.h"
@@ -19,4 +19,8 @@ void board_mmgr_init(void)
 	/* UART領域 */
 	mmgr_add_entry((void*)(0x01C28000), 0x1000, ATTR_DEV);
 
+}
+
+void init_task_board_depend(void)
+{
 }

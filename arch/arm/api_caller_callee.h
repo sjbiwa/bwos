@@ -5,8 +5,7 @@
  *      Author: biwa
  */
 #include <stdint.h>
-#include "common.h"
-#include "api.h"
+#include "bwos.h"
 
 #ifndef _API_CALLER_CALLEE_H_
 #define _API_CALLER_CALLEE_H_

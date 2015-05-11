@@ -8,8 +8,12 @@
 #ifndef MY_BOARD_H_
 #define MY_BOARD_H_
 
+#include "stdint.h"
+
 #define	START_MEM_ADDR		(0x40000000u)
 #define	END_MEM_ADDR		(0x7FFFFFFFu)
+
+#define	IRQ_NUM				(256)
 
 #define	CACHE_LINE_SIZE		(64)
 
@@ -20,7 +24,7 @@
 #define	TIME_UNIT_VALUE		(0x8000)	/* 1TIME-UNITのクロック数 */
 										/* 1UNIT=約1.365ms */
 
-#define	MPCORE_BASE				(0x01C80000u)
+#define	MPCORE_BASE			(0x01C80000u)
 
 
 /*** Tick管理パラメータ ***/

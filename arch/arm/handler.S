@@ -39,13 +39,30 @@
 	.text
 
 _undef_entry:
-	b		_undef_entry
+	push	{lr}
+	mov		lr, #0
+	b		_fault_entry
 
 _pref_entry:
-	b		_pref_entry
+	push	{lr}
+	mov		lr, #1
+	b		_fault_entry
 
 _dabort_entry:
-	b		_dabort_entry
+	push	{lr}
+	mov		lr, #2
+	b		_fault_entry
+
+_fault_entry:
+	push	{r0-r12}
+	mrs		r0, spsr
+	mrs		r1, SP_usr
+	mrs		r2, SP_svc
+	mrs		r3, SP_irq
+	push	{r0-r3}
+	mov		r0, lr
+	mov		r1, sp
+	bl		fault_handler
 
 /*
 ** _irq_entry
@@ -62,18 +79,20 @@ _dabort_entry:
 **			実行中タスクのスタック
 **			----------------------
 **old_SP	| FPEXC				|+0  (全タスク存在する)
-**			| R0				|+4
-**			| R1				|+8
-**			| R2				|+12
-**			| R3				|+16
-**			| R12				|+20
-**			| LR				|+24
-**			| PC(return address)|+28 <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+32
+**			| SPSR_svc			|+4   <- USR/SYS状態からの割り込みでは不要だが、チェックするより無条件に退避/復帰したほうが簡単
+**			| R0				|+8
+**			| R1				|+12
+**			| R2				|+16
+**			| R3				|+20
+**			| R12				|+24
+**			| LR				|+28
+**			| PC(return address)|+32 <- 割り込み発生時の戻りアドレス
+**			| CPSR              |+36
 **			---------------------
-** beforeSP |					|+36
+** beforeSP |					|+40
 **
 **
+**==============================================================================
 **
 ** 割り込み処理中の割り込み発生時の処理(多重割り込み)
 ** 8バイトアラインメント
@@ -82,14 +101,15 @@ _dabort_entry:
 **SVC_SP	| old_SP			|+0(+0)
 **			| DUMMY				|+4(+0) SPのアライン用(アライン時は存在しない)
 **old_SP	| FPEXC				|+8(+4)
-**			| R0				|+12(+8)
-**			| R1				|+16(+12)
-**			| R2				|+20(+16)
-**			| R3				|+24(+20)
-**			| R12				|+28(+24)
-**			| LR				|+32(+28)
-**			| PC(return address)|+36(+32)  <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+40(+36)
+**			| SPSR_svc			|+12(+8)   <- USR/SYS状態からの割り込みでは不要だが、チェックするより無条件に退避/復帰したほうが簡単
+**			| R0				|+16(+12)
+**			| R1				|+20(+16)
+**			| R2				|+24(+20)
+**			| R3				|+28(+24)
+**			| R12				|+32(+28)
+**			| LR				|+36(+32)
+**			| PC(return address)|+40(+36)  <- 割り込み発生時の戻りアドレス
+**			| CPSR              |+44(+40)
 **			---------------------
 ** beforeSP |					|+44(+40)
 **
@@ -101,6 +121,9 @@ _irq_entry:
 	srsdb	sp!, #MODE_SVC
 	cps		#MODE_SVC
 	push	{r0-r3,r12,lr}
+	/* save SPSR_svc */
+	mrs		r1, SPSR_svc
+	push	{r1}
 	/* FPEXC get and VFP disable */
 	vmrs	r1, FPEXC
 	mov		r0, #0
@@ -125,7 +148,7 @@ _from_task:
 	/* 割り込みハンドラで使うスタックを専用スタックに切り替え */
 	mov		lr, sp
 	ldr		r0, =stack_intr
-	sub		r0, r0, #4		/* 8byte aligned */
+	sub		r0, r0, #4		/* 8byte aligned with next's push {lr} */
 	mov		sp, r0
 	b		_common_ope
 
@@ -152,6 +175,10 @@ _common_ope:
 	/* restore FPEXC */
 	pop		{r0}
 	vmsr	FPEXC, r0
+
+	/* restore SPSR_svc */
+	pop		{r0}
+	msr		SPSR_svc, r0
 
 	/* DEC _irq_level */
 	ldr		r1, =_irq_level

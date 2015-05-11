@@ -4,7 +4,7 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "api.h"
+#include "bwos.h"
 
 static int	msgq1;
 static int	msgq2;

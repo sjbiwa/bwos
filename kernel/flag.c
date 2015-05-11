@@ -4,11 +4,7 @@
  *  Created on: 2014/11/15
  *      Author: biwa
  */
-#include "common.h"
-#include "task.h"
-#include "flag.h"
-#include "link.h"
-#include "kernel_api.h"
+#include "kernel.h"
 
 typedef	struct {
 	FlagStruct*		obj;			/* フラグオブジェクト */
