@@ -18,14 +18,15 @@ void startup(void)
 	arch_register_st_memory();
 
 	irq_init();
-	timer_init();
 	task_init();
 	flag_init();
 	mutex_init();
 	sem_init();
 	fixmb_init();
 	msgq_init();
+	timer_init();
 
+	arch_timer_init();
 	arch_system_postinit();
 
 	/* 標準メモリマネージャ初期化 */

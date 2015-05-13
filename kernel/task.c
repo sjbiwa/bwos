@@ -97,6 +97,27 @@ static void task_add_queue(TaskStruct* task)
 	}
 }
 
+void _kernel_timer_update(void)
+{
+#if defined(USE_TICKLESS)
+	/* タイマハンドラリストの最初のエントリ取得 */
+	TimeSpec next_timeout = _timer_get_next_timeout();
+	/* タスクのタイムアウトリストの最初のエントリ取得 */
+	Link* link = task_time_out_list.next;
+	if ( link != &task_time_out_list ) {
+		TaskStruct* task = containerof(link, TaskStruct, tlink);
+		if ((next_timeout == 0) || ( task->timeout < next_timeout) ) {
+			next_timeout = task->timeout;
+		}
+	}
+
+	/* タイムアウト設定 */
+	if ( 0 < next_timeout ) {
+		update_first_timeout(next_timeout);
+	}
+#endif
+}
+
 /* タイムアウトキューにタスクを登録する */
 static void task_add_timeout_queue(TaskStruct* task)
 {
@@ -122,13 +143,7 @@ static void task_add_timeout_queue(TaskStruct* task)
 	/* link_add_lastはlinkの直前に入れるので期待通り */
 	link_add_last(link, &(task->tlink));
 
-#if defined(USE_TICKLESS)
-	link = task_time_out_list.next;
-	if ( link != &task_time_out_list ) {
-		q_task = containerof(link, TaskStruct, tlink);
-		update_first_timeout(q_task->timeout);
-	}
-#endif
+	_kernel_timer_update();
 }
 
 static void task_rotate_queue(uint32_t pri)
@@ -214,13 +229,12 @@ void task_tick(void)
 	if ( req_sched ) {
 		schedule();
 	}
-#if defined(USE_TICKLESS)
-	link = task_time_out_list.next;
-	if ( link != &task_time_out_list ) {
-		task = containerof(link, TaskStruct, tlink);
-		update_first_timeout(task->timeout);
-	}
-#endif
+
+	/* タイマモジュールにタイマexpireを通知 */
+	_timer_notify_tick(tick_count);
+
+	_kernel_timer_update();
+
 	irq_restore(cpsr);
 }
 

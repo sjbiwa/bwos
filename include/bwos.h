@@ -66,7 +66,6 @@ OSAPI int irq_get_enable(uint32_t irqno);
 /* タイマハンドラ関連API */
 OSAPI int timer_create(void);
 OSAPI int timer_set(int id, TimerInfo* info);
-OSAPI int timer_start(int id);
-OSAPI int timer_stop(int id);
+OSAPI int timer_enable(int id, bool enable);
 
 #endif /* INC_API_H_ */

@@ -115,3 +115,11 @@ DEF_OSAPI irq_add_handler, IRQ_ADD_HANDLER_APINO
 DEF_OSAPI irq_set_enable, IRQ_SET_ENABLE_APINO
 /* OSAPI int irq_get_enable(info->irq); */
 DEF_OSAPI irq_get_enable, IRQ_GET_ENABLE_APINO
+
+/* タイマハンドラ関連API */
+/* OSAPI int timer_create(void); */
+DEF_OSAPI timer_create, TIMER_CREATE_APINO
+/* OSAPI int timer_set(int id, TimerInfo* info); */
+DEF_OSAPI timer_set, TIMER_SET_APINO
+/* OSAPI int timer_enable(int id, bool enable); */
+DEF_OSAPI timer_enable, TIMER_ENABLE_APINO

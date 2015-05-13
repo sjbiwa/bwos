@@ -28,11 +28,14 @@ static int			OBJNAME##_struct_max = 0; \
 static int			OBJNAME##_struct_alloc_id = 0; \
 static int alloc_##OBJNAME##_id(void) \
 { \
+	uint32_t cpsr; \
+	irq_save(cpsr); \
 	int ret = RT_ERR; \
 	if ( OBJNAME##_struct_alloc_id < OBJNAME##_struct_max ) { \
 		ret = OBJNAME##_struct_alloc_id; \
 		OBJNAME##_struct_alloc_id++; \
 	} \
+	irq_restore(cpsr); \
 	return ret; \
 } \
 static OBJSTRUCT * OBJNAME##id2object(int id) \
@@ -104,6 +107,10 @@ OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
 OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting);
 OSAPISTUB int __irq_get_enable(uint32_t irqno);
 
+/* タイマハンドラ関連API */
+OSAPISTUB int __timer_create(void);
+OSAPISTUB int __timer_set(int id, TimerInfo* info);
+OSAPISTUB int __timer_enable(int id, bool enable);
 
 /********************************************************/
 /* KERNEL_API											*/

@@ -75,7 +75,7 @@ void update_first_timeout(TimeSpec tmout)
 }
 
 void
-timer_init(void)
+arch_timer_init(void)
 {
 #if defined(USE_TICKLESS)
 	CNTP_CTL_set(0x00000000);

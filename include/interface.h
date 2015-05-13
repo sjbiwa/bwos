@@ -56,13 +56,15 @@ typedef	struct {
 
 /* タイマハンドラ関連API */
 typedef	struct {
-	TimeOut		tmout;
-	TimeOut		cyclic;
-	uint32_t	kind;
+	TimeOut		tmout;					/* タイムアウト/最初のcyclic 時間 */
+	TimeOut		cyclic;					/* 2回目以降のcyclic 時間 */
+	uint32_t	kind;					/* タイマ種別 */
+	void		(*handler)(void* param);/* タイマexpire時に呼び出される関数 */
+	void*		param;					/* handlerに渡されるパラメータ */
 } TimerInfo;
 
-#define	TIMER_ONESHOT	(0)	/* tmoutのみ設定 */
-#define	TIMER_CYCLIC	(1)	/* tmout/cyclic両方設定 */
+#define	TIMER_ONESHOT	(0)			/* tmoutのみ設定 */
+#define	TIMER_CYCLIC	(1)			/* tmout/cyclic両方設定 */
 
 
 extern uint32_t cpsr_get(void);
