@@ -47,7 +47,7 @@ extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
 
 extern void task_add_timeout(TaskStruct* task, TimeOut tm);
 
-static inline task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task))
+static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task))
 {
 	task->wait_obj = wait_obj;
 	task->wait_func = wait_func;

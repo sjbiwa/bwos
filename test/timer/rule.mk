@@ -4,9 +4,6 @@
 .c.o:
 	$(CC) -c $(CFLAGS) $(INC) $(DEFS) -v $<
 
-.cpp.o:
-	$(CC) -c $(CPPFLAGS) $(INC) $(DEFS) -v $<
-
 .S.o:
 	$(AS) -c $(AFLAGS) $(INC) $(DEFS) -v $<
 	

@@ -24,7 +24,7 @@ static inline int32_t bit_srch_l(uint32_t val)
 	return ret;
 }
 
-static inline void arch_init_task(TaskStruct* task)
+static inline void arch_init_task(TaskStruct* task, void* cre_param)
 {
 	uint32_t*		ptr;
 	uint32_t*		usr_stack;
@@ -44,17 +44,22 @@ static inline void arch_init_task(TaskStruct* task)
 	ptr[TASK_FRAME_SPSR] = 0x00000000;
 	ptr[TASK_FRAME_SP_USR] = (PtrInt_t)usr_stack;
 	ptr[TASK_FRAME_LR_USR] = (PtrInt_t)task_dormant;
+	/* Task entry arg */
+	ptr[TASK_FRAME_R0] = (uint32_t)cre_param;
+	ptr[TASK_FRAME_R1] = 0;
+	ptr[TASK_FRAME_R2] = 0;
+	ptr[TASK_FRAME_R3] = 0;
 }
 
 void arch_init_task_create(TaskStruct* task)
 {
-	arch_init_task(task);
+	arch_init_task(task, NULL);
 }
 
-int arch_task_create(TaskStruct* task)
+int arch_task_create(TaskStruct* task, void* cre_param)
 {
 	int ret = RT_OK;
-	arch_init_task(task);
+	arch_init_task(task, cre_param);
 
 	/* FPU(VFP)退避用領域の確保 */
 	if ( task->task_attr & TASK_FPU ) {
@@ -66,6 +71,12 @@ int arch_task_create(TaskStruct* task)
 		}
 	}
 	return ret;
+}
+
+void arch_task_active(TaskStruct* task, void* act_param)
+{
+	uint32_t*		ptr = task->save_sp;
+	ptr[TASK_FRAME_R1] = (uint32_t)act_param;
 }
 
 void arch_system_preinit(void)

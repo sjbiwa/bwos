@@ -39,8 +39,8 @@ void task1(void)
 	video_init();
 	uart_set_config(1, &config_param);
 	uart_open(1, &open_param);
-	task_active(task_struct[1]);
-	task_active(task_struct[2]);
+	task_active(task_struct[1], 0);
+	task_active(task_struct[2], 0);
 
 	/* 送信処理 */
 	for (;;) {

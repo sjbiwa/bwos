@@ -48,4 +48,8 @@ void* svc_entry_table[] = {
 		[IRQ_ADD_HANDLER_APINO] =			(void*)__irq_add_handler,
 		[IRQ_SET_ENABLE_APINO] =			(void*)__irq_set_enable,
 		[IRQ_GET_ENABLE_APINO] =			(void*)__irq_get_enable,
+		[TIMER_CREATE_APINO] =				(void*)__timer_create,
+		[TIMER_SET_APINO] =					(void*)__timer_set,
+		[TIMER_ENABLE_APINO] =				(void*)__timer_enable,
+
 };

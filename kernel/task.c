@@ -36,7 +36,11 @@ static Link		task_time_out_list = {&task_time_out_list, &task_time_out_list};
 OBJECT_INDEX_FUNC(task,TaskStruct,TASK_MAX_NUM);
 
 extern void schedule(void);
+extern void _dispatch();
 extern void init_task(void);
+extern void arch_init_task_create(TaskStruct* task);
+extern int arch_task_create(TaskStruct* task, void* cre_param);
+extern void arch_task_active(TaskStruct* task, void* act_param);
 
 static inline bool can_dispatch(void)
 {
@@ -93,6 +97,27 @@ static void task_add_queue(TaskStruct* task)
 	}
 }
 
+void _kernel_timer_update(void)
+{
+#if defined(USE_TICKLESS)
+	/* タイマハンドラリストの最初のエントリ取得 */
+	TimeSpec next_timeout = _timer_get_next_timeout();
+	/* タスクのタイムアウトリストの最初のエントリ取得 */
+	Link* link = task_time_out_list.next;
+	if ( link != &task_time_out_list ) {
+		TaskStruct* task = containerof(link, TaskStruct, tlink);
+		if ((next_timeout == 0) || ( task->timeout < next_timeout) ) {
+			next_timeout = task->timeout;
+		}
+	}
+
+	/* タイムアウト設定 */
+	if ( 0 < next_timeout ) {
+		update_first_timeout(next_timeout);
+	}
+#endif
+}
+
 /* タイムアウトキューにタスクを登録する */
 static void task_add_timeout_queue(TaskStruct* task)
 {
@@ -118,13 +143,7 @@ static void task_add_timeout_queue(TaskStruct* task)
 	/* link_add_lastはlinkの直前に入れるので期待通り */
 	link_add_last(link, &(task->tlink));
 
-#if defined(USE_TICKLESS)
-	link = task_time_out_list.next;
-	if ( link != &task_time_out_list ) {
-		q_task = containerof(link, TaskStruct, tlink);
-		update_first_timeout(q_task->timeout);
-	}
-#endif
+	_kernel_timer_update();
 }
 
 static void task_rotate_queue(uint32_t pri)
@@ -210,13 +229,12 @@ void task_tick(void)
 	if ( req_sched ) {
 		schedule();
 	}
-#if defined(USE_TICKLESS)
-	link = task_time_out_list.next;
-	if ( link != &task_time_out_list ) {
-		task = containerof(link, TaskStruct, tlink);
-		update_first_timeout(task->timeout);
-	}
-#endif
+
+	/* タイマモジュールにタイマexpireを通知 */
+	_timer_notify_tick(tick_count);
+
+	_kernel_timer_update();
+
 	irq_restore(cpsr);
 }
 
@@ -329,7 +347,7 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 	}
 
 	/* ARCH depend create */
-	if ( arch_task_create(task) != RT_OK ) {
+	if ( arch_task_create(task, info->cre_param) != RT_OK ) {
 		goto ERR_RET3;
 	}
 
@@ -356,9 +374,11 @@ ERR_RET1:
 	return RT_ERR;
 }
 
-int _kernel_task_active(TaskStruct* task)
+int _kernel_task_active(TaskStruct* task, void* act_param)
 {
 	uint32_t		cpsr;
+
+	arch_task_active(task, act_param);
 	irq_save(cpsr);
 	if ( task->task_state == TASK_STANDBY ) {
 		task->task_state = TASK_READY;
@@ -441,10 +461,10 @@ OSAPISTUB int __task_create(TaskCreateInfo* info)
 	return ret;
 }
 
-OSAPISTUB int __task_active(int id)
+OSAPISTUB int __task_active(int id, void* act_param)
 {
 	TaskStruct* task = taskid2object(id);
-	return _kernel_task_active(task);
+	return _kernel_task_active(task, act_param);
 }
 
 OSAPISTUB int __task_sleep(void)

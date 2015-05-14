@@ -26,11 +26,12 @@
 typedef	struct {
 	uint8_t*	name;				/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
-	void		(*entry)(void);		/* Start Entry */
+	void		(*entry)();			/* Start Entry */
 	void*		usr_init_sp;		/* Initialize SP */
 	uint32_t	usr_stack_size;		/* Stack Size */
 	uint32_t	tls_size;			/* TLS size */
 	uint32_t	priority;			/* Task Priority */
+	void*		cre_param;			/* Create Parameter */
 } TaskCreateInfo;
 
 /* タスク属性定義 */
@@ -39,6 +40,7 @@ typedef	struct {
 #define	TASK_SYS			(0x00000001u<<2)	/* SYSTEMモード(特権)タスク */
 
 #define	TASK_SELF			(0)
+
 
 /* フラグ関連API wait_mode */
 #define	FLAG_OR			(0x00000001u<<0)
@@ -50,6 +52,23 @@ typedef	struct {
 /* 割り込みハンドラ関連API */
 #define	IRQ_DISABLE		(0)
 #define	IRQ_ENABLE		(1)
+
+
+/* タイマハンドラ関連API */
+typedef	struct {
+	TimeOut		tmout;					/* タイムアウト/最初のcyclic 時間 */
+	TimeOut		cyclic;					/* 2回目以降のcyclic 時間 */
+	uint32_t	kind;					/* タイマ種別 */
+	void		(*handler)(void* param);/* タイマexpire時に呼び出される関数 */
+	void*		param;					/* handlerに渡されるパラメータ */
+} TimerInfo;
+
+#define	TIMER_ONESHOT	(0)			/* tmoutのみ設定 */
+#define	TIMER_CYCLIC	(1)			/* tmout/cyclic両方設定 */
+
+
+extern uint32_t cpsr_get(void);
+extern void cpsr_set(uint32_t flags);
 
 
 #endif /* INTERFACE_H_ */
