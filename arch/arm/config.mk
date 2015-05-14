@@ -24,7 +24,7 @@ RM = rm
 
 A_SRCS += boot.S dispatch.S handler.S arch_api.S
 C_SRCS += arch.c memmgr.c api_table.c api_caller.c api_callee.c idle.c
-C_SRCS += timer.c
+C_SRCS += arch_timer.c
 
 LDSCRIPT = $(ARCHDIR)/link.lds
 

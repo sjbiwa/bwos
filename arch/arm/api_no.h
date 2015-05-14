@@ -44,5 +44,8 @@
 #define	IRQ_ADD_HANDLER_APINO				33
 #define	IRQ_SET_ENABLE_APINO				34
 #define	IRQ_GET_ENABLE_APINO				35
+#define	TIMER_CREATE_APINO					36
+#define	TIMER_SET_APINO						37
+#define	TIMER_ENABLE_APINO					38
 
 #endif /* API_NO_H_ */

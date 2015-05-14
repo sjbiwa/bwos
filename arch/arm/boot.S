@@ -166,5 +166,5 @@ stack_idle:
 
 /* 割り込みハンドラで使うスタック */
 	.balign	16
-	.space	1024
+	.space	65536
 stack_intr:
