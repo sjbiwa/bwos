@@ -52,7 +52,7 @@
 #define	CTRL_FBM_MSB			(0x00u<<12)		/* first bit is MSB */
 #define	CTRL_FBM_LSB			(0x01u<<12)		/* first bit is LSB */
 #define	CTRL_EM_LITTLE			(0x00u<<11)		/* little endian */
-#define	CTRL_EM_BIT				(0x01u<<11)		/* big endian */
+#define	CTRL_EM_BIG				(0x01u<<11)		/* big endian */
 #define	CTRL_SSD_HALF			(0x00u<<10)		/* half sclk_out cycles */
 #define	CTRL_SSD_ONE			(0x01u<<10)		/* one sclk_out cycles */
 #define	CTRL_CSM_MASK			(0x03u<<8)		/* Chip select mode mask */
@@ -62,7 +62,7 @@
 #define	CTRL_SCPOL_LOW			(0x00u<<7)		/* Inactive state of serial clock is low */
 #define	CTRL_SCPOL_HIGH			(0x01u<<7)		/* Inactive state of serial clock is high */
 #define	CTRL_SCPH_MIDDLE		(0x00u<<6)		/* Serial clock toggles in middle of first data bit */
-#define	CTRL_SCPH_FIRST			(0x01u<<6)		/* Serial clock toggles at start of first data bit */
+#define	CTRL_SCPH_START			(0x01u<<6)		/* Serial clock toggles at start of first data bit */
 #define	CTRL_CFS_MASK			(0x0Fu<<2)		/* Control Frame Size */
 #define	CTRL_CFS_4				(0x03u<<2)		/* 4-bit serial data transfer */
 #define	CTRL_CFS_5				(0x04u<<2)		/* 5-bit serial data transfer */
@@ -133,17 +133,24 @@
 #define	FIFO_DEPATH				(32)			/* Tx/Rx FIFO depth */
 
 #define	CHANNEL_NUM				(2)				/* チャネル数 */
-#define	DEFAULT_CTRLR0_VALUE	(CTRL_OPM_MASTER|CTRL_XFM_TXRX|CTRL_FRF_SPI|CTRL_RSD_NOT| \
-								CTRL_BHT_APB8|CTRL_FBM_MSB|CTRL_EM_LITTLE|CTRL_SSD_HALF| \
-								CTRL_CSM_KEEP|CTRL_SCPOL_LOW|CTRL_SCPH_MIDDLE|CTRL_DFS_8) /* デフォルトのCTRLR0 */
+#define	FIXED_CTRLR0_VALUE		(CTRL_OPM_MASTER|CTRL_XFM_TXRX|CTRL_FRF_SPI|CTRL_RSD_NOT|CTRL_BHT_APB8| \
+														CTRL_SSD_HALF|CTRL_CSM_KEEP) /* CTRLR0の設定される固定値 */
 #define	DEFAULT_BAUDRATE		(100000)		/* デフォルトのボーレート */
 #define	BUSY_CHECK_COUNT		(10)			/* 転送前にBUSYをチェックする回数 */
 #define	BUSY_CHECK_CYCLE		(MSEC(1))		/* 転送前にBUSYをチェックする周期 */
 
+typedef	enum {
+	BIT_WIDTH_4 = 0,
+	BIT_WIDTH_8,
+	BIT_WIDTH_16
+} BitWidthSpec;
+
 typedef	struct {
 	uint32_t			reg_ctrlr0;				/* SPI_CTRLR0設定値 */
 	uint32_t			reg_baudr;				/* SPI_BAUDR設定値(ボーレート) */
+	BitWidthSpec		bits;					/* ビット幅 */
 } ChannelParams;
+
 typedef	struct {
 	SpiDeviceInfo*		dev;					/* デバイス情報 */
 	bool				active;					/* SPI動作可能 */
@@ -169,30 +176,46 @@ static void spi_irq_handler(uint32_t irqno, void* irq_info)
 	flag_set(obj->ev_flag, 0x0001);
 }
 
-static void ope_tx_data(uint32_t port, void* buff, uint32_t length)
+static void ope_tx_data(uint32_t port, void* buff, uint32_t length, BitWidthSpec bits)
 {
-	uint8_t* tx_buff = buff;
-	for ( ; 0 < length; --length, ++tx_buff ) {
-		iowrite32(port+SPI_TXDR, *tx_buff);
+	if ( bits == BIT_WIDTH_16 ) {
+		uint16_t* tx_buff = buff;
+		for ( ; 0 < length; --length, ++tx_buff ) {
+			iowrite32(port+SPI_TXDR, *tx_buff);
+		}
+	}
+	else {
+		uint8_t* tx_buff = buff;
+		for ( ; 0 < length; --length, ++tx_buff ) {
+			iowrite32(port+SPI_TXDR, *tx_buff);
+		}
 	}
 }
 
-static void ope_tx_dummy(uint32_t port, uint32_t length)
+static void ope_tx_dummy(uint32_t port, uint32_t length, BitWidthSpec bits)
 {
 	for ( ; 0 < length; --length ) {
 		iowrite32(port+SPI_TXDR, 0xff);
 	}
 }
 
-static void ope_rx_data(uint32_t port, void* buff, uint32_t length)
+static void ope_rx_data(uint32_t port, void* buff, uint32_t length, BitWidthSpec bits)
 {
-	uint8_t* rx_buff = buff;
-	for ( ; 0 < length; --length ) {
-		*rx_buff++ = ioread32(port+SPI_RXDR);
+	if ( bits == BIT_WIDTH_16 ) {
+		uint16_t* rx_buff = buff;
+		for ( ; 0 < length; --length ) {
+			*rx_buff++ = ioread32(port+SPI_RXDR);
+		}
+	}
+	else {
+		uint8_t* rx_buff = buff;
+		for ( ; 0 < length; --length ) {
+			*rx_buff++ = ioread32(port+SPI_RXDR);
+		}
 	}
 }
 
-static void ope_rx_dummy(uint32_t port, uint32_t length)
+static void ope_rx_dummy(uint32_t port, uint32_t length, BitWidthSpec bits)
 {
 	for ( ; 0 < length; --length ) {
 		ioread32(port+SPI_RXDR);
@@ -226,14 +249,17 @@ int spi_set_port_config(uint32_t port_no, SpiPortConfig* config)
 	uint32_t port = obj->dev->io_addr;
 
 	for ( int ch=0; ch < CHANNEL_NUM; ++ch ) {
-		obj->ch_params[ch].reg_ctrlr0 = DEFAULT_CTRLR0_VALUE;
+		/* デフォルトの設定 */
+		obj->ch_params[ch].reg_ctrlr0 = FIXED_CTRLR0_VALUE |
+										CTRL_FBM_MSB|CTRL_EM_LITTLE|CTRL_SCPOL_LOW|CTRL_SCPH_MIDDLE|CTRL_DFS_8;
 		obj->ch_params[ch].reg_baudr = get_baud_value(obj->dev, DEFAULT_BAUDRATE);
+		obj->ch_params[ch].bits = BIT_WIDTH_8;
 	}
 
 	/* デバイスの初期化 */
 	iowrite32(port+SPI_ENR, 0x00);
-	iowrite32(port+SPI_CTRLR0, DEFAULT_CTRLR0_VALUE);
-	iowrite32(port+SPI_BAUDR, get_baud_value(obj->dev, DEFAULT_BAUDRATE));
+	iowrite32(port+SPI_CTRLR0, obj->ch_params[0].reg_ctrlr0); /* CH0の初期値をデバイス初期値とする */
+	iowrite32(port+SPI_BAUDR, obj->ch_params[0].reg_baudr); /* CH0の初期値をデバイス初期値とする */
 	iowrite32(port+SPI_TXFTLR, 0);
 	iowrite32(port+SPI_RXFTLR, 0);
 	iowrite32(port+SPI_SER, 0x00);
@@ -254,8 +280,16 @@ int spi_set_channel_config(uint32_t port_no, uint32_t ch_no, SpiChannelConfig* c
 		lprintf("param error\n");
 		return RT_ERR;
 	}
-
 	SpiObject* obj = &spi_obj_tbl[port_no];
+
+	uint32_t ctrlr0 = FIXED_CTRLR0_VALUE;
+	ctrlr0 |= (config->firstbit == SPI_FIRSTBIT_MSB)  ? CTRL_FBM_MSB     : CTRL_FBM_LSB;
+	ctrlr0 |= (config->endian   == SPI_ENDIAN_LITTLE) ? CTRL_EM_LITTLE   : CTRL_EM_BIG;
+	ctrlr0 |= (config->scpol    == SPI_SCPOL_LOW)     ? CTRL_SCPOL_LOW   : CTRL_SCPOL_HIGH;
+	ctrlr0 |= (config->scph     == SPI_SCPH_MIDDLE)   ? CTRL_SCPH_MIDDLE : CTRL_SCPH_START;
+	ctrlr0 |= (config->bits == 4) ? CTRL_DFS_4 : (config->bits == 8) ? CTRL_DFS_8 : CTRL_DFS_16;
+	obj->ch_params[ch_no].bits = (config->bits == 4) ? BIT_WIDTH_4 : (config->bits == 8) ? BIT_WIDTH_8 : BIT_WIDTH_16;
+	obj->ch_params[ch_no].reg_ctrlr0 = ctrlr0;
 	obj->ch_params[ch_no].reg_baudr = get_baud_value(obj->dev, config->baudrate);
 	return RT_OK;
 }
@@ -291,6 +325,7 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 	uint32_t remain_rx_length = param->rx_length;
 	void* tx_buff = param->tx_buf;
 	void* rx_buff = param->rx_buf;
+	uint32_t data_bytes = (obj->ch_params[ch_no].bits == BIT_WIDTH_16) ? 2 : 1; /* 1データのバイト数 */
 	uint32_t remain_total_tx_length = MAX(remain_rx_length, remain_tx_length); /* 実際に送信処理するする長さ */
 	uint32_t remain_total_rx_length = remain_total_tx_length; /* 実際に受信処理するする長さ */
 
@@ -306,14 +341,14 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 			if ( 0 < remain_tx_length ) {
 				/* 実データの送信 */
 				avail_tx_length = MIN(avail_tx_length, remain_tx_length);
-				ope_tx_data(port, tx_buff, avail_tx_length);
+				ope_tx_data(port, tx_buff, avail_tx_length, obj->ch_params[ch_no].bits);
 				remain_tx_length -= avail_tx_length;
 				remain_total_tx_length -= avail_tx_length;
-				tx_buff = (uint8_t*)tx_buff + avail_tx_length;
+				tx_buff = (uint8_t*)tx_buff + avail_tx_length * data_bytes;
 			}
 			else {
 				/* 受信処理のためのダミー送信 */
-				ope_tx_dummy(port, avail_tx_length);
+				ope_tx_dummy(port, avail_tx_length, obj->ch_params[ch_no].bits);
 				remain_total_tx_length -= avail_tx_length;
 			}
 		}
@@ -323,15 +358,15 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 			if ( 0 < remain_rx_length ) {
 				/* 実データの受信 */
 				uint32_t avail_rx_length = MIN(remain_rx_length, rfifos);
-				ope_rx_data(port, rx_buff, avail_rx_length);
+				ope_rx_data(port, rx_buff, avail_rx_length, obj->ch_params[ch_no].bits);
 				remain_rx_length -= avail_rx_length;
 				remain_total_rx_length -= avail_rx_length;
-				rx_buff = (uint8_t*)rx_buff + avail_rx_length;
+				rx_buff = (uint8_t*)rx_buff + avail_rx_length * data_bytes;
 			}
 			else {
 				/* ダミー受信 */
 				uint32_t avail_rx_length = MIN(remain_total_rx_length, rfifos);
-				ope_rx_dummy(port, avail_rx_length);
+				ope_rx_dummy(port, avail_rx_length, obj->ch_params[ch_no].bits);
 				remain_total_rx_length -= avail_rx_length;
 			}
 		}
@@ -345,7 +380,7 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 
 	/* 受信FIFOに残っているデータ(不要データ)をダミーリードする */
 	uint32_t rfifos = (ioread32(port+SPI_RXFLR) & FIFO_LEVEL_MASK);
-	ope_rx_dummy(port, rfifos);
+	ope_rx_dummy(port, rfifos, obj->ch_params[ch_no].bits);
 
 #if 0
 	/* 前回転送時のBUSY状態チェック */
