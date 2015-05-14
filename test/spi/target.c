@@ -43,7 +43,7 @@ void task2(uint32_t arg0, uint32_t arg1)
 		param.tx_length = sizeof(tx_buff);
 		param.rx_length = 3;
 		spi_transfer(0, 0, &param);
-//		lprintf("0:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
+		lprintf("0:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
 		task_tsleep(SEC(3));
 	}
 }
@@ -61,44 +61,15 @@ void task3(uint32_t arg0, uint32_t arg1)
 		param.tx_length = sizeof(tx_buff);
 		param.rx_length = 5;
 		spi_transfer(0, 1, &param);
-//		lprintf("1:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
+		lprintf("1:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
 		task_tsleep(SEC(5));
 	}
-}
-
-typedef	struct {
-	TimerInfo	info;
-	int			a;
-	int			b;
-} TestParam;
-static void timer_handler(void* param)
-{
-	TestParam* p = (TestParam*)param;
-	tprintf("timer_handler:%d:%d\n", p->a, p->b);
-	++(p->b);
-}
-
-void task4()
-{
-	TestParam param;
-	int timer = timer_create();
-	param.info.cyclic = SEC(2);
-	param.info.tmout = SEC(5);
-	param.info.kind = TIMER_CYCLIC;
-	param.info.param = (void*)(&param);
-	param.info.handler = timer_handler;
-	param.a = timer;
-	param.b = 100;
-	timer_set(timer, &param.info);
-	timer_enable(timer, true);
-	task_sleep();
 }
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5, (void*)128},
 		{"TASK2", TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
 		{"TASK3", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 6, (void*)512},
-		{"TASK4", TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 1024, 1024, 6, (void*)512},
 };
 
 void main_task(void)
