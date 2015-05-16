@@ -321,13 +321,13 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 
 	iowrite32(port+SPI_ENR, 0x01); /* SPI有効化 */
 
-	uint32_t remain_tx_length = param->tx_length;
-	uint32_t remain_rx_length = param->rx_length;
+	uint32_t remain_tx_length = param->tx_length; /* 送信するデータの長さ */
+	uint32_t remain_rx_length = param->rx_length; /* 受信するデータの長さ */
 	void* tx_buff = param->tx_buf;
 	void* rx_buff = param->rx_buf;
 	uint32_t data_bytes = (obj->ch_params[ch_no].bits == BIT_WIDTH_16) ? 2 : 1; /* 1データのバイト数 */
-	uint32_t remain_total_tx_length = MAX(remain_rx_length, remain_tx_length); /* 実際に送信処理するする長さ */
-	uint32_t remain_total_rx_length = remain_total_tx_length; /* 実際に受信処理するする長さ */
+	uint32_t remain_total_tx_length = MAX(remain_rx_length, remain_tx_length); /*送信処理(レジスタに書き込む)する長さ */
+	uint32_t remain_total_rx_length = remain_total_tx_length; /* 受信処理(レジスタから読み込む)するする長さ */
 
 	while ( (0 < remain_total_tx_length) || (0 < remain_total_rx_length) ) {
 		/* 送信チェック */
@@ -337,38 +337,36 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 				tfifos = FIFO_DEPATH;
 			}
 			uint32_t avail_tx_length = FIFO_DEPATH - tfifos; /* 送信できる最大長 */
-
+			avail_tx_length = MIN(avail_tx_length, remain_total_tx_length);
 			if ( 0 < remain_tx_length ) {
 				/* 実データの送信 */
 				avail_tx_length = MIN(avail_tx_length, remain_tx_length);
 				ope_tx_data(port, tx_buff, avail_tx_length, obj->ch_params[ch_no].bits);
 				remain_tx_length -= avail_tx_length;
-				remain_total_tx_length -= avail_tx_length;
 				tx_buff = (uint8_t*)tx_buff + avail_tx_length * data_bytes;
 			}
 			else {
 				/* 受信処理のためのダミー送信 */
 				ope_tx_dummy(port, avail_tx_length, obj->ch_params[ch_no].bits);
-				remain_total_tx_length -= avail_tx_length;
 			}
+			remain_total_tx_length -= avail_tx_length;
 		}
 		/* 受信チェック */
 		if ( 0 < remain_total_rx_length ) {
 			uint32_t rfifos = (ioread32(port+SPI_RXFLR) & FIFO_LEVEL_MASK);
+			uint32_t avail_rx_length = MIN(remain_total_rx_length, rfifos);
 			if ( 0 < remain_rx_length ) {
 				/* 実データの受信 */
-				uint32_t avail_rx_length = MIN(remain_rx_length, rfifos);
 				ope_rx_data(port, rx_buff, avail_rx_length, obj->ch_params[ch_no].bits);
 				remain_rx_length -= avail_rx_length;
-				remain_total_rx_length -= avail_rx_length;
 				rx_buff = (uint8_t*)rx_buff + avail_rx_length * data_bytes;
 			}
 			else {
 				/* ダミー受信 */
 				uint32_t avail_rx_length = MIN(remain_total_rx_length, rfifos);
 				ope_rx_dummy(port, avail_rx_length, obj->ch_params[ch_no].bits);
-				remain_total_rx_length -= avail_rx_length;
 			}
+			remain_total_rx_length -= avail_rx_length;
 		}
 
 		/* イベント待ち */
