@@ -10,14 +10,12 @@
 /* configuration task */
 static int		task_struct[16];
 
-
 void task1(uint32_t arg0, uint32_t arg1)
 {
 	SpiPortConfig pconfig;
 	SpiChannelConfig chconfig;
 	SpiTransferParam param;
 
-	lprintf("task1:%d %d\n", arg0, arg1);
 	spi_set_port_config(0, &pconfig);
 	chconfig.baudrate = 32000000;
 	chconfig.bits = 16;

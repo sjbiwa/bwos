@@ -157,3 +157,14 @@ void init_task_arch_depend(void)
 extern void init_task_board_depend(void);
 	init_task_board_depend();
 }
+
+
+/* ０除算呼び出し */
+void raise(void)
+{
+	irq_disable();
+	tprintf("0 divided\n");
+	/* ０番地にアクセスして例外を発生させる */
+	uint32_t value = *((volatile uint32_t*)0);
+	for (;;);
+}
