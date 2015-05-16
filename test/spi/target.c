@@ -10,18 +10,22 @@
 /* configuration task */
 static int		task_struct[16];
 
-
 void task1(uint32_t arg0, uint32_t arg1)
 {
 	SpiPortConfig pconfig;
 	SpiChannelConfig chconfig;
 	SpiTransferParam param;
 
-	lprintf("task1:%d %d\n", arg0, arg1);
 	spi_set_port_config(0, &pconfig);
-	chconfig.baudrate = 4000000;
+	chconfig.baudrate = 32000000;
+	chconfig.bits = 16;
+	chconfig.endian = SPI_ENDIAN_LITTLE;
+	chconfig.firstbit = SPI_FIRSTBIT_MSB;
+	chconfig.scpol = SPI_SCPOL_LOW;
+	chconfig.scph = SPI_SCPH_MIDDLE;
 	spi_set_channel_config(0, 0, &chconfig);
-	chconfig.baudrate = 1000000;
+	chconfig.baudrate = 48000000;
+	chconfig.bits = 8;
 	spi_set_channel_config(0, 1, &chconfig);
 
 	task_active(task_struct[1], (void*)2048);
@@ -34,17 +38,17 @@ void task2(uint32_t arg0, uint32_t arg1)
 {
 	lprintf("task2:%d %d\n", arg0, arg1);
 	for (;;) {
-		uint8_t tx_buff[] = { 0x1A, 0x2B, 0x3C, 0x4D, 0x5E, 0x6F };
-		uint8_t rx_buff[64];
+		uint16_t tx_buff[] = { 0x441A, 0x552B, 0x663C, 0x774D, 0x885E, 0x996F };
+		uint16_t rx_buff[64];
 		memset(rx_buff, 0, sizeof(rx_buff));
 		SpiTransferParam param;
 		param.tx_buf = tx_buff;
 		param.rx_buf = rx_buff;
-		param.tx_length = sizeof(tx_buff);
-		param.rx_length = 3;
+		param.tx_length = arrayof(tx_buff);
+		param.rx_length = arrayof(tx_buff);
 		spi_transfer(0, 0, &param);
-		lprintf("0:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
-		task_tsleep(SEC(3));
+		lprintf("0:%04X %04X %04X %04X %04X %04X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
+		task_tsleep(MSEC(500));
 	}
 }
 
@@ -62,7 +66,7 @@ void task3(uint32_t arg0, uint32_t arg1)
 		param.rx_length = 5;
 		spi_transfer(0, 1, &param);
 		lprintf("1:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
-		task_tsleep(SEC(5));
+		task_tsleep(MSEC(800));
 	}
 }
 

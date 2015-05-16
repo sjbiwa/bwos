@@ -8,6 +8,15 @@
 #ifndef SPI_H_
 #define SPI_H_
 
+#define	SPI_FIRSTBIT_MSB				(0)
+#define	SPI_FIRSTBIT_LSB				(1)
+#define	SPI_ENDIAN_LITTLE				(0)
+#define	SPI_ENDIAN_BIG					(1)
+#define	SPI_SCPOL_LOW					(0)
+#define	SPI_SCPOL_HIGH					(1)
+#define	SPI_SCPH_MIDDLE					(0)
+#define	SPI_SCPH_START					(1)
+
 
 typedef	struct {
 	uint32_t		io_addr;				/* ベースアドレス */
@@ -21,6 +30,10 @@ typedef	struct {
 typedef	struct {
 	uint32_t		baudrate;				/* ボーレート */
 	uint32_t		bits;					/* データビット幅 */
+	uint8_t			endian;					/* endian mode */
+	uint8_t			firstbit;				/* first bit mode */
+	uint16_t		scpol;					/* clock polarity */
+	uint16_t		scph;					/* clock phase */
 } SpiChannelConfig;
 
 typedef	struct {
