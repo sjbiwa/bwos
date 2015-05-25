@@ -402,12 +402,17 @@ int _kernel_task_sleep(void)
 
 int _kernel_task_wakeup(TaskStruct* task)
 {
+	int ret = RT_ERR;
 	uint32_t		cpsr;
 	irq_save(cpsr);
-	task_wakeup_async(task, RT_WAKEUP);
-	schedule();
+	/* リソースに繋がっている場合はwakeupしない */
+	if ( link_is_empty(&(task->link)) ) {
+		task_wakeup_async(task, RT_WAKEUP);
+		schedule();
+		ret = RT_OK;
+	}
 	irq_restore(cpsr);
-	return RT_OK;
+	return ret;
 }
 
 int _kernel_task_tsleep(TimeOut tm)
