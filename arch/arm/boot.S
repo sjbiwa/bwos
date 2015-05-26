@@ -9,7 +9,16 @@
 #include "arm.h"
 #include "cp15reg.h"
 
-#define	STACK_INIT(cpu_mode,mode_sp)		ldr r0, =(mode_sp);msr SP_##cpu_mode, r0
+/* スタックサイズ */
+#define	EXCEPTION_STACK_SIZE			256
+#define	IDLE_TASK_STACK_SIZE			1024
+#define	IRQ_STACK_SIZE					65536
+
+#define	STACK_INIT(cpu_mode,mode_sp,cpuid)	ldr r0, =(mode_sp); \
+											ldr r1, =EXCEPTION_STACK_SIZE; \
+											mul r1, r1, cpuid; \
+											sub r0, r1; \
+											msr SP_##cpu_mode, r0
 
 /* Vector */
 	.arm
@@ -96,12 +105,13 @@ _reset_entry:
 	VBAR_set(r0)
 
 	/* Initialize StackPointer */
-	STACK_INIT(und, stack_undef)
-	STACK_INIT(abt, stack_dabort)
-	STACK_INIT(irq, stack_irq)
-	STACK_INIT(fiq, stack_fiq)
-	STACK_INIT(usr, stack_sys)
-	STACK_INIT(svc, stack_svc)
+	CPUID_get(r2)
+	STACK_INIT(und, stack_undef,r2)
+	STACK_INIT(abt, stack_dabort,r2)
+	STACK_INIT(irq, stack_irq,r2)
+	STACK_INIT(fiq, stack_fiq,r2)
+	STACK_INIT(usr, stack_sys,r2)
+	STACK_INIT(svc, stack_svc,r2)
 
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start
@@ -135,36 +145,36 @@ _loop_:
 /* Stack Area */
 	.section	.stack
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
 stack_undef:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
 stack_svc:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
 stack_sys:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
 stack_dabort:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
 stack_irq:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
 stack_fiq:
 
 /* stack for IDLE-TASK */
 	.section .stack
 	.balign 16
-	.space	1024
+	.space	IDLE_TASK_STACK_SIZE * SMP_CPU_NUM
 stack_idle:
 
 /* 割り込みハンドラで使うスタック */
 	.balign	16
-	.space	65536
+	.space	IRQ_STACK_SIZE * SMP_CPU_NUM
 stack_intr:
