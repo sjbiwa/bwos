@@ -12,14 +12,21 @@
 #include "my_board.h"
 #include "memmgr.h"
 
+#if defined(SMP_ENABLE)
+#define	SHARE_SECT			(0x01u<<16)
+#define	SHARE_PAGE			(0x01u<<10)
+#else
+#define	SHARE_SECT			(0)
+#define	SHARE_PAGE			(0)
+#endif
 
 static const uint32_t	attr_conv_tbl[][2] = {
-	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT),
-	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT),
-	[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA),
-	[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA),
-	[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV),
-	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV),
+	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT)|SHARE_SECT,
+	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT)|SHARE_PAGE,
+	[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA)|SHARE_SECT,
+	[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA)|SHARE_PAGE,
+	[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV)|SHARE_SECT,
+	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV)|SHARE_PAGE,
 };
 /* section table */
 //static uint32_t section_tbl[4096] __attribute__((aligned(16*1024)));
@@ -93,6 +100,31 @@ void mmgr_add_entry(void* addr, MemSize_t size, uint32_t attr)
 	}
 }
 
+void mmgr_mmu_init(void)
+{
+	/* MMU関連レジスタ初期化 */
+	DACR_set(0xffffffff);
+	TTBCR_set(0x00000000);
+	TTBR0_set((uint32_t)section_tbl);
+	TTBR1_set(0);
+
+	/* いったん命令キャッシュをdisable */
+	uint32_t ctrl = SCTLR_get();
+	SCTLR_set(ctrl & ~((0x1<<12)|(0x1<<11)));
+
+	/* キャッシュをすべてinvalidate */
+	ICIALLUIS_set(0);
+	BPIALLIS_set(0);
+
+	/* TLBをinvalidate */
+	TLBIALLIS_set(0);
+
+	/* MMU/キャッシュenable */
+	__dsb();
+	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
+	__isb();
+	tprintf("SCTLR = %08X\n", SCTLR_get());
+}
 
 void mmgr_init(void)
 {
@@ -121,25 +153,10 @@ extern char __data_start;
 	/* ボード固有領域 */
 	board_mmgr_init();
 
-	/* MMU関連レジスタ初期化 */
-	DACR_set(0xffffffff);
-	TTBCR_set(0x00000000);
-	TTBR0_set((uint32_t)section_tbl);
-	TTBR1_set(0);
+	mmgr_mmu_init();
+}
 
-	/* いったん命令キャッシュをdisable */
-	uint32_t ctrl = SCTLR_get();
-	SCTLR_set(ctrl & ~((0x1<<12)|(0x1<<11)));
-
-	/* キャッシュをすべてinvalidate */
-	ICIALLUIS_set(0);
-	BPIALLIS_set(0);
-
-	/* TLBをinvalidate */
-	TLBIALLIS_set(0);
-
-	/* MMU/キャッシュenable */
-	__dsb();
-	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
-	__isb();
+void mmgr_init_slave(void)
+{
+	mmgr_mmu_init();
 }

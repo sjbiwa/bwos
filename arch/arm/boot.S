@@ -14,11 +14,15 @@
 #define	IDLE_TASK_STACK_SIZE			1024
 #define	IRQ_STACK_SIZE					65536
 
+#ifdef SMP_ENABLE
 #define	STACK_INIT(cpu_mode,mode_sp,cpuid)	ldr r0, =(mode_sp); \
 											ldr r1, =EXCEPTION_STACK_SIZE; \
 											mul r1, r1, cpuid; \
 											sub r0, r1; \
 											msr SP_##cpu_mode, r0
+#else
+#define	STACK_INIT(cpu_mode,mode_sp,cpuid)	ldr r0, =(mode_sp);msr SP_##cpu_mode, r0
+#endif
 
 /* Vector */
 	.arm
@@ -39,12 +43,20 @@ _start:
 
 	/* set SCTLR.TE */
 	SCTLR_get(r0)
-	ldr		r1, =(SCTLR_TE|SCTLR_I|SCTLR_Z)
+	ldr		r1, =(SCTLR_TE|SCTLR_I|SCTLR_Z|SCTLR_A)
 	orr		r0, r0, r1
-	bic		r0, r0, SCTLR_C
-	bic		r0, r0, SCTLR_M
+	bic		r0, r0, #SCTLR_C
+	bic		r0, r0, #SCTLR_M
+	bic		r0, r0, #SCTLR_V
 	SCTLR_set(r0)
 	isb
+	ACTLR_get(r0)
+	ldr		r1, =ACTLR_SMP
+	orr		r0, r0, r1
+	ACTLR_set(r0)
+	isb
+
+
 	/* switch to THUMB(Jump to Reset Vector) */
 	ldr		r0, =_vector
 	mov		r1, #0x01
@@ -105,7 +117,11 @@ _reset_entry:
 	VBAR_set(r0)
 
 	/* Initialize StackPointer */
+#ifdef SMP_ENABLE
 	CPUID_get(r2)
+#else
+	mov		r2, #0
+#endif
 	STACK_INIT(und, stack_undef,r2)
 	STACK_INIT(abt, stack_dabort,r2)
 	STACK_INIT(irq, stack_irq,r2)
@@ -113,6 +129,11 @@ _reset_entry:
 	STACK_INIT(usr, stack_sys,r2)
 	STACK_INIT(svc, stack_svc,r2)
 
+#ifdef SMP_ENABLE
+	CPUID_get(r2)
+	cmp		r2, #0
+	bne		_bss_done
+#endif
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start
 	ldr		r1, =__data_start
@@ -145,36 +166,36 @@ _loop_:
 /* Stack Area */
 	.section	.stack
 	.balign	16
-	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_undef:
 
 	.balign	16
-	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_svc:
 
 	.balign	16
-	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_sys:
 
 	.balign	16
-	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_dabort:
 
 	.balign	16
-	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_irq:
 
 	.balign	16
-	.space	EXCEPTION_STACK_SIZE * SMP_CPU_NUM
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_fiq:
 
 /* stack for IDLE-TASK */
 	.section .stack
 	.balign 16
-	.space	IDLE_TASK_STACK_SIZE * SMP_CPU_NUM
+	.space	IDLE_TASK_STACK_SIZE * CPU_NUM
 stack_idle:
 
 /* 割り込みハンドラで使うスタック */
 	.balign	16
-	.space	IRQ_STACK_SIZE * SMP_CPU_NUM
+	.space	IRQ_STACK_SIZE * CPU_NUM
 stack_intr:

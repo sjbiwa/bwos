@@ -82,6 +82,7 @@ void arch_task_active(TaskStruct* task, void* act_param)
 void arch_system_preinit(void)
 {
 	tprintf("SCTLR = %08X\n", SCTLR_get());
+	tprintf("ACTLR = %08X\n", ACTLR_get());
 	tprintf("SCR = %08X\n", SCR_get());
 	tprintf("ID_PFR0 = %08X\n", ID_PFR0_get());
 	tprintf("ID_PFR1 = %08X\n", ID_PFR1_get());

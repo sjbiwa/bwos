@@ -6,10 +6,21 @@
  */
 #include "kernel.h"
 #include "version.h"
+#include "kernel/smp.h"
 
-void startup(void)
+static SpinLockObj	spin_lock_obj;
+
+static volatile uint32_t value;
+static void wait_loop()
+{
+	for (int ix=0; ix < 100000; ix++) {
+		value = ioread32(0x01C25C00+0x1a4);
+	}
+}
+static void startup_master(uint32_t cpuid)
 {
 	int ix;
+
 	/* ハードウェア初期化 */
 	arch_system_preinit();
 	tprintf("Booting BWOS Ver " OS_VERSION  "\n");
@@ -39,5 +50,49 @@ void startup(void)
 	/* 初期タスク生成 */
 	task_init_task_create();
 
+
+	spin_init(&spin_lock_obj);
+
+#if defined(SMP_ENABLE)
+	smp_boot_slave_cpu();
+#endif
+
+	for (;;) {
+		spin_lock(&spin_lock_obj);
+		tprintf("Booting master cpu:%d\n", cpuid);
+		spin_unlock(&spin_lock_obj);
+		wait_loop();
+	}
 	schedule();
+}
+
+#if defined(SMP_ENABLE)
+static void startup_slave(uint32_t cpuid)
+{
+	arch_system_preinit();
+	mmgr_init_slave();
+	for (;;) {
+		spin_lock(&spin_lock_obj);
+		tprintf("Booting slave cpu:%d\n", cpuid);
+		spin_unlock(&spin_lock_obj);
+		wait_loop();
+	}
+	schedule();
+}
+
+#endif
+
+void startup(void)
+{
+#if defined(SMP_ENABLE)
+	uint32_t cpuid = CPUID_get();
+	if ( cpuid == 0 ) {
+		startup_master(cpuid);
+	}
+	else {
+		startup_slave(cpuid);
+	}
+#else
+	startup_master(0);
+#endif
 }

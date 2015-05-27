@@ -14,6 +14,17 @@
 #include "cp15reg.h"
 
 /****************************************/
+/*  void spin_init(SpinLockObj* ptr)    */
+/****************************************/
+	.type   spin_init, %function
+	.globl	spin_init
+spin_init:
+	MOV		R1, #0
+	STR		R1, [R0]
+	DSB
+	BX		LR
+
+/****************************************/
 /*  void spin_lock(SpinLockObj* ptr)    */
 /****************************************/
 	.type   spin_lock, %function
