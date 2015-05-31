@@ -133,7 +133,9 @@ _irq_entry:
 	/* SVC mode */
 
 	/* INC _irq_level */
+	CPUID_get(r0)
 	ldr		r1, =_irq_level
+	add		r1, r1, r0, LSL #2
 	ldr		r0, [r1]
 	add		r0, r0, #1
 	str		r0, [r1]
@@ -147,7 +149,9 @@ _from_task:
 	/* タスク実行中の割り込み */
 	/* 割り込みハンドラで使うスタックを専用スタックに切り替え */
 	mov		lr, sp
+	CPUID_get(r1)
 	ldr		r0, =stack_intr
+	sub		r0, r0, r1, LSR #IRQ_STACK_SIZE_SHIFT
 	sub		r0, r0, #4		/* 8byte aligned with next's push {lr} */
 	mov		sp, r0
 	b		_common_ope
@@ -181,7 +185,9 @@ _common_ope:
 	msr		SPSR_svc, r0
 
 	/* DEC _irq_level */
+	CPUID_get(r0)
 	ldr		r1, =_irq_level
+	add		r1, r1, r0, LSL #2
 	ldr		r0, [r1]
 	sub		r0, r0, #1
 	str		r0, [r1]

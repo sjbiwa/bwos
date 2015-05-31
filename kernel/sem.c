@@ -13,6 +13,7 @@ typedef	struct {
 } SemInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
+static void sem_sub_init(void) {}
 OBJECT_INDEX_FUNC(sem,SemStruct,SEM_MAX_NUM);
 
 

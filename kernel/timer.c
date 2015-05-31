@@ -19,6 +19,7 @@ typedef	struct tagTimerStruct {
 } TimerStruct;
 
 /* オブジェクト<->インデックス変換用 */
+static void timer_sub_init(void) {}
 OBJECT_INDEX_FUNC(timer,TimerStruct,TIMER_MAX_NUM);
 
 /* タイマハンドラリスト */

@@ -6,3 +6,8 @@
  */
 
 #include "kernel/smp.h"
+
+void smp_init(void)
+{
+	arch_smp_init();
+}

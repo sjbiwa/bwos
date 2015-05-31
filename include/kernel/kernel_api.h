@@ -18,6 +18,7 @@
 #include "kernel/msgq.h"
 #include "kernel/fixmb.h"
 #include "kernel/malloc.h"
+#include "kernel/smp.h"
 
 /***********************************************/
 /* オブジェクト<->インデックス変換用マクロ一式 */
@@ -50,6 +51,26 @@ void OBJNAME##_init(void) \
 	OBJNAME##_struct_array = st_malloc_align(sizeof(OBJSTRUCT) * MAX_NUM, NORMAL_ALIGN); \
 	OBJNAME##_struct_max = MAX_NUM; \
 	OBJNAME##_struct_alloc_id = 0; \
+	OBJNAME##_sub_init(); \
+}
+
+/* オブジェクト用spinlock関数 */
+#define	OBJECT_SPINLOCK_FUNC(OBJNAME,OBJSTRUCT) \
+static inline void OBJNAME##_spininit(OBJSTRUCT* obj) \
+{ \
+	spin_init(&(obj->spin_lock)); \
+} \
+static inline void OBJNAME##_spinlock(OBJSTRUCT* obj) \
+{ \
+	spin_lock(&(obj->spin_lock)); \
+} \
+static inline void OBJNAME##_spinunlock(OBJSTRUCT* obj) \
+{ \
+	spin_unlock(&(obj->spin_lock)); \
+} \
+static inline int OBJNAME##_spintrylock(OBJSTRUCT* obj) \
+{ \
+	return spin_trylock(&(obj->spin_lock)); \
 }
 
 /********************************************************/

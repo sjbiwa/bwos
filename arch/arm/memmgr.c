@@ -126,37 +126,34 @@ void mmgr_mmu_init(void)
 	tprintf("SCTLR = %08X\n", SCTLR_get());
 }
 
-void mmgr_init(void)
+void mmgr_init(uint32_t cpuid)
 {
 extern char __text_start;
 extern char __text_end;
 extern char __data_start;
 
-	/* セクションテーブル初期化 */
-	section_tbl = sectiontbl_alloc();
+	if ( cpuid == MASTER_CPU_ID ) {
+		/* セクションテーブル初期化 */
+		section_tbl = sectiontbl_alloc();
 
-	/****************************************************/
-	/*	MMUの設定方法									*/
-	/*													*/
-	/*	__text_start ～ __test_end		リードオンリ	*/
-	/*	__data_start ～ END_MEM_ADDR	R/W				*/
-	/*													*/
-	/****************************************************/
+		/****************************************************/
+		/*	MMUの設定方法									*/
+		/*													*/
+		/*	__text_start ～ __test_end		リードオンリ	*/
+		/*	__data_start ～ END_MEM_ADDR	R/W				*/
+		/*													*/
+		/****************************************************/
 
-	/* TEXT領域 */
-	mmgr_add_entry((void*)(&__text_start), (uint32_t)(&__text_end)-(uint32_t)(&__text_start), ATTR_TEXT);
-	/* DATA/BSS/HEAP領域 */
-	mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
-	/* MPCORE領域 */
-	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
+		/* TEXT領域 */
+		mmgr_add_entry((void*)(&__text_start), (uint32_t)(&__text_end)-(uint32_t)(&__text_start), ATTR_TEXT);
+		/* DATA/BSS/HEAP領域 */
+		mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
+		/* MPCORE領域 */
+		mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
 
-	/* ボード固有領域 */
-	board_mmgr_init();
+		/* ボード固有領域 */
+		board_mmgr_init();
+	}
 
-	mmgr_mmu_init();
-}
-
-void mmgr_init_slave(void)
-{
 	mmgr_mmu_init();
 }

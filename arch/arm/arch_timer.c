@@ -75,7 +75,7 @@ void update_first_timeout(TimeSpec tmout)
 }
 
 void
-arch_timer_init(void)
+arch_timer_init(uint32_t cpuid)
 {
 #if defined(USE_TICKLESS)
 	CNTP_CTL_set(0x00000000);
@@ -94,6 +94,8 @@ arch_timer_init(void)
 	CNTP_CTL_set(0x00000001);
 #endif
 #endif
-	__irq_add_handler(29, timer_handler, NULL);
+	if ( cpuid == MASTER_CPU_ID ) {
+		__irq_add_handler(29, timer_handler, NULL);
+	}
 	__irq_set_enable(29, IRQ_ENABLE);
 }

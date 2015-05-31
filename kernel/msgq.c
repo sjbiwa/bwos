@@ -21,6 +21,7 @@ typedef	struct {
 } MsgqInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
+static void msgq_sub_init(void) {}
 OBJECT_INDEX_FUNC(msgq,MsgqStruct,MSGQ_MAX_NUM);
 
 

@@ -5,6 +5,7 @@
  *      Author: biwa
  */
 
+void arch_smp_init(void)
+{
 
-
-
+}

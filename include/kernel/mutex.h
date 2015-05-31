@@ -14,9 +14,8 @@
 
 typedef	struct tagMutexStruct {
 	Link		link;
-	TaskStruct*	task;	/* 獲得中のタスク */
-	uint32_t	count;	/* 獲得回数 */
+	SpinLockObj	spin_lock;
+	bool		locked;	/* 獲得中？ */
 } MutexStruct;
-
 
 #endif /* MUTEX_H_ */

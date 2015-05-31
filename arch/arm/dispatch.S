@@ -59,8 +59,10 @@ _dispatch:
 	push	{lr}
 
 	/* check _ctask	*/
-	ldr		lr, =_ctask
-	ldr		lr, [lr]
+	ldr		lr, =cpu_struct_pointer
+	CPUID_get(r0)
+	ldr		lr, [lr, r0, LSL #2]		/* lr <- cpu_struct */
+	ldr		lr, [lr, #CPUSTRUCT_CTASK] /* lr <- ctask */
 	cmp		lr, #0
 
 	/* IF _ctask not available ignore save_context */
@@ -97,10 +99,11 @@ _restore_context:
 	/* All register done saved */
 
 	/* copy _ntask -> _ctask */
-	ldr		r0, =_ctask
-	ldr		lr, =_ntask
-	ldr		lr, [lr]
-	str		lr, [r0]
+	ldr		lr, =cpu_struct_pointer
+	CPUID_get(r0)
+	ldr		r0, [lr, r0, LSL #2]		/* lr <- cpu_struct */
+	ldr		lr, [r0, #CPUSTRUCT_NTASK] 	/* r0 <- ntask */
+	str		lr, [r0, #CPUSTRUCT_CTASK]	/* r0 -> ctask */
 
 	/* check _ntask */
 	cmp		lr, #0
@@ -170,10 +173,11 @@ _entry_stub:
 
 _dispatch_irq:
 	/* compare _ctask and _ntask */
-	ldr		r0, =_ctask
-	ldr		r0, [r0]
-	ldr		r1, =_ntask
-	ldr		r1, [r1]
+	ldr		r1, =cpu_struct_pointer
+	CPUID_get(r0)
+	ldr		r1, [r1, r0, LSL #2]		/* r1 <- cpu_struct */
+	ldr		r0, [r1, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
+	ldr		r1, [r1, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
 	cmp		r0, r1
 	beq		_nodispatch_irq /* _ctask == _ntask ? */
 
@@ -197,7 +201,10 @@ _nodispatch_irq:
 	.type   _idle_loop, %function
 _idle_loop:
 	cps		#MODE_SVC
-	ldr		sp, =stack_idle
+	ldr		r0, =stack_idle
+	CPUID_get(r1)
+	sub		r0, r0, r1, LSR #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, r0
 1:
 	bl		idle_task
 	b		1b

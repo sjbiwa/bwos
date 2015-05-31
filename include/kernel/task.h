@@ -10,6 +10,17 @@
 
 #include "common.h"
 #include "link.h"
+#include "smp.h"
+
+#define	TASK_PRIORITY_NUM		(32)	/* タスク優先度レベル数 */
+
+/* cpu/task情報へのアクセスマクロ */
+#define	RUN_QUEUE()			(cpu_struct[CPUID_get()].run_queue)
+#define	TIMEOUT_LIST()		(cpu_struct[CPUID_get()].task_time_out_list)
+#define	CTASK()				(cpu_struct[CPUID_get()].ctask)
+#define	NTASK()				(cpu_struct[CPUID_get()].ntask)
+
+struct tagCpuStruct;
 
 typedef	enum { TASK_STANDBY, TASK_READY, TASK_WAIT, TASK_DORMANT } TaskState;
 typedef	struct tagTaskStruct {
@@ -37,10 +48,25 @@ typedef	struct tagTaskStruct {
 	void*		wait_obj;			/* 待ち状態となった対象オブジェクト */
 	void		(*wait_func)(struct tagTaskStruct* task); /* 待ち状態解除時コールバック */
 	int32_t		result_code;		/* API完了コード */
+	struct tagCpuStruct* cpu_struct;
 } TaskStruct;
 
-extern	TaskStruct*			_ctask;
-extern	TaskStruct*			_ntask;
+typedef struct tagRunQueue {
+	int32_t		pri_highest;			/* 最高優先度タスク */
+	uint32_t	pri_bits;				/* 優先度毎の有効ビット */
+	Link		task[TASK_PRIORITY_NUM];/* 優先度毎のRUNキュー */
+} RunQueue;
+
+typedef	struct tagCpuStruct {
+	TaskStruct*		ctask;
+	TaskStruct*		ntask;
+	SpinLockObj		spin_lock;
+	Link			task_time_out_list;
+	RunQueue		run_queue;
+	uint32_t		cpuid;
+} CpuStruct;
+
+extern CpuStruct cpu_struct[CPU_NUM];
 
 extern void task_remove_queue(TaskStruct* task);
 extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
@@ -52,6 +78,11 @@ static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_f
 	task->wait_obj = wait_obj;
 	task->wait_func = wait_func;
 	task->task_state = TASK_WAIT;
+}
+
+static inline TaskStruct* task_self(void)
+{
+	return cpu_struct[CPUID_get()].ctask;
 }
 
 #endif /* TASK_H_ */

@@ -9,20 +9,9 @@
 #include "arm.h"
 #include "cp15reg.h"
 
-/* スタックサイズ */
-#define	EXCEPTION_STACK_SIZE			256
-#define	IDLE_TASK_STACK_SIZE			1024
-#define	IRQ_STACK_SIZE					65536
-
-#ifdef SMP_ENABLE
 #define	STACK_INIT(cpu_mode,mode_sp,cpuid)	ldr r0, =(mode_sp); \
-											ldr r1, =EXCEPTION_STACK_SIZE; \
-											mul r1, r1, cpuid; \
-											sub r0, r1; \
+											sub r0, r0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
 											msr SP_##cpu_mode, r0
-#else
-#define	STACK_INIT(cpu_mode,mode_sp,cpuid)	ldr r0, =(mode_sp);msr SP_##cpu_mode, r0
-#endif
 
 /* Vector */
 	.arm
@@ -55,7 +44,6 @@ _start:
 	orr		r0, r0, r1
 	ACTLR_set(r0)
 	isb
-
 
 	/* switch to THUMB(Jump to Reset Vector) */
 	ldr		r0, =_vector

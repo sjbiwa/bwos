@@ -14,6 +14,7 @@ typedef	struct {
 } FlagInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
+static void flag_sub_init(void) {}
 OBJECT_INDEX_FUNC(flag,FlagStruct,FLAG_MAX_NUM);
 
 
@@ -90,14 +91,15 @@ int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, u
 	uint32_t		cpsr;
 	irq_save(cpsr);
 
+	TaskStruct* ctask = CTASK();
 	/* リターンコード設定 */
-	_ctask->result_code = RT_OK;
+	ctask->result_code = RT_OK;
 
 	/* フラグ値とタスクの待ちパターンとで処理する */
 	if ( !check_and_result(flag, pattern, wait_mode, ret_pattern) ) {
 		if ( tmout == TMO_POLL ) {
 			/* ポーリングでcompleteしない場合 */
-			_ctask->result_code = RT_TIMEOUT;
+			ctask->result_code = RT_TIMEOUT;
 		}
 		else {
 			/* completeしない/ポーリングではない場合 */
@@ -107,19 +109,20 @@ int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, u
 			flag_info.pattern = pattern;
 			flag_info.wait_mode = wait_mode;
 			flag_info.ret_pattern = ret_pattern;
-			task_set_wait(_ctask, (void*)(&flag_info), 0);
-			task_remove_queue(_ctask);
-			link_add_last(&(flag->link), &(_ctask->link));
+			task_set_wait(ctask, (void*)(&flag_info), 0);
+			task_remove_queue(ctask);
+			link_add_last(&(flag->link), &(ctask->link));
 			if ( tmout != TMO_FEVER ) {
 				/* タイムアウトリストに追加 */
-				task_add_timeout(_ctask, tmout);
+				task_add_timeout(ctask, tmout);
 			}
 			schedule();
 		}
 	}
 
+	int ret = ctask->result_code;
 	irq_restore(cpsr);
-	return _ctask->result_code;
+	return ret;
 }
 
 int _kernel_flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)

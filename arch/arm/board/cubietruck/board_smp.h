@@ -12,8 +12,11 @@ extern void _start(void);
 
 static inline void smp_boot_slave_cpu(void)
 {
+	__dsb();
 	iowrite32(0x01C25C00+0x1a4, (uint32_t)_start);
+	ioclr32(0x01C25C00+0x184, 0x02u);
 	iowrite32(0x01C25C00+0x80, 0x00000003);
+	__dsb();
 }
 
 #endif /* _BOARD_SMP_H_ */
