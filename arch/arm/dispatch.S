@@ -55,7 +55,7 @@
 	.type   _dispatch, %function
 
 _dispatch:
-
+	/* ※ 関数として呼ばれるエントリなので R0/R1/R2/R3/R12は破壊されても良い */
 	push	{lr}
 
 	/* check _ctask	*/
@@ -172,6 +172,7 @@ _entry_stub:
 	.type   _nodispatch_irq, %function
 
 _dispatch_irq:
+	/* ※ R0/R1/R2/R3/R12/LRはすでに退避されているので破壊されても良い */
 	/* compare _ctask and _ntask */
 	ldr		r1, =cpu_struct_pointer
 	CPUID_get(r0)

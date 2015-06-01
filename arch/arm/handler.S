@@ -151,7 +151,7 @@ _from_task:
 	mov		lr, sp
 	CPUID_get(r1)
 	ldr		r0, =stack_intr
-	sub		r0, r0, r1, LSR #IRQ_STACK_SIZE_SHIFT
+	sub		r0, r0, r1, LSL #IRQ_STACK_SIZE_SHIFT
 	sub		r0, r0, #4		/* 8byte aligned with next's push {lr} */
 	mov		sp, r0
 	b		_common_ope

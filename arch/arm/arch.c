@@ -86,7 +86,6 @@ void arch_task_active(TaskStruct* task, void* act_param)
 static void
 smp0_handler(uint32_t irqno, void* info)
 {
-	tprintf("smp0:cpu=%d\n", CPUID_get());
 }
 
 void arch_system_preinit(uint32_t cpuid)
@@ -185,7 +184,6 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 {
 	uint32_t cpuid = cpu->cpuid;
 	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
-	tprintf("IPI:%08X\n", 0x00010000u << cpuid);
 }
 
 void init_task_arch_depend(void)

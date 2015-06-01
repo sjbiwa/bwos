@@ -45,11 +45,7 @@ static void task_sub_init(void)
 
 static inline bool can_dispatch(void)
 {
-	bool ret = false;
-	if ( (CTASK() != NTASK()) && arch_can_dispatch() ) {
-		ret = true;
-	}
-	return ret;
+	return arch_can_dispatch();
 }
 
 static inline int32_t lowest_bit(uint32_t value)
@@ -243,7 +239,15 @@ bool schedule(CpuStruct* cpu)
 		uint32_t bits = lowest_bit(run_queue->pri_bits);
 		cpu->ntask = (TaskStruct*)(run_queue->task[bits].next);
 	}
-	return (cpu->ctask != cpu->ntask) ? true : false;
+	/*********************************************************************/
+	/* 本来はspinlock取得中にntaskは書き換えられるのでbarrierはいらない */
+	/* ただ、dispatcherでntaskを参照する時にもspinlockする必要があるが  */
+	/* それでは処理オーバーヘッドがあるので、spinlockしなくても良いよう */
+	/* にこのでorder_barrier()を入れる。                                */
+	/*********************************************************************/
+	bool ret = (cpu->ctask != cpu->ntask) ? true : false;
+	order_barrier();
+	return ret;
 }
 
 void self_request_dispatch(void)
