@@ -16,6 +16,8 @@ typedef	struct {
 /* オブジェクト<->インデックス変換用 */
 static void fixmb_sub_init(void) {}
 OBJECT_INDEX_FUNC(fixmb,FixmbStruct,FIXMB_MAX_NUM)
+OBJECT_SPINLOCK_FUNC(fixmb,FixmbStruct);
+OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 
 /* 該当ブロックの使用中状態チェック */
@@ -84,6 +86,9 @@ int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 	else {
 		goto ERR_RET2;
 	}
+	fixmb_spininit(fixmb);
+	sync_barrier();
+
 	return RT_OK;
 
 ERR_RET1:
@@ -97,9 +102,23 @@ int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
 	uint32_t alloc_index;
 	uint32_t cpsr;
-	irq_save(cpsr);
+	bool req_dispatch = false;
 
-	_ctask->result_code = RT_OK;
+retry_lock:
+	irq_save(cpsr);
+	fixmb_spinlock(fixmb);
+
+	TaskStruct* task = task_self();
+	CpuStruct* cpu = task->cpu_struct;
+	if ( !cpu_spintrylock(cpu) ) {
+		/* cpuがlockできなければいったんfixmb開放して再取得 */
+		fixmb_spinunlock(fixmb);
+		irq_restore(cpsr);
+		goto retry_lock;
+	}
+	/* fixmb + cpu をlock完了 */
+
+	task->result_code = RT_OK;
 
 	if ( fixmb->use_count < fixmb->mb_length ) {
 		/* 割り当てブロックがある */
@@ -126,25 +145,33 @@ int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 	else if ( tmout == TMO_POLL ) {
 		/* 割り当てブロックがない */
 		/* ポーリングなのでタイムアウトエラーとする */
-		_ctask->result_code = RT_TIMEOUT;
+		task->result_code = RT_TIMEOUT;
 	}
 	else {
 		/* 割り当てブロックがないので待ち状態に遷移 */
 		FixmbInfoStruct fixmb_info;
 		fixmb_info.obj = fixmb;
 		fixmb_info.ptr = ptr;
-		task_set_wait(_ctask, (void*)(&fixmb_info), 0);
-		task_remove_queue(_ctask);
-		link_add_last(&(fixmb->link), &(_ctask->link));
+		task_set_wait(task, (void*)(&fixmb_info), 0);
+		task_remove_queue(task);
+		link_add_last(&(fixmb->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */
-			task_add_timeout(_ctask, tmout);
+			task_add_timeout(task, tmout);
 		}
-		schedule();
+		req_dispatch = schedule(cpu);
+	}
+
+	/* fixmb + cpuは開放 */
+	cpu_spinunlock(cpu);
+	fixmb_spinunlock(fixmb);
+
+	if ( req_dispatch ) {
+		self_request_dispatch();
 	}
 
 	irq_restore(cpsr);
-	return _ctask->result_code;
+	return task->result_code;
 }
 
 int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
@@ -157,7 +184,11 @@ int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 	uint32_t area_size;
 	uint32_t		cpsr;
 	int				ret = RT_OK;
+	CpuStruct*	req_dispatch_cpu = NULL;
+
+retry_lock:
 	irq_save(cpsr);
+	fixmb_spinlock(fixmb);
 
 	/* 解放するアドレスの妥当性チェック */
 	uint32_t rel_index = fixmb_ptr2idx(fixmb, ptr);
@@ -166,7 +197,32 @@ int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 		ret = RT_ERR;
 	}
 	else {
-		if ( link_is_empty(&(fixmb->link)) ) {
+		if ( !link_is_empty(&(fixmb->link)) ) {
+			/* 解放待ちタスクをwakeup */
+			/* 開放するMBをそのままwakeupするタスクに渡す */
+			Link* link = fixmb->link.next;
+			TaskStruct* task = containerof(link, TaskStruct, link);
+			CpuStruct* cpu = task->cpu_struct;
+			if ( !cpu_spintrylock(cpu) ) {
+				/* cpuがlockできなければいったんmutex開放して再取得 */
+				fixmb_spinunlock(fixmb);
+				irq_restore(cpsr);
+				goto retry_lock;
+			}
+			/* fixmb + cpu をlock完了 */
+
+			FixmbInfoStruct* fixmb_info;
+			link_remove(link);
+			fixmb_info = (FixmbInfoStruct*)(task->wait_obj);
+			*(fixmb_info->ptr) = ptr;
+			task_wakeup_stub(task, RT_OK);
+			if ( schedule(cpu) ) {
+				req_dispatch_cpu = cpu;
+			}
+			/* CPU開放 */
+			cpu_spinunlock(cpu);
+		}
+		else {
 			/* 解放待ちタスクがないので空きリストに返却 */
 			update_bitmap(fixmb->use_bitmap, rel_index, false);
 			fixmb->use_count--;
@@ -182,17 +238,18 @@ int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 				fixmb->list.last.index = rel_index;
 			}
 		}
+	}
+
+	fixmb_spinunlock(fixmb);
+
+	if ( req_dispatch_cpu != NULL ) {
+		if ( req_dispatch_cpu->cpuid == CPUID_get() ) {
+			/* 起床したタスクが自CPU所属なので dispatch処理をする */
+			self_request_dispatch();
+		}
 		else {
-			/* 解放待ちタスクがあるのでwakeup */
-			/* 開放するMBをそのままwakeupするタスクに渡す */
-			FixmbInfoStruct* fixmb_info;
-			Link* link = fixmb->link.next;
-			link_remove(link);
-			TaskStruct* task = containerof(link, TaskStruct, link);
-			fixmb_info = (FixmbInfoStruct*)(task->wait_obj);
-			*(fixmb_info->ptr) = ptr;
-			task_wakeup_stub(task, RT_OK);
-			schedule();
+			/* 起床したタスクが他CPU所属なので 割り込み通知する */
+			ipi_request_dispatch_one(req_dispatch_cpu);
 		}
 	}
 
