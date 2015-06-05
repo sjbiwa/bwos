@@ -39,6 +39,7 @@ static void task_sub_init(void)
 		cpu_struct[cpuid].ctask = NULL;
 		cpu_struct[cpuid].ntask = NULL;
 		cpu_struct[cpuid].cpuid = cpuid;
+		link_clear(&(cpu_struct[cpuid].timer_list));
 	}
 }
 
@@ -159,7 +160,7 @@ void task_add_timeout(TaskStruct* task, TimeOut tm)
 	task_add_timeout_queue(task);
 }
 
-static void task_wakeup_body(TaskStruct* task, int32_t result_code, bool call_func)
+void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 {
 	if ( task->task_state == TASK_WAIT ) {
 		/* 待ちリストに登録されている場合はリストから削除 */
@@ -177,21 +178,7 @@ static void task_wakeup_body(TaskStruct* task, int32_t result_code, bool call_fu
 		task->result_code = result_code;
 		task->task_state = TASK_READY;
 		task_add_queue(task);
-
-		/* タスク起床時にコールバック関数呼び出し */
-		if ( call_func && (task->wait_func != 0) ) {
-			(task->wait_func)(task);
-		}
 	}
-}
-void task_wakeup_stub(TaskStruct* task, int32_t result_code)
-{
-	task_wakeup_body(task, result_code, false);
-}
-
-void task_wakeup_async(TaskStruct* task, int32_t result_code)
-{
-	task_wakeup_body(task, result_code, true);
 }
 
 void task_tick(void)
@@ -199,36 +186,66 @@ void task_tick(void)
 	Link*			link;
 	TaskStruct*		task;
 	bool			req_sched = false;
-	uint32_t		cpsr;
+	uint32_t		irq_state;
 	TimeSpec		tick_count;
-	irq_save(cpsr);
+	irq_state = irq_save();
+	tick_count = get_tick_count();
 
 	CpuStruct* cpu = &cpu_struct[CPUID_get()];
+	cpu_spinlock(cpu);
 
-	/* タイムアウトキューに登録されているタスクの起床処理 */
-	tick_count = get_tick_count();
-	/* キューは昇順に登録されているので先頭のみチェックしていれば良い */
-	/* 先頭タスクが起床されたら次のタスクが先頭タスクになるため */
 	Link* task_time_out_list = &(cpu->task_time_out_list);
-	while ( (link = task_time_out_list->next) != task_time_out_list ) {
+
+	for (;;) {
+		/* キューは昇順に登録されているので先頭のみチェックしていれば良い */
+		/* 先頭タスクが起床されたら次のタスクが先頭タスクになるため */
+		link = task_time_out_list->next;
+		if ( link == task_time_out_list ) {
+			break;
+		}
 		task = containerof(link, TaskStruct, tlink);
 		/* タスクの起床時間が大きかったらそこで終了 */
 		if ( tick_count < task->timeout ) {
 			break;
 		}
-		task_wakeup_async(task, RT_TIMEOUT);
+
+		/* 休止タスクを起床させるためのコールバック関数呼び出し */
+		/* コールバック関数呼び出し前にcpu_spinunlockするので */
+		/* 呼び出し中にリソース取得などで起床する場合がある */
+		/* なので、呼び出し側でcpu_spinlockした場合は以下の２つの状態が有り得る */
+		/*  1. state:TASK_WAIT  リソース/timeout_listには繋がれたまま */
+		/*  2. state:TASK_READY リソース/timeout_listから開放された状態 */
+		/*  コールバック関数内では 状態をチェック後link処理を行う必要がある */
+		/* ※なお、対象タスクはTASK_READYとなっても、この処理と同じコアでのみ */
+		/*   動作するので、割り込み禁止状態である限り対象タスクが実行されることは無い */
+		if ( task->wait_func != 0 ) {
+			void* wait_obj = task->wait_obj; /* spinunlock後にtaskが起床されてもwait_objにアクセスできるようにする目的 */
+			cpu_spinunlock(cpu);
+			(task->wait_func)(task, wait_obj);
+			cpu_spinlock(cpu);
+			task->wait_func = NULL;
+			task->wait_obj = NULL;
+		}
+		else {
+			/* タスク休止中の場合はwakeup処理 */
+			task_wakeup_stub(task, RT_TIMEOUT);
+		}
+
 		req_sched = true;
 	}
 	if ( req_sched ) {
 		schedule(cpu);
 	}
-
-	/* タイマモジュールにタイマexpireを通知 */
-	_timer_notify_tick(tick_count);
-
 	_kernel_timer_update(task_time_out_list);
 
-	irq_restore(cpsr);
+	cpu_spinunlock(cpu);
+
+	/* タイマモジュールにタイマexpireを通知 */
+	/* タイマハンドラは登録/呼び出しが同一コアでしかできないので */
+	/* cpu lockしなくても良い(他コアからアクセスされることが無い) */
+	_timer_notify_tick(tick_count);
+
+	irq_restore(irq_state);
 }
 
 bool schedule(CpuStruct* cpu)
@@ -356,8 +373,8 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 	}
 
 	if ( task->task_attr & TASK_ACT ) {
-		uint32_t		cpsr;
-		irq_save(cpsr);
+		uint32_t		irq_state;
+		irq_state = irq_save();
 		cpu_spinlock(task->cpu_struct);
 		task->task_state = TASK_READY;
 		task_add_queue(task);
@@ -374,7 +391,7 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 				ipi_request_dispatch_one(task->cpu_struct);
 			}
 		}
-		irq_restore(cpsr);
+		irq_restore(irq_state);
 	}
 	return RT_OK;
 
@@ -393,10 +410,10 @@ ERR_RET1:
 
 int _kernel_task_active(TaskStruct* task, void* act_param)
 {
-	uint32_t		cpsr;
+	uint32_t		irq_state;
 	bool req_dispatch = false;
 
-	irq_save(cpsr);
+	irq_state = irq_save();
 	cpu_spinlock(task->cpu_struct);
 
 	arch_task_active(task, act_param);
@@ -420,7 +437,7 @@ int _kernel_task_active(TaskStruct* task, void* act_param)
 			ipi_request_dispatch_one(task->cpu_struct);
 		}
 	}
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 
 	return RT_OK;
 }
@@ -428,8 +445,8 @@ int _kernel_task_active(TaskStruct* task, void* act_param)
 int _kernel_task_sleep(void)
 {
 	bool req_dispatch = false;
-	uint32_t		cpsr;
-	irq_save(cpsr);
+	uint32_t		irq_state;
+	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
 	CpuStruct* cpu = ctask->cpu_struct;
 	cpu_spinlock(cpu);
@@ -439,7 +456,7 @@ int _kernel_task_sleep(void)
 	if ( req_dispatch ) {
 		self_request_dispatch();
 	}
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return RT_OK;
 }
 
@@ -447,15 +464,15 @@ int _kernel_task_wakeup(TaskStruct* task)
 {
 	bool req_dispatch = false;
 	int ret = RT_ERR;
-	uint32_t		cpsr;
-	irq_save(cpsr);
+	uint32_t		irq_state;
+	irq_state = irq_save();
 
 	CpuStruct* cpu = task->cpu_struct;
 	cpu_spinlock(cpu);
 
 	/* wait状態でリソース待ちが無いときにwakeupする */
 	if ( (task->task_state == TASK_WAIT) && link_is_empty(&(task->link)) ) {
-		task_wakeup_async(task, RT_WAKEUP);
+		task_wakeup_stub(task, RT_WAKEUP);
 		req_dispatch = schedule(cpu);
 		ret = RT_OK;
 	}
@@ -473,15 +490,15 @@ int _kernel_task_wakeup(TaskStruct* task)
 		}
 	}
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ret;
 }
 
 int _kernel_task_tsleep(TimeOut tm)
 {
 	bool req_dispatch = false;
-	uint32_t		cpsr;
-	irq_save(cpsr);
+	uint32_t		irq_state;
+	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
 	CpuStruct* cpu = ctask->cpu_struct;
 	cpu_spinlock(cpu);
@@ -505,15 +522,15 @@ int _kernel_task_tsleep(TimeOut tm)
 		}
 	}
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ctask->result_code;
 }
 
 int _kernel_task_dormant(void)
 {
 	bool req_dispatch = false;
-	uint32_t		cpsr;
-	irq_save(cpsr);
+	uint32_t		irq_state;
+	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
 	CpuStruct* cpu = ctask->cpu_struct;
 	cpu_spinlock(cpu);
@@ -535,7 +552,7 @@ int _kernel_task_dormant(void)
 		}
 	}
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	for (;;); /* not return */
 	return RT_OK;
 }

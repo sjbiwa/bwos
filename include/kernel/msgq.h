@@ -14,6 +14,7 @@
 
 typedef	struct tagMsgqStruct {
 	Link			link;
+	SpinLockObj	spin_lock;		/* spin lock */
 	uint8_t*		data;
 	uint32_t		length;
 	uint32_t		data_top;

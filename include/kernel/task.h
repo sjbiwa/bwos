@@ -46,7 +46,7 @@ typedef	struct tagTaskStruct {
 	Link		tlink;				/* TimeOut LinkList */
 	TimeSpec	timeout;			/* TimeOut Time */
 	void*		wait_obj;			/* 待ち状態となった対象オブジェクト */
-	void		(*wait_func)(struct tagTaskStruct* task); /* 待ち状態解除時コールバック */
+	void		(*wait_func)(struct tagTaskStruct* task, void* wait_obj); /* 待ち状態解除時コールバック */
 	int32_t		result_code;		/* API完了コード */
 	struct tagCpuStruct* cpu_struct;
 } TaskStruct;
@@ -64,6 +64,7 @@ typedef	struct tagCpuStruct {
 	Link			task_time_out_list;
 	RunQueue		run_queue;
 	uint32_t		cpuid;
+	Link			timer_list;
 } CpuStruct;
 
 extern CpuStruct cpu_struct[CPU_NUM];

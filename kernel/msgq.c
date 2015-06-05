@@ -23,6 +23,8 @@ typedef	struct {
 /* オブジェクト<->インデックス変換用 */
 static void msgq_sub_init(void) {}
 OBJECT_INDEX_FUNC(msgq,MsgqStruct,MSGQ_MAX_NUM);
+OBJECT_SPINLOCK_FUNC(msgq,MsgqStruct);
+OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 
 static uint32_t queue_space(MsgqStruct* msgq)
@@ -104,50 +106,86 @@ static bool msgq_recv_check_and_copy(MsgqStruct* msgq, MsgqInfoStruct* msgq_info
 	return ret;
 }
 
-static void msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStruct*,MsgqInfoStruct*))
+/* 本関数呼び出し時 msgqはspinlock中であること */
+static uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStruct*,MsgqInfoStruct*))
 {
+	uint32_t	wakeup_cpu_list = 0;
+
 	/* 送信待ちタスクでデータが格納できるものはすべて起床する */
 	while ( !link_is_empty(&(msgq->link)) ) {
 		Link* link = msgq->link.next;
 		TaskStruct* task = containerof(link, TaskStruct, link);
+		CpuStruct* cpu = task->cpu_struct;
+		cpu_spinlock(cpu);
 		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(task->wait_obj);
 
 		/* コピーされなかったら終了 */
 		if ( !(*check_and_copy)(msgq, msgq_info) ) {
+			cpu_spinunlock(cpu);
 			break;
 		}
 
-		link_remove(link);
 		task->wait_func = 0; /* 再度同じ処理が走らないようにクリアする */
 		task_wakeup_stub(task, RT_OK);
+		wakeup_cpu_list |= (0x01u << task->cpu_struct->cpuid);
+		cpu_spinunlock(cpu);
 	}
+	return wakeup_cpu_list;
 }
 
-static void msgq_send_wakeup_body(MsgqStruct* msgq)
+static uint32_t msgq_send_wakeup_body(MsgqStruct* msgq)
 {
-	msgq_task_wakeup_body(msgq, msgq_send_check_and_copy);
+	return msgq_task_wakeup_body(msgq, msgq_send_check_and_copy);
 }
 
-static void msgq_recv_wakeup_body(MsgqStruct* msgq)
+static uint32_t msgq_recv_wakeup_body(MsgqStruct* msgq)
 {
-	msgq_task_wakeup_body(msgq, msgq_recv_check_and_copy);
+	uint32_t msgq_task_wakeup_body(msgq, msgq_recv_check_and_copy);
 }
 
 /* msgq待ちのタスクがタイムアウトした場合 */
-static void msgq_wait_func(TaskStruct* task)
+static void msgq_wait_func(TaskStruct* task, void* wait_obj)
 {
-	MsgqStruct* msgq = ((MsgqInfoStruct*)task->wait_obj)->msgq;
+	uint32_t	wakeup_cpu_list = 0;
+	MsgqStruct* msgq = ((MsgqInfoStruct*)wait_obj)->msgq;
+	CpuStruct* cpu = task->cpu_struct;
+
+	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
+	msgq_spinlock(msgq);
+	cpu_spinlock(cpu);
+	task_wakeup_stub(task, RT_TIMEOUT);
+	cpu_spinunlock(cpu);
 
 	if ( is_send_wait_mode(msgq) ) {
-		msgq_send_wakeup_body(msgq);
+		wakeup_cpu_list = msgq_send_wakeup_body(msgq);
 	}
 	else if ( is_recv_wait_mode(msgq) ) {
-		msgq_recv_wakeup_body(msgq);
+		wakeup_cpu_list = msgq_recv_wakeup_body(msgq);
 	}
 	else {
 		/* タイムアウトしたmsgq待ちタスクが存在するにもかかわらず */
 		/* 送信/受信いずれも待っていない場合は不整合 */
 		tprintf("MSGQ:damange\n");
+	}
+	msgq_spinunlock(msgq);
+
+	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
+	for ( int cpuid = 0; cpuid < CPU_NUM; cpuid++ ) {
+		if ( wakeup_cpu_list & (0x01u << cpuid) ) {
+			CpuStruct* cpu = &cpu_struct[cpuid];
+			cpu_spinlock(cpu);
+			if ( !schedule(cpu) ) {
+				/* dispatch不要の場合、該当コアのフラグをクリア */
+				wakeup_cpu_list &= ~(0x01u << cpuid);
+			}
+			cpu_spinunlock(cpu);
+		}
+	}
+
+	uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
+	if ( other_cpu_list ) {
+		/* スケジュールされた全コアに 割り込み通知する */
+		ipi_request_dispatch(other_cpu_list);
 	}
 }
 
@@ -161,6 +199,8 @@ int _kernel_msgq_create(MsgqStruct* msgq, uint32_t length)
 			msgq->length = length;
 			msgq->data_top = 0;
 			msgq->data_num = 0;
+			msgq_spininit(msgq);
+			sync_barrier();
 			ret = RT_OK;
 		}
 	}
@@ -169,9 +209,12 @@ int _kernel_msgq_create(MsgqStruct* msgq, uint32_t length)
 
 int _kernel_msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
 {
-	uint32_t		cpsr;
+	uint32_t	irq_state;
+	uint32_t	wakeup_cpu_list = 0;
+	int ret = RT_OK;
 
-	irq_save(cpsr);
+retry_lock:
+	irq_state = msgq_spinlock_irq_save(msgq);
 
 	/* 要求サイズチェック */
 	if ( length <= (msgq->length / 2) ) {
@@ -182,38 +225,70 @@ int _kernel_msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmo
 			copy_to_queue(msgq, ptr, length);
 
 			/* 受信待ちタスクでデータが満たされるものをすべて起床する */
-			msgq_recv_wakeup_body(msgq);
-
-			schedule();
-			_ctask->result_code = RT_OK;
+			wakeup_cpu_list = msgq_recv_wakeup_body(msgq);
 		}
 		else if ( tmout == TMO_POLL ) {
 			/* ポーリングなのでタイムアウトエラーとする */
-			_ctask->result_code = RT_OK;
+			ret = RT_TIMEOUT;
 		}
 		else {
 			/* キューに空きがない状態 または すでに送信待ちタスクが存在する 待ち状態に遷移する */
+			/* 最初に自cpuをlock */
+			TaskStruct* task = task_self();
+			CpuStruct* cpu = task->cpu_struct;
+			if ( !cpu_spintrylock(cpu) ) {
+				/* cpuがlockできなければいったんmsgq開放して再取得 */
+				msgq_spinunlock_irq_restore(msgq, irq_state);
+				goto retry_lock;
+			}
+			/* msgq + cpu をlock完了 */
+
 			MsgqInfoStruct msgq_info;
 			msgq_info.msgq = msgq;
 			msgq_info.req_ptr = ptr;
 			msgq_info.req_length = length;
-			task_set_wait(_ctask, &msgq_info, msgq_wait_func);
-			task_remove_queue(_ctask);
-			link_add_last(&(msgq->link), &(_ctask->link));
+			task_set_wait(task, &msgq_info, msgq_wait_func);
+			task_remove_queue(task);
+			link_add_last(&(msgq->link), &(task->link));
 			if ( tmout != TMO_FEVER ) {
 				/* タイムアウトリストに追加 */
-				task_add_timeout(_ctask, tmout);
+				task_add_timeout(task, tmout);
 			}
-			schedule();
+			wakeup_cpu_list = (0x01u << task->cpu_struct->cpuid);
 		}
 	}
 	else {
-		_ctask->result_code = RT_ERR;
+		ret = RT_ERR;
+	}
+	msgq_spinunlock(msgq);
+
+	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
+	for ( int cpuid = 0; cpuid < CPU_NUM; cpuid++ ) {
+		if ( wakeup_cpu_list & (0x01u << cpuid) ) {
+			CpuStruct* cpu = &cpu_struct[cpuid];
+			cpu_spinlock(cpu);
+			if ( !schedule(cpu) ) {
+				/* dispatch不要の場合、該当コアのフラグをクリア */
+				wakeup_cpu_list &= ~(0x01u << cpuid);
+			}
+			cpu_spinunlock(cpu);
+		}
 	}
 
-	irq_restore(cpsr);
+	uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
+	if ( other_cpu_list ) {
+		/* スケジュールされた全コアに 割り込み通知する */
+		ipi_request_dispatch(other_cpu_list);
+	}
 
-	return _ctask->result_code;
+	if ( wakeup_cpu_list & (0x01u<<CPUID_get()) ) {
+		self_request_dispatch();
+		ret = task_self()->result_code;
+	}
+
+	irq_restore(irq_state);
+
+	return ret;
 }
 
 int _kernel_msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length)
@@ -223,9 +298,12 @@ int _kernel_msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length)
 
 int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout)
 {
-	uint32_t cpsr;
+	uint32_t	irq_state;
+	uint32_t	wakeup_cpu_list = 0;
+	int ret = RT_OK;
 
-	irq_save(cpsr);
+retry_lock:
+	irq_state = msgq_spinlock_irq_save(msgq);
 
 	/* 要求サイズチェック */
 	if ( length <= (msgq->length / 2) ) {
@@ -236,38 +314,70 @@ int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmo
 			copy_from_queue(msgq, ptr, length);
 
 			/* 送信待ちタスクでデータが格納できるものはすべて起床する */
-			msgq_send_wakeup_body(msgq);
-
-			schedule();
-			_ctask->result_code = RT_OK;
+			wakeup_cpu_list = msgq_send_wakeup_body(msgq);
 		}
 		else if ( tmout == TMO_POLL ) {
 			/* ポーリングなのでタイムアウトエラーとする */
-			_ctask->result_code = RT_OK;
+			ret = RT_TIMEOUT;
 		}
 		else {
 			/* キューにデータがない -> 待ち状態になる */
+			/* 最初に自cpuをlock */
+			TaskStruct* task = task_self();
+			CpuStruct* cpu = task->cpu_struct;
+			if ( !cpu_spintrylock(cpu) ) {
+				/* cpuがlockできなければいったんmsgq開放して再取得 */
+				msgq_spinunlock_irq_restore(msgq, irq_state);
+				goto retry_lock;
+			}
+			/* msgq + cpu をlock完了 */
 			MsgqInfoStruct msgq_info;
 			msgq_info.msgq = msgq;
 			msgq_info.req_ptr = ptr;
 			msgq_info.req_length = length;
-			task_set_wait(_ctask, &msgq_info, msgq_wait_func);
-			task_remove_queue(_ctask);
-			link_add_last(&(msgq->link), &(_ctask->link));
+			task_set_wait(task, &msgq_info, msgq_wait_func);
+			task_remove_queue(task);
+			link_add_last(&(msgq->link), &(task->link));
 			if ( tmout != TMO_FEVER ) {
 				/* タイムアウトリストに追加 */
-				task_add_timeout(_ctask, tmout);
+				task_add_timeout(task, tmout);
 			}
-			schedule();
+			wakeup_cpu_list = (0x01u << task->cpu_struct->cpuid);
 		}
 	}
 	else {
-		_ctask->result_code = RT_ERR;
+		ret = RT_ERR;
 	}
 
-	irq_restore(cpsr);
+	msgq_spinunlock(msgq);
 
-	return _ctask->result_code;
+	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
+	for ( int cpuid = 0; cpuid < CPU_NUM; cpuid++ ) {
+		if ( wakeup_cpu_list & (0x01u << cpuid) ) {
+			CpuStruct* cpu = &cpu_struct[cpuid];
+			cpu_spinlock(cpu);
+			if ( !schedule(cpu) ) {
+				/* dispatch不要の場合、該当コアのフラグをクリア */
+				wakeup_cpu_list &= ~(0x01u << cpuid);
+			}
+			cpu_spinunlock(cpu);
+		}
+	}
+
+	uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
+	if ( other_cpu_list ) {
+		/* スケジュールされた全コアに 割り込み通知する */
+		ipi_request_dispatch(other_cpu_list);
+	}
+
+	if ( wakeup_cpu_list & (0x01u<<CPUID_get()) ) {
+		self_request_dispatch();
+		ret = task_self()->result_code;
+	}
+
+	irq_restore(irq_state);
+
+	return ret;
 }
 
 int _kernel_msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length)

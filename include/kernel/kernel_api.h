@@ -29,14 +29,14 @@ static int			OBJNAME##_struct_max = 0; \
 static int			OBJNAME##_struct_alloc_id = 0; \
 static int alloc_##OBJNAME##_id(void) \
 { \
-	uint32_t cpsr; \
-	irq_save(cpsr); \
+	uint32_t irq_state; \
+	irq_state = irq_save(); \
 	int ret = RT_ERR; \
 	if ( OBJNAME##_struct_alloc_id < OBJNAME##_struct_max ) { \
 		ret = OBJNAME##_struct_alloc_id; \
 		OBJNAME##_struct_alloc_id++; \
 	} \
-	irq_restore(cpsr); \
+	irq_restore(irq_state); \
 	return ret; \
 } \
 static OBJSTRUCT * OBJNAME##id2object(int id) \
@@ -71,7 +71,19 @@ static inline void OBJNAME##_spinunlock(OBJSTRUCT* obj) \
 static inline int OBJNAME##_spintrylock(OBJSTRUCT* obj) \
 { \
 	return spin_trylock(&(obj->spin_lock)); \
-}
+} \
+static inline uint32_t OBJNAME##_spinlock_irq_save(OBJSTRUCT* obj) \
+{ \
+	uint32_t irq_state = irq_save(); \
+	spin_lock(&(obj->spin_lock)); \
+	return irq_state; \
+} \
+static inline void OBJNAME##_spinunlock_irq_restore(OBJSTRUCT* obj, uint32_t irq_state) \
+{ \
+	spin_unlock(&(obj->spin_lock)); \
+	irq_restore(irq_state); \
+} \
+
 
 /********************************************************/
 /* OSAPISTUB											*/

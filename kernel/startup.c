@@ -51,9 +51,9 @@ static void startup_master(uint32_t cpuid)
 	tprintf("Booting BWOS Ver " OS_VERSION  "\n");
 
 	task_init();
-//	flag_init();
+	flag_init();
 	mutex_init();
-//	sem_init();
+	sem_init();
 	fixmb_init();
 //	msgq_init();
 	timer_init();

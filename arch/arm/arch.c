@@ -180,9 +180,16 @@ extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	return ret;
 }
 
+void ipi_request_dispatch(uint32_t other_cpu_list)
+{
+	__dsb();
+	iowrite32(GICD_SGIR, other_cpu_list << 16);
+}
+
 void ipi_request_dispatch_one(CpuStruct* cpu)
 {
 	uint32_t cpuid = cpu->cpuid;
+	__dsb();
 	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
 }
 

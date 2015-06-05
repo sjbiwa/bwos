@@ -22,9 +22,6 @@ typedef	struct tagTimerStruct {
 static void timer_sub_init(void) {}
 OBJECT_INDEX_FUNC(timer,TimerStruct,TIMER_MAX_NUM);
 
-/* タイマハンドラリスト */
-static Link		timer_list = {&timer_list, &timer_list};
-
 
 static int _kernel_timer_create(TimerStruct* timer)
 {
@@ -34,21 +31,21 @@ static int _kernel_timer_create(TimerStruct* timer)
 
 static int _kernel_timer_set(TimerStruct* timer, TimerInfo* info)
 {
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state = irq_save();
 	if ( !link_is_empty(&timer->link) ) {
 		/* 再設定する場合はいったん外す */
 		link_remove(&timer->link);
 	}
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	timer->info = *info;
 	return RT_OK;
 }
 
 static void _timer_add(TimerStruct* timer)
 {
-	Link* link = timer_list.next;
-	while ( link != &timer_list ) {
+	Link* timer_list = &(cpu_struct[CPUID_get()].timer_list);
+	Link* link = timer_list->next;
+	while ( link != timer_list ) {
 		TimerStruct* q_timer = containerof(link, TimerStruct, link);
 		/* 検索中タイマのexpire時間が登録タイマよりも早ければ */
 		/* その直前に登録する */
@@ -64,8 +61,7 @@ static void _timer_add(TimerStruct* timer)
 
 static int _kernel_timer_enable(TimerStruct* timer, bool enable)
 {
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state = irq_save();
 	if ( enable ) {
 		/* 有効化 */
 		timer->timeout = get_tick_count() + timer->info.tmout;
@@ -79,7 +75,7 @@ static int _kernel_timer_enable(TimerStruct* timer, bool enable)
 	/* タイムアウト更新 */
 	_kernel_timer_update();
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return RT_OK;
 }
 
@@ -116,8 +112,9 @@ OSAPISTUB int __timer_enable(int id, bool enable)
 /* タイマモジュールにタイマexpireを通知 */
 void _timer_notify_tick(TimeSpec tick_count)
 {
+	Link* timer_list = &(cpu_struct[CPUID_get()].timer_list);
 	Link* link;
-	while ( (link = timer_list.next) != &timer_list ) {
+	while ( (link = timer_list->next) != timer_list ) {
 		TimerStruct* q_timer = containerof(link, TimerStruct, link);
 		/* expire時間のほうが大きいところで検索終了 */
 		if ( tick_count < q_timer->timeout ) {
@@ -136,9 +133,10 @@ void _timer_notify_tick(TimeSpec tick_count)
 
 TimeSpec _timer_get_next_timeout(void)
 {
+	Link* timer_list = &(cpu_struct[CPUID_get()].timer_list);
 	TimeSpec ret = (TimeSpec)0;
-	if ( !link_is_empty(&timer_list) ) {
-		TimerStruct* timer = containerof(timer_list.next, TimerStruct, link);
+	if ( !link_is_empty(timer_list) ) {
+		TimerStruct* timer = containerof(timer_list->next, TimerStruct, link);
 		ret = timer->timeout;
 	}
 	return ret;

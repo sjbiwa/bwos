@@ -17,7 +17,7 @@
 #define	irq_enable()		__asm__ volatile ("cpsie i":::"memory")
 #define	irq_disable()		__asm__ volatile ("cpsid i":::"memory")
 
-#define	irq_save(reg)		__asm__ volatile ("mrs %0, cpsr;cpsid i":"=r"(reg)::"memory")
+#define	irq_save()			({ uint32_t _reg; __asm__ volatile ("mrs %0, cpsr;cpsid i":"=r"(_reg)::"memory"); _reg;})
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) __asm__ volatile ("cpsie i":::"memory"); } while(0)
 
 #define	STACK_ALIGN			(8)

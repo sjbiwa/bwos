@@ -53,6 +53,20 @@ static uint32_t fixmb_ptr2idx(FixmbStruct* fixmb, void* ptr)
 	return (uint32_t)(((uint8_t*)ptr - (uint8_t*)(fixmb->mb_area)) / fixmb->mb_size);
 }
 
+/* タスクがタイムアウトした場合 */
+static void fixmb_wait_func(TaskStruct* task, void* wait_obj)
+{
+	FixmbStruct* fixmb = ((FixmbInfoStruct*)wait_obj)->obj;
+	CpuStruct* cpu = task->cpu_struct;
+
+	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
+	fixmb_spinlock(fixmb);
+	cpu_spinlock(cpu);
+	task_wakeup_stub(task, RT_TIMEOUT);
+	cpu_spinunlock(cpu);
+	fixmb_spinunlock(fixmb);
+}
+
 int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 {
 	link_clear(&fixmb->link);
@@ -97,28 +111,17 @@ ERR_RET2:
 	return RT_ERR;
 }
 
-
 int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
+	FixmbInfoStruct fixmb_info;
 	uint32_t alloc_index;
-	uint32_t cpsr;
+	uint32_t irq_state;
 	bool req_dispatch = false;
+	TaskStruct* task = NULL;
+	int ret = RT_OK;
 
 retry_lock:
-	irq_save(cpsr);
-	fixmb_spinlock(fixmb);
-
-	TaskStruct* task = task_self();
-	CpuStruct* cpu = task->cpu_struct;
-	if ( !cpu_spintrylock(cpu) ) {
-		/* cpuがlockできなければいったんfixmb開放して再取得 */
-		fixmb_spinunlock(fixmb);
-		irq_restore(cpsr);
-		goto retry_lock;
-	}
-	/* fixmb + cpu をlock完了 */
-
-	task->result_code = RT_OK;
+	irq_state = fixmb_spinlock_irq_save(fixmb);
 
 	if ( fixmb->use_count < fixmb->mb_length ) {
 		/* 割り当てブロックがある */
@@ -145,14 +148,23 @@ retry_lock:
 	else if ( tmout == TMO_POLL ) {
 		/* 割り当てブロックがない */
 		/* ポーリングなのでタイムアウトエラーとする */
-		task->result_code = RT_TIMEOUT;
+		ret = RT_TIMEOUT;
 	}
 	else {
 		/* 割り当てブロックがないので待ち状態に遷移 */
-		FixmbInfoStruct fixmb_info;
+		/* 最初に自cpuをlock */
+		task = task_self();
+		CpuStruct* cpu = task->cpu_struct;
+		if ( !cpu_spintrylock(cpu) ) {
+			/* cpuがlockできなければいったんfixmb開放して再取得 */
+			fixmb_spinunlock_irq_restore(fixmb, irq_state);
+			goto retry_lock;
+		}
+		/* fixmb + cpu をlock完了 */
+
 		fixmb_info.obj = fixmb;
 		fixmb_info.ptr = ptr;
-		task_set_wait(task, (void*)(&fixmb_info), 0);
+		task_set_wait(task, (void*)(&fixmb_info), fixmb_wait_func);
 		task_remove_queue(task);
 		link_add_last(&(fixmb->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {
@@ -160,18 +172,19 @@ retry_lock:
 			task_add_timeout(task, tmout);
 		}
 		req_dispatch = schedule(cpu);
+
+		cpu_spinunlock(cpu);
 	}
 
-	/* fixmb + cpuは開放 */
-	cpu_spinunlock(cpu);
 	fixmb_spinunlock(fixmb);
 
 	if ( req_dispatch ) {
 		self_request_dispatch();
+		ret = task->result_code;
 	}
 
-	irq_restore(cpsr);
-	return task->result_code;
+	irq_restore(irq_state);
+	return ret;
 }
 
 int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
@@ -182,13 +195,12 @@ int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
 int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 {
 	uint32_t area_size;
-	uint32_t		cpsr;
+	uint32_t		irq_state;
 	int				ret = RT_OK;
 	CpuStruct*	req_dispatch_cpu = NULL;
 
 retry_lock:
-	irq_save(cpsr);
-	fixmb_spinlock(fixmb);
+	irq_state = fixmb_spinlock_irq_save(fixmb);
 
 	/* 解放するアドレスの妥当性チェック */
 	uint32_t rel_index = fixmb_ptr2idx(fixmb, ptr);
@@ -205,8 +217,7 @@ retry_lock:
 			CpuStruct* cpu = task->cpu_struct;
 			if ( !cpu_spintrylock(cpu) ) {
 				/* cpuがlockできなければいったんmutex開放して再取得 */
-				fixmb_spinunlock(fixmb);
-				irq_restore(cpsr);
+				fixmb_spinunlock_irq_restore(fixmb, irq_state);
 				goto retry_lock;
 			}
 			/* fixmb + cpu をlock完了 */
@@ -253,7 +264,7 @@ retry_lock:
 		}
 	}
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ret;
 }
 

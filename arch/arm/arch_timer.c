@@ -35,10 +35,10 @@ timer_handler(uint32_t irqno, void* info)
 	CNTP_CVAL_set(0xffffffffffffffffLL);
 #else
 	/* Tickタイマありの場合はタイマ割り込み設定更新とTickCount更新 */
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state;
+	irq_state = irq_save();
 	tick_count++;
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 #if defined(HAVE_SCU_LOCAL_TIMER)
 	iowrite32(PTM_INTSTATUS, 0x00000001);
 #elif defined(HAVE_CP15_TIMER)
@@ -57,10 +57,10 @@ TimeSpec get_tick_count(void)
 	return conv_reg_to_time(CNTPCT_get());
 #else
 	TimeSpec ret;
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state;
+	irq_state = irq_save();
 	ret = tick_count;
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ret;
 #endif
 }

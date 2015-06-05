@@ -22,15 +22,83 @@ int _kernel_mutex_create(MutexStruct* mtx)
 	return RT_OK;
 }
 
+/* タスクがタイムアウトした場合 */
+static void mutex_wait_func(TaskStruct* task, void* wait_obj)
+{
+	MutexStruct* mutex = (MutexStruct*)(wait_obj);
+	CpuStruct* cpu = task->cpu_struct;
+
+	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
+	mutex_spinlock(mutex);
+	cpu_spinlock(cpu);
+	task_wakeup_stub(task, RT_TIMEOUT);
+	cpu_spinunlock(cpu);
+	mutex_spinunlock(mutex);
+}
+
+int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout)
+{
+	uint32_t		irq_state;
+	TaskStruct* task = NULL;
+	bool req_dispatch = false;
+	int ret = RT_OK;
+
+retry_lock:
+	irq_state = mutex_spinlock_irq_save(mtx);
+
+	if ( mtx->locked == false ) {
+		/* lock中のタスクが無ければ自タスクのlockは成功 */
+		mtx->locked = true;
+	}
+	else if ( tmout == TMO_POLL ) {
+		/* ポーリングなのでタイムアウトエラーとする */
+		ret = RT_TIMEOUT;
+	}
+	else {
+		/* 他タスクlock中なので待ち状態に遷移 */
+		/* 最初に自cpuをlock */
+		task = task_self();
+		CpuStruct* cpu = task->cpu_struct;
+		if ( !cpu_spintrylock(cpu) ) {
+			/* cpuがlockできなければいったんmutex開放して再実行 */
+			mutex_spinunlock_irq_restore(mtx, irq_state);
+			goto retry_lock;
+		}
+		/* mutex + cpu をlock完了 */
+
+		task_set_wait(task, mtx, mutex_wait_func);
+		task_remove_queue(task);
+		link_add_last(&(mtx->link), &(task->link));
+		if ( tmout != TMO_FEVER ) {
+			/* タイムアウトリストに追加 */
+			task_add_timeout(task, tmout);
+		}
+		req_dispatch = schedule(cpu);
+
+		/* cpu開放 */
+		cpu_spinunlock(cpu);
+	}
+
+	/* mutex開放 */
+	mutex_spinunlock(mtx);
+
+	if ( req_dispatch ) {
+		self_request_dispatch();
+		ret = task->result_code;
+	}
+
+	irq_restore(irq_state);
+	return ret;
+}
+
 int _kernel_mutex_unlock(MutexStruct* mtx)
 {
-	uint32_t	cpsr;
+	uint32_t	irq_state;
 	int			ret = RT_OK;
 	CpuStruct*	req_dispatch_cpu = NULL;
 
 retry_lock:
-	irq_save(cpsr);
-	mutex_spinlock(mtx);
+	irq_state = mutex_spinlock_irq_save(mtx);
 
 	if ( mtx->locked ) {
 		if ( !link_is_empty(&(mtx->link)) ) {
@@ -40,8 +108,7 @@ retry_lock:
 			CpuStruct* cpu = task->cpu_struct;
 			if ( !cpu_spintrylock(cpu) ) {
 				/* cpuがlockできなければいったんmutex開放して再取得 */
-				mutex_spinunlock(mtx);
-				irq_restore(cpsr);
+				mutex_spinunlock_irq_restore(mtx, irq_state);
 				goto retry_lock;
 			}
 			/* mutex + cpu をlock完了 */
@@ -79,62 +146,8 @@ retry_lock:
 		}
 	}
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ret;
-}
-
-int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout)
-{
-	uint32_t		cpsr;
-	bool req_dispatch = false;
-
-retry_lock:
-	irq_save(cpsr);
-	mutex_spinlock(mtx);
-
-	TaskStruct* task = task_self();
-	CpuStruct* cpu = task->cpu_struct;
-	if ( !cpu_spintrylock(cpu) ) {
-		/* cpuがlockできなければいったんmutex開放して再取得 */
-		mutex_spinunlock(mtx);
-		irq_restore(cpsr);
-		goto retry_lock;
-	}
-	/* mutex + cpu をlock完了 */
-
-	/* リターンコード設定 */
-	task->result_code = RT_OK;
-
-	if ( mtx->locked == false ) {
-		/* lock中のタスクが無ければ自タスクのlockは成功 */
-		mtx->locked = true;
-	}
-	else if ( tmout == TMO_POLL ) {
-		/* ポーリングなのでタイムアウトエラーとする */
-		task->result_code = RT_TIMEOUT;
-	}
-	else {
-		/* 他タスクlock中なので待ち状態に遷移 */
-		task_set_wait(task, 0, 0);
-		task_remove_queue(task);
-		link_add_last(&(mtx->link), &(task->link));
-		if ( tmout != TMO_FEVER ) {
-			/* タイムアウトリストに追加 */
-			task_add_timeout(task, tmout);
-		}
-		req_dispatch = schedule(cpu);
-	}
-
-	/* mutex + cpuは開放 */
-	cpu_spinunlock(cpu);
-	mutex_spinunlock(mtx);
-
-	if ( req_dispatch ) {
-		self_request_dispatch();
-	}
-
-	irq_restore(cpsr);
-	return task->result_code;
 }
 
 int _kernel_mutex_lock(MutexStruct* mtx)

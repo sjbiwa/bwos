@@ -10,6 +10,7 @@
 
 #include "common.h"
 #include "link.h"
+#include "smp.h"
 
 typedef	struct tagFixmbList {
 	uint32_t	index;

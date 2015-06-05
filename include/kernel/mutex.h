@@ -8,8 +8,8 @@
 #ifndef MUTEX_H_
 #define MUTEX_H_
 
-#include <stdint.h>
-#include "kernel/task.h"
+#include "common.h"
+#include "smp.h"
 #include "link.h"
 
 typedef	struct tagMutexStruct {

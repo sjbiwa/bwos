@@ -8,11 +8,6 @@
 #include "api_no.h"
 #include "api_caller_callee.h"
 
-
-/* API calleeスタブ */
-//extern int __flag_twait_stub(APIFlagTwaitParam* param);
-/********************/
-
 void* svc_entry_table[] = {
 		[TASK_CREATE_APINO] =				(void*)__task_create,
 		[TASK_ACTIVE_APINO] =				(void*)__task_active,
@@ -21,24 +16,24 @@ void* svc_entry_table[] = {
 		[TASK_TSLEEP_APINO] =				(void*)__task_tsleep,
 		[TASK_DORMANT_APINO] =				(void*)__task_dormant,
 		[TASK_GET_TLS_APINO] =				(void*)__task_get_tls,
-//		[FLAG_CREATE_APINO] =				(void*)__flag_create,
-//		[FLAG_SET_APINO] =					(void*)__flag_set,
-//		[FLAG_WAIT_APINO] =					(void*)__flag_wait,
-//		[FLAG_TWAIT_APINO] =				(void*)__flag_twait_stub,
-//		[FLAG_CLEAR_APINO] =				(void*)__flag_clear,
+		[FLAG_CREATE_APINO] =				(void*)__flag_create,
+		[FLAG_SET_APINO] =					(void*)__flag_set,
+		[FLAG_WAIT_APINO] =					(void*)__flag_wait,
+		[FLAG_TWAIT_APINO] =				(void*)__flag_twait_stub,
+		[FLAG_CLEAR_APINO] =				(void*)__flag_clear,
 		[MUTEX_CREATE_APINO] =				(void*)__mutex_create,
 		[MUTEX_UNLOCK_APINO] =				(void*)__mutex_unlock,
 		[MUTEX_LOCK_APINO] =				(void*)__mutex_lock,
 		[MUTEX_TLOCK_APINO] =				(void*)__mutex_tlock,
-//		[SEM_CREATE_APINO] =				(void*)__sem_create,
-//		[SEM_REQUEST_APINO] =				(void*)__sem_request,
-//		[SEM_TREQUEST_APINO] =				(void*)__sem_trequest,
-//		[SEM_RELEASE_APINO] =				(void*)__sem_release,
-//		[MSGQ_CREATE_APINO] =				(void*)__msgq_create,
-//		[MSGQ_SEND_APINO] =					(void*)__msgq_send,
-//		[MSGQ_TSEND_APINO] =				(void*)__msgq_tsend,
-//		[MSGQ_RECV_APINO] =					(void*)__msgq_recv,
-//		[MSGQ_TRECV_APINO] =				(void*)__msgq_trecv,
+		[SEM_CREATE_APINO] =				(void*)__sem_create,
+		[SEM_REQUEST_APINO] =				(void*)__sem_request,
+		[SEM_TREQUEST_APINO] =				(void*)__sem_trequest,
+		[SEM_RELEASE_APINO] =				(void*)__sem_release,
+		[MSGQ_CREATE_APINO] =				(void*)__msgq_create,
+		[MSGQ_SEND_APINO] =					(void*)__msgq_send,
+		[MSGQ_TSEND_APINO] =				(void*)__msgq_tsend,
+		[MSGQ_RECV_APINO] =					(void*)__msgq_recv,
+		[MSGQ_TRECV_APINO] =				(void*)__msgq_trecv,
 		[FIXMB_CREATE_APINO] =				(void*)__fixmb_create,
 		[FIXMB_REQUEST_APINO] =				(void*)__fixmb_request,
 		[FIXMB_TREQUEST_APINO] =			(void*)__fixmb_trequest,
