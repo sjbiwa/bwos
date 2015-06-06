@@ -73,20 +73,12 @@ retry_lock:
 
 	sem_spinunlock(sem);
 
-	/* 起床した全タスクに対応するcpuについて再スケジュール */
-	for ( int cpuid = 0; cpuid < CPU_NUM; cpuid++ ) {
-		if ( wakeup_cpu_list & (0x01u << cpuid) ) {
-			CpuStruct* cpu = &cpu_struct[cpuid];
-			cpu_spinlock(cpu);
-			if ( !schedule(cpu) ) {
-				/* dispatch不要の場合、該当コアのフラグをクリア */
-				wakeup_cpu_list &= ~(0x01u << cpuid);
-			}
-			cpu_spinunlock(cpu);
-		}
-	}
+	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
+	wakeup_cpu_list = schedule_any(wakeup_cpu_list);
 
+	/* 自コアは除いておく */
 	uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
+
 	if ( other_cpu_list ) {
 		/* スケジュールされた全コアに 割り込み通知する */
 		ipi_request_dispatch(other_cpu_list);

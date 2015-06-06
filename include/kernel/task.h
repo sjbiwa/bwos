@@ -71,10 +71,12 @@ extern CpuStruct cpu_struct[CPU_NUM];
 
 extern void task_remove_queue(TaskStruct* task);
 extern void task_wakeup_stub(TaskStruct* task, int32_t result_code);
-
 extern void task_add_timeout(TaskStruct* task, TimeOut tm);
+extern bool schedule(CpuStruct* cpu);
+extern uint32_t schedule_any(uint32_t wakeup_cpu_list);
+extern void self_request_dispatch(void);
 
-static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task))
+static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task, void* wait_obj))
 {
 	task->wait_obj = wait_obj;
 	task->wait_func = wait_func;

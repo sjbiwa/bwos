@@ -136,7 +136,7 @@ OSAPISTUB void __sys_free(void* ptr);
 OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align);
 
 /* 割り込みハンドラ関連API */
-OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
+OSAPISTUB void __irq_add_handler(uint32_t irqno, uint32_t irq_attr, IRQ_HANDLER func, void* info);
 OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting);
 OSAPISTUB int __irq_get_enable(uint32_t irqno);
 

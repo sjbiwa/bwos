@@ -267,6 +267,23 @@ bool schedule(CpuStruct* cpu)
 	return ret;
 }
 
+uint32_t schedule_any(uint32_t wakeup_cpu_list)
+{
+	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
+	for ( int cpuid = 0; cpuid < CPU_NUM; cpuid++ ) {
+		if ( wakeup_cpu_list & (0x01u << cpuid) ) {
+			CpuStruct* cpu = &cpu_struct[cpuid];
+			cpu_spinlock(cpu);
+			if ( !schedule(cpu) ) {
+				/* dispatch不要の場合、該当コアのフラグをクリア */
+				wakeup_cpu_list &= ~(0x01u << cpuid);
+			}
+			cpu_spinunlock(cpu);
+		}
+	}
+	return wakeup_cpu_list;
+}
+
 void self_request_dispatch(void)
 {
 	if ( can_dispatch() ) {
