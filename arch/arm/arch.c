@@ -109,23 +109,27 @@ void arch_system_preinit(uint32_t cpuid)
 	uint32_t clid = CLIDR_get();
 	tprintf("CLID = %08X\n", clid);
 
+	uint32_t louu_value = (clid >> 27) & 0x07; /* Level of Unification Uniprocessor for the cache hierarchy */
 	int32_t ix;
 	/* 下位キャッシュ層から順番にinvalidate */
 	for (ix=6; 0 <= ix; ix--) {
 		if ( (0x07 << (ix*3)) & clid ) {
-			CSSELR_set(ix<<1);
-			uint32_t ccsid = CCSIDR_get();
-			uint32_t sets = ((ccsid >> 13) & 0x7fff) + 1;
-			uint32_t asos = ((ccsid >> 3) & 0x3ff) + 1;
-			uint32_t sizes_len = (ccsid & 0x7) + 4;
-			int32_t asos_len = bit_srch_l(asos-1) + 1;
-			tprintf("L:%d %d %d %d %d TOTAL=%dbytes\n", ix, sets, asos, sizes_len, asos_len, (0x1<<sizes_len)*sets*asos);
-			if ( (0 < asos_len) && (0 < sizes_len) ) {
-				uint32_t w, s;
-				for (w = 0; w < asos; w++) {
-					for (s = 0; s < sets; s++) {
-						uint32_t val = (w<<(32-asos_len))|(s<<(sizes_len))|(ix<<1);
-						DCISW_set(val);
+			/* マスタCPU または 単体CPU内キャッシュのとき */
+			if ( (cpuid == MASTER_CPU_ID) || ((ix+1) <= louu_value) ) {
+				CSSELR_set(ix<<1);
+				uint32_t ccsid = CCSIDR_get();
+				uint32_t sets = ((ccsid >> 13) & 0x7fff) + 1;
+				uint32_t asos = ((ccsid >> 3) & 0x3ff) + 1;
+				uint32_t sizes_len = (ccsid & 0x7) + 4;
+				int32_t asos_len = bit_srch_l(asos-1) + 1;
+				tprintf("L:%d %d %d %d %d TOTAL=%dbytes\n", ix, sets, asos, sizes_len, asos_len, (0x1<<sizes_len)*sets*asos);
+				if ( (0 < asos_len) && (0 < sizes_len) ) {
+					uint32_t w, s;
+					for (w = 0; w < asos; w++) {
+						for (s = 0; s < sets; s++) {
+							uint32_t val = (w<<(32-asos_len))|(s<<(sizes_len))|(ix<<1);
+							DCISW_set(val);
+						}
 					}
 				}
 			}
@@ -151,10 +155,10 @@ void arch_system_preinit(uint32_t cpuid)
 	/* コア間割り込みハンドラ登録 */
 	if ( cpuid == MASTER_CPU_ID ) {
 		__irq_add_handler(0, smp0_handler, NULL);
-		__irq_set_enable(0, IRQ_ENABLE);
 		__irq_add_handler(1, smp0_handler, NULL);
-		__irq_set_enable(1, IRQ_ENABLE);
 	}
+	__irq_set_enable(0, IRQ_ENABLE);
+	__irq_set_enable(1, IRQ_ENABLE);
 }
 
 void arch_register_st_memory()

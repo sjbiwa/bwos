@@ -148,9 +148,9 @@ void task_msgq_1(void)
 		cmd.cmd = ix;
 		cmd.param1 = ix*10;
 		cmd.param2 = ix*100;
-		msgq_send(msgq1, &cmd, sizeof(cmd));
-		task_tsleep(MSEC(200));
-//		lprintf("TASK1:MSGQ1:send:%d\n", ix);
+		msgq_tsend(msgq1, &cmd, sizeof(cmd), SEC(1));
+		lprintf("%d:TASK1:MSGQ1:send:%d\n", CPUID_get(), ix);
+		task_tsleep(MSEC(100));
 	}
 	task_sleep();
 }
@@ -162,11 +162,12 @@ void task_msgq_2(void)
 	MsgCmd2 cmd2;
 	for ( ix=0;; ix++ ) {
 		msgq_recv(msgq1, &cmd, sizeof(cmd));
-//		lprintf("TASK2:MSG1:recv:%d\n", ix);
+		lprintf("%d:TASK2:MSG1:recv:%d\n", CPUID_get(), ix);
 		cmd2.cmd = cmd.cmd;
 		cmd2.param5 = cmd.param1;
 		cmd2.param6 = cmd.param2;
-		lprintf("TASK2:CMD2:%d %d %d\n", cmd2.cmd, cmd2.param5, cmd2.param6);
+		lprintf("%d:TASK2:CMD2:%d %d %d\n", CPUID_get(), cmd2.cmd, cmd2.param5, cmd2.param6);
+		task_tsleep(MSEC(5));
 	}
 }
 
@@ -176,8 +177,8 @@ void task_msgq_3(void)
 	MsgCmd cmd;
 	for ( ix=0;; ix++ ) {
 		msgq_recv(msgq1, &cmd, sizeof(cmd));
-//		lprintf("TASK3:MSG2:recv:%d\n", ix);
-		lprintf("TASK3:CMD2:%d %d %d\n", cmd.cmd, cmd.param1, cmd.param2);
+		lprintf("%d:TASK3:MSG2:recv:%d\n", CPUID_get(), ix);
+		lprintf("%d:TASK3:CMD2:%d %d %d\n", CPUID_get(), cmd.cmd, cmd.param1, cmd.param2);
 	}
 }
 
@@ -204,8 +205,8 @@ TaskCreateInfo	task_info[] = {
 		{"TASK16", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task8, 0, 4096, 4096, 7, (void*)0},
 #endif
 		{"TASKm1", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 4096, 4096, 8, (void*)0},
-		{"TASKm2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 4096, 4096, 7, (void*)0},
-		{"TASKm3", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 4096, 4096, 7, (void*)0},
+		{"TASKm2", CPU_CORE1|TASK_FPU|TASK_SYS, task_msgq_2, 0, 4096, 4096, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 4096, 4096, 7, (void*)0},
 };
 
 void main_task(void)
@@ -225,5 +226,6 @@ void main_task(void)
 		task_struct[ix] = task_create(&task_info[ix]);
 	}
 
+	task_active(task_struct[1], 0);
 	task_sleep();
 }

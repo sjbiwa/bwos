@@ -16,7 +16,7 @@ static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
 
 
 /* オブジェクト<->インデックス変換用 */
-static void task_sub_init(void);
+void task_sub_init(void);
 OBJECT_INDEX_FUNC(task,TaskStruct,TASK_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
@@ -27,7 +27,7 @@ extern void arch_init_task_create(TaskStruct* task);
 extern int arch_task_create(TaskStruct* task, void* cre_param);
 extern void arch_task_active(TaskStruct* task, void* act_param);
 
-static void task_sub_init(void)
+void task_sub_init(void)
 {
 	for ( int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
 		cpu_spininit(&cpu_struct[cpuid]);

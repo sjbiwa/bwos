@@ -55,7 +55,7 @@ static void startup_master(uint32_t cpuid)
 	mutex_init();
 	sem_init();
 	fixmb_init();
-//	msgq_init();
+	msgq_init();
 	timer_init();
 
 	arch_timer_init(cpuid);

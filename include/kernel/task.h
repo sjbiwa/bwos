@@ -61,9 +61,9 @@ typedef	struct tagCpuStruct {
 	TaskStruct*		ctask;
 	TaskStruct*		ntask;
 	SpinLockObj		spin_lock;
+	uint32_t		cpuid;
 	Link			task_time_out_list;
 	RunQueue		run_queue;
-	uint32_t		cpuid;
 	Link			timer_list;
 } CpuStruct;
 

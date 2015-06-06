@@ -51,6 +51,7 @@ _start:
 	orr		r0, r0, r1
 	bx		r0
 
+
 	.thumb
 	.thumb_func
 	.text
@@ -105,11 +106,7 @@ _reset_entry:
 	VBAR_set(r0)
 
 	/* Initialize StackPointer */
-#ifdef SMP_ENABLE
 	CPUID_get(r2)
-#else
-	mov		r2, #0
-#endif
 	STACK_INIT(und, stack_undef,r2)
 	STACK_INIT(abt, stack_dabort,r2)
 	STACK_INIT(irq, stack_irq,r2)
@@ -117,11 +114,10 @@ _reset_entry:
 	STACK_INIT(usr, stack_sys,r2)
 	STACK_INIT(svc, stack_svc,r2)
 
-#ifdef SMP_ENABLE
 	CPUID_get(r2)
 	cmp		r2, #0
 	bne		_bss_done
-#endif
+
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start
 	ldr		r1, =__data_start

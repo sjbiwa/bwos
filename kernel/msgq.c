@@ -107,7 +107,7 @@ static bool msgq_recv_check_and_copy(MsgqStruct* msgq, MsgqInfoStruct* msgq_info
 }
 
 /* 本関数呼び出し時 msgqはspinlock中であること */
-static uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStruct*,MsgqInfoStruct*))
+uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStruct*,MsgqInfoStruct*))
 {
 	uint32_t	wakeup_cpu_list = 0;
 
@@ -133,14 +133,14 @@ static uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(M
 	return wakeup_cpu_list;
 }
 
-static uint32_t msgq_send_wakeup_body(MsgqStruct* msgq)
+uint32_t msgq_send_wakeup_body(MsgqStruct* msgq)
 {
 	return msgq_task_wakeup_body(msgq, msgq_send_check_and_copy);
 }
 
-static uint32_t msgq_recv_wakeup_body(MsgqStruct* msgq)
+uint32_t msgq_recv_wakeup_body(MsgqStruct* msgq)
 {
-	uint32_t msgq_task_wakeup_body(msgq, msgq_recv_check_and_copy);
+	return msgq_task_wakeup_body(msgq, msgq_recv_check_and_copy);
 }
 
 /* msgq待ちのタスクがタイムアウトした場合 */
@@ -162,11 +162,7 @@ static void msgq_wait_func(TaskStruct* task, void* wait_obj)
 	else if ( is_recv_wait_mode(msgq) ) {
 		wakeup_cpu_list = msgq_recv_wakeup_body(msgq);
 	}
-	else {
-		/* タイムアウトしたmsgq待ちタスクが存在するにもかかわらず */
-		/* 送信/受信いずれも待っていない場合は不整合 */
-		tprintf("MSGQ:damange\n");
-	}
+
 	msgq_spinunlock(msgq);
 
 	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
@@ -255,6 +251,7 @@ retry_lock:
 				task_add_timeout(task, tmout);
 			}
 			wakeup_cpu_list = (0x01u << task->cpu_struct->cpuid);
+			cpu_spinunlock(cpu);
 		}
 	}
 	else {
@@ -343,6 +340,7 @@ retry_lock:
 				task_add_timeout(task, tmout);
 			}
 			wakeup_cpu_list = (0x01u << task->cpu_struct->cpuid);
+			cpu_spinunlock(cpu);
 		}
 	}
 	else {

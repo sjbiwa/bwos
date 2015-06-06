@@ -40,7 +40,7 @@ endif
 
 DEFS += -DUSE_TICKLESS -DMASTER_CPU_ID=0
 CFLAGS  +=  -std=gnu11 -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=vfpv4 -mno-thumb-interwork -mthumb $(DEFS)
-CFLAGS  += -g -gdwarf-3 -Os -fno-builtin -mno-unaligned-access
+CFLAGS  += -g -gdwarf-3 -O1 -fno-builtin -mno-unaligned-access
 AFLAGS  += $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
 LDFLAGS += -mcpu=cortex-a7 -mno-thumb-interwork -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none

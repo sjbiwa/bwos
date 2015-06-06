@@ -12,13 +12,8 @@
 #include "my_board.h"
 #include "memmgr.h"
 
-#if defined(SMP_ENABLE)
 #define	SHARE_SECT			(0x01u<<16)
 #define	SHARE_PAGE			(0x01u<<10)
-#else
-#define	SHARE_SECT			(0)
-#define	SHARE_PAGE			(0)
-#endif
 
 static const uint32_t	attr_conv_tbl[][2] = {
 	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT)|SHARE_SECT,
