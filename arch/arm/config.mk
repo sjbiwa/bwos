@@ -30,13 +30,9 @@ LDSCRIPT = $(ARCHDIR)/link.lds
 
 #DEFS = -DCYGWIN
 
-ifeq ($(SMP),1)
 DEFS += -DSMP_ENABLE -DCPU_NUM=$(SMP_CPU_NUM)
 C_SRCS += arch_smp.c
 A_SRCS += spinlock.S
-else
-DEFS += -DSMP_ENABLE -DCPU_NUM=1
-endif
 
 DEFS += -DUSE_TICKLESS -DMASTER_CPU_ID=0
 CFLAGS  +=  -std=gnu11 -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=vfpv4 -mno-thumb-interwork -mthumb $(DEFS)

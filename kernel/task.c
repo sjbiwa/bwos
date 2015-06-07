@@ -318,11 +318,11 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->wait_obj = 0;
 	task->wait_func = 0;
 	task->result_code = 0;
-	uint32_t cpu = CPU_GET(task_attr);
-	if ( cpu == CPU_SELF ) {
-		cpu = CPUID_get();
+	uint32_t cpuid = CPU_GET(task_attr);
+	if ( cpuid == CPU_GET(CPU_SELF) ) {
+		cpuid = CPUID_get();
 	}
-	task->cpu_struct = &cpu_struct[cpu];
+	task->cpu_struct = &cpu_struct[cpuid];
 }
 
 void task_init_task_create(void)

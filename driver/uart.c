@@ -382,7 +382,7 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 		uart_obj_tbl[ix].err_bits = 0;
 
 		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
-		irq_add_handler(uart_obj_tbl[ix].dev->irq, uart_irq_handler, &uart_obj_tbl[ix]);
+		irq_add_handler(uart_obj_tbl[ix].dev->irq, CPU_SELF, uart_irq_handler, &uart_obj_tbl[ix]);
 	}
 }
 

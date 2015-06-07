@@ -42,7 +42,7 @@ void task1()
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 6, (void*)512},
+		{"TASK1", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 6, (void*)512},
 };
 
 void main_task(void)

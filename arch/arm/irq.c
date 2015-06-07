@@ -44,7 +44,7 @@ OSAPISTUB void __irq_add_handler(uint32_t irqno, uint32_t irq_attr, IRQ_HANDLER 
 		if ( 32 <= irqno ) {
 			/* Set Target Register */
 			uint32_t cpuid = CPU_GET(irq_attr);
-			if ( cpuid == CPU_SELF ) {
+			if ( cpuid == CPU_GET(CPU_SELF) ) {
 				cpuid = CPUID_get();
 			}
 			iowrite8(GICD_ITARGETSR+irqno, 0x01u<<cpuid);

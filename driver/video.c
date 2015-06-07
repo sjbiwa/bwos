@@ -331,6 +331,6 @@ void video_init(void)
 	/* 割り込み設定 */
 	iowrite32(regbase+VOP_INTR_CTRL0, 0x00203f60);
 	iowrite32(regbase+VOP_INTR_CTRL1, 0x00000000);
-	irq_add_handler(IRQ_VOP_BIG, video_irq_handler, NULL);
+	irq_add_handler(IRQ_VOP_BIG, CPU_SELF, video_irq_handler, NULL);
 	irq_set_enable(IRQ_VOP_BIG, IRQ_ENABLE);
 }

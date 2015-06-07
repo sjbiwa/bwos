@@ -54,9 +54,6 @@ void task1(void)
 {
 	int ret;
 
-	sync_flag = flag_create();
-	video_register_handler(irq_handler);
-
 	/* fill win0 */
 	uint32_t addr = 0x20000000;
 	uint32_t idx = 0;
@@ -114,10 +111,10 @@ void task4(void)
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5},
-		{"TASK2", TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 5},
-		{"TASK3", TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 5},
-		{"TASK4", TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 1024, 1024, 5},
+		{"TASK1", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5},
+		{"TASK2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 5},
+		{"TASK3", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 5},
+		{"TASK4", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 1024, 1024, 5},
 };
 
 void main_task(void)
@@ -136,6 +133,9 @@ void main_task(void)
 	video_layer_set(VIDEO_LAYER_2, 0,   384, 512, 384, 0, 1024);
 	video_layer_set(VIDEO_LAYER_3, 512, 384, 512, 384, 0, 1024);
 	lprintf("video init\n");
+	video_register_handler(irq_handler);
+	sync_flag = flag_create();
+	sync_barrier();
 
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {

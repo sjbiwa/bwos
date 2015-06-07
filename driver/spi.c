@@ -234,7 +234,7 @@ void spi_register(SpiDeviceInfo* info, uint32_t info_num)
 		spi_obj_tbl[ix].mutex = mutex_create();
 		spi_obj_tbl[ix].ev_flag = flag_create();
 		irq_set_enable(spi_obj_tbl[ix].dev->irq, IRQ_DISABLE);
-		irq_add_handler(spi_obj_tbl[ix].dev->irq, spi_irq_handler, &spi_obj_tbl[ix]);
+		irq_add_handler(spi_obj_tbl[ix].dev->irq, CPU_SELF, spi_irq_handler, &spi_obj_tbl[ix]);
 	}
 
 }
