@@ -95,7 +95,7 @@ arch_timer_init(uint32_t cpuid)
 #endif
 #endif
 	if ( cpuid == MASTER_CPU_ID ) {
-		__irq_add_handler(29, CPU_SELF, timer_handler, NULL);
+		__irq_add_handler(29, timer_handler, NULL);
 	}
-	__irq_set_enable(29, IRQ_ENABLE);
+	__irq_set_enable(29, IRQ_ENABLE, CPU_SELF);
 }

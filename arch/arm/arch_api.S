@@ -109,9 +109,9 @@ DEF_OSAPI sys_free, SYS_FREE_APINO
 /* OSAPI void* sys_malloc_align(uint32_t size, uint32_t align); */
 DEF_OSAPI sys_malloc_align, SYS_MALLOC_ALIGN_APINO
 
-/* OSAPI void irq_add_handler(uint32_t irqno, uint32_t irq_attr, IRQ_HANDLER func, void* info); */
+/* OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info); */
 DEF_OSAPI irq_add_handler, IRQ_ADD_HANDLER_APINO
-/* OSAPI void irq_set_enable(uint32_t irqno, int setting); */
+/* OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr); */
 DEF_OSAPI irq_set_enable, IRQ_SET_ENABLE_APINO
 /* OSAPI int irq_get_enable(info->irq); */
 DEF_OSAPI irq_get_enable, IRQ_GET_ENABLE_APINO

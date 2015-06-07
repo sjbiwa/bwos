@@ -36,11 +36,26 @@ void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 /*
  * 	irq_add_handler
  */
-OSAPISTUB void __irq_add_handler(uint32_t irqno, uint32_t irq_attr, IRQ_HANDLER func, void* info)
+OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 {
 	if ( irqno < IRQ_NUM ) {
 		irq_action[irqno].handler = func;
 		irq_action[irqno].info = info;
+		sync_barrier();
+	}
+}
+
+/*
+ * 	irq_set_enable
+ */
+OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
+{
+	uint32_t		off;
+	uint32_t		bit;
+
+	off = irqno / 32;
+	bit = irqno % 32;
+	if ( setting == IRQ_ENABLE ) {
 		if ( 32 <= irqno ) {
 			/* Set Target Register */
 			uint32_t cpuid = CPU_GET(irq_attr);
@@ -49,21 +64,6 @@ OSAPISTUB void __irq_add_handler(uint32_t irqno, uint32_t irq_attr, IRQ_HANDLER 
 			}
 			iowrite8(GICD_ITARGETSR+irqno, 0x01u<<cpuid);
 		}
-		sync_barrier();
-	}
-}
-
-/*
- * 	irq_set_enable
- */
-OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting)
-{
-	uint32_t		off;
-	uint32_t		bit;
-
-	off = irqno / 32;
-	bit = irqno % 32;
-	if ( setting == IRQ_ENABLE ) {
 		iowrite32(GICD_ISENABLER+off*4, 0x01<<bit);
 	}
 	else {

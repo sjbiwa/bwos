@@ -381,8 +381,8 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 		uart_obj_tbl[ix].ev_flag = flag_create();
 		uart_obj_tbl[ix].err_bits = 0;
 
-		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
-		irq_add_handler(uart_obj_tbl[ix].dev->irq, CPU_SELF, uart_irq_handler, &uart_obj_tbl[ix]);
+		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE, CPU_SELF);
+		irq_add_handler(uart_obj_tbl[ix].dev->irq, uart_irq_handler, &uart_obj_tbl[ix]);
 	}
 }
 
@@ -394,7 +394,7 @@ void uart_set_config(uint32_t port_no, UartConfigParam* config)
 	bool irq_enable_org = irq_get_enable(info->irq);
 
 	/* UART割り込み禁止 */
-	irq_set_enable(info->irq, IRQ_DISABLE);
+	irq_set_enable(info->irq, IRQ_DISABLE, CPU_SELF);
 	iowrite32(port+UART_IER, 0x0);
 
 	/* UARTリセット */
@@ -449,13 +449,13 @@ void uart_set_config(uint32_t port_no, UartConfigParam* config)
 						IER_TRANS_HOLD_EMPTY_INT_EN|
 						IER_RECEIVE_DATA_AVAILABLE_INT_EN);
 	if ( irq_enable_org ) {
-		irq_set_enable(info->irq, IRQ_ENABLE);
+		irq_set_enable(info->irq, IRQ_ENABLE, CPU_SELF);
 	}
 }
 
 static void uart_release_resource(UartObject* uart_obj)
 {
-	irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE);
+	irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
 	ringbuff_destroy(&(uart_obj->tx));
 	ringbuff_destroy(&(uart_obj->rx));
 }
@@ -474,7 +474,7 @@ void uart_open(uint32_t port_no, UartOpenParam* open)
 	}
 	uart_obj->active = true;
 	flag_clear(uart_obj->ev_flag, ~0);
-	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE);
+	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 }
 
 void uart_close(uint32_t port_no)

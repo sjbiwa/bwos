@@ -155,11 +155,11 @@ void arch_system_preinit(uint32_t cpuid)
 
 	/* コア間割り込みハンドラ登録 */
 	if ( cpuid == MASTER_CPU_ID ) {
-		__irq_add_handler(0, CPU_SELF, smp0_handler, NULL);
-		__irq_add_handler(1, CPU_SELF, smp0_handler, NULL);
+		__irq_add_handler(0, smp0_handler, NULL);
+		__irq_add_handler(1, smp0_handler, NULL);
 	}
-	__irq_set_enable(0, IRQ_ENABLE);
-	__irq_set_enable(1, IRQ_ENABLE);
+	__irq_set_enable(0, IRQ_ENABLE, CPU_SELF);
+	__irq_set_enable(1, IRQ_ENABLE, CPU_SELF);
 }
 
 void arch_register_st_memory()

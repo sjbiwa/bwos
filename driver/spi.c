@@ -7,6 +7,7 @@
 #include "bwos.h"
 #include "driver/clock.h"
 #include "driver/spi.h"
+#include "cp15reg.h"
 
 #define	SPI_CTRLR0				(0x0000u)		/* Control Register 0 */
 #define	SPI_CTRLR1				(0x0004u)		/* Control Register 1 */
@@ -233,8 +234,8 @@ void spi_register(SpiDeviceInfo* info, uint32_t info_num)
 		spi_obj_tbl[ix].active = false;
 		spi_obj_tbl[ix].mutex = mutex_create();
 		spi_obj_tbl[ix].ev_flag = flag_create();
-		irq_set_enable(spi_obj_tbl[ix].dev->irq, IRQ_DISABLE);
-		irq_add_handler(spi_obj_tbl[ix].dev->irq, CPU_SELF, spi_irq_handler, &spi_obj_tbl[ix]);
+		irq_set_enable(spi_obj_tbl[ix].dev->irq, IRQ_DISABLE, CPU_SELF);
+		irq_add_handler(spi_obj_tbl[ix].dev->irq, spi_irq_handler, &spi_obj_tbl[ix]);
 	}
 
 }
@@ -317,7 +318,7 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 	/* 割り込みは禁止 / ハンドラは有効化 */
 	iowrite32(port+SPI_IMR, 0);
 	iowrite32(port+SPI_ICR, ICR_CTFOI|ICR_CRFOI|ICR_CRFUI|ICR_CCI);
-	irq_set_enable(obj->dev->irq, IRQ_ENABLE);
+	irq_set_enable(obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 
 	iowrite32(port+SPI_ENR, 0x01); /* SPI有効化 */
 
@@ -400,7 +401,7 @@ int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
 	iowrite32(port+SPI_SER, 0x00); /* CSn OFF */
 	iowrite32(port+SPI_ENR, 0x00); /* SPI無効化 */
 
-	irq_set_enable(obj->dev->irq, IRQ_DISABLE);
+	irq_set_enable(obj->dev->irq, IRQ_DISABLE, CPU_SELF);
 
 	mutex_unlock(obj->mutex);
 
