@@ -45,7 +45,6 @@ void task3(uint32_t arg0, uint32_t arg1)
 	for (int ix=0;;ix++ ) {
 		lprintf("CORE=%d:task3\n", CPUID_get());
 		int ret = fixmb_trequest(fixmb, (void**)(&ptr), SEC(30));
-		lprintf("ret=%d\n", ret);
 		if ( ret == RT_OK ) {
 			lprintf("CORE=%d:get %08X\n", CPUID_get(), ptr);
 		}
@@ -80,20 +79,20 @@ void task4(uint32_t arg0, uint32_t arg1)
 
 void task5(uint32_t arg0, uint32_t arg1)
 {
-	lprintf("task5:%d\n", sem);
+	lprintf("CORE=%d:task5:%d\n", CPUID_get(), sem);
 	for (;;) {
 		int ret = sem_trequest(sem, 10, MSEC(5));
-		lprintf("task5:request ret=%d\n", ret);
+		lprintf("CORE=%d:task5:request ret=%d\n", CPUID_get(), ret);
 	}
 }
 
 void task6(uint32_t arg0, uint32_t arg1)
 {
-	lprintf("task6\n");
+	lprintf("CORE=%d:task6\n", CPUID_get());
 	task_tsleep(MSEC(5));
 	for (;;) {
 		int ret = sem_trequest(sem, 5, MSEC(3));
-		lprintf("task6:request ret=%d\n", ret);
+		lprintf("CORE=%d:task6:request ret=%d\n", CPUID_get(), ret);
 		ret = sem_release(sem, 2);
 		task_tsleep(MSEC(3));
 	}
@@ -101,21 +100,21 @@ void task6(uint32_t arg0, uint32_t arg1)
 
 void task7(uint32_t arg0, uint32_t arg1)
 {
-	lprintf("task7\n");
+	lprintf("CORE=%d:task7\n", CPUID_get());
 	for (;;) {
 		uint32_t pattern;
 		flag_wait(flag, 0x0001, FLAG_OR|FLAG_CLR, &pattern);
-		lprintf("flag_wait done\n");
+		lprintf("CORE=%d:flag_wait done\n", CPUID_get());
 	}
 }
 
 void task8(uint32_t arg0, uint32_t arg1)
 {
-	lprintf("task8\n");
+	lprintf("CORE=%d:task8\n", CPUID_get());
 	for (;;) {
 		task_tsleep(MSEC(500));
 		flag_set(flag, 0x0001);
-		lprintf("flag_set done\n");
+		lprintf("CORE=%d:flag_set done\n", CPUID_get());
 	}
 }
 
@@ -149,7 +148,7 @@ void task_msgq_1(void)
 		cmd.param1 = ix*10;
 		cmd.param2 = ix*100;
 		msgq_tsend(msgq1, &cmd, sizeof(cmd), SEC(1));
-		lprintf("%d:TASK1:MSGQ1:send:%d\n", CPUID_get(), ix);
+		lprintf("CORE=%d:TASK1:MSGQ1:send:%d\n", CPUID_get(), ix);
 		task_tsleep(MSEC(100));
 	}
 	task_sleep();
@@ -162,11 +161,11 @@ void task_msgq_2(void)
 	MsgCmd2 cmd2;
 	for ( ix=0;; ix++ ) {
 		msgq_recv(msgq1, &cmd, sizeof(cmd));
-		lprintf("%d:TASK2:MSG1:recv:%d\n", CPUID_get(), ix);
+		lprintf("CORE=%d:TASK2:MSG1:recv:%d\n", CPUID_get(), ix);
 		cmd2.cmd = cmd.cmd;
 		cmd2.param5 = cmd.param1;
 		cmd2.param6 = cmd.param2;
-		lprintf("%d:TASK2:CMD2:%d %d %d\n", CPUID_get(), cmd2.cmd, cmd2.param5, cmd2.param6);
+		lprintf("CORE=%d:TASK2:CMD2:%d %d %d\n", CPUID_get(), cmd2.cmd, cmd2.param5, cmd2.param6);
 		task_tsleep(MSEC(5));
 	}
 }
@@ -177,13 +176,14 @@ void task_msgq_3(void)
 	MsgCmd cmd;
 	for ( ix=0;; ix++ ) {
 		msgq_recv(msgq1, &cmd, sizeof(cmd));
-		lprintf("%d:TASK3:MSG2:recv:%d\n", CPUID_get(), ix);
-		lprintf("%d:TASK3:CMD2:%d %d %d\n", CPUID_get(), cmd.cmd, cmd.param1, cmd.param2);
+		lprintf("CORE=%d:TASK3:MSG2:recv:%d\n", CPUID_get(), ix);
+		lprintf("CORE=%d:TASK3:CMD2:%d %d %d\n", CPUID_get(), cmd.cmd, cmd.param1, cmd.param2);
 	}
 }
 
 
 TaskCreateInfo	task_info[] = {
+#if 0
 #if 1
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)0},
@@ -214,6 +214,36 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
 		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
+#endif
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)0},
+		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)1},
+		{"TASK02", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 1024, 0, 8, (void*)1},
+		{"TASK14", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task6, 0, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task5, 0, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task6, 0, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task5, 0, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task6, 0, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task5, 0, 1024, 0, 7, (void*)0},
+		{"TASK15", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task7, 0, 1024, 0, 8, (void*)0},
+		{"TASK16", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task8, 0, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
 };
 

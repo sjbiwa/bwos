@@ -96,6 +96,7 @@ void arch_system_preinit(uint32_t cpuid)
 		}
 	}
 
+	tprintf("CPU= = %d\n", CPUID_get());
 	tprintf("SCTLR = %08X\n", SCTLR_get());
 	tprintf("ACTLR = %08X\n", ACTLR_get());
 	tprintf("SCR = %08X\n", SCR_get());

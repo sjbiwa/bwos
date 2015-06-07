@@ -3,7 +3,8 @@
 #
 ARCH = arm
 CPU  = cortex-a7
-BOARD = cubietruck
+#BOARD = cubietruck
+BOARD = firefly_rk3288
 APPLICATION = application
 SMP=1
-SMP_CPU_NUM=2
+SMP_CPU_NUM=4

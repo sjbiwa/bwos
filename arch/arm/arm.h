@@ -60,6 +60,7 @@
 #define	__swi()				__asm__ volatile ("swi 0":::"memory")
 #define	__wfi()				__asm__ volatile ("dsb;wfi":::"memory")
 #define	__wfe()				__asm__ volatile ("dsb;wfe":::"memory")
+#define	__sev()				__asm__ volatile ("dsb;sev":::"memory")
 
 #define	sync_barrier()		__dsb()
 #define	order_barrier()		__dmb()

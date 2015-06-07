@@ -135,6 +135,9 @@
 /* CCS */
 #define	CCS_REG_BASE			(0xFF6E0000u)
 #define	CCS_REG_SIZE			(0x10000u)
+/* Internal SRAM */
+#define	ISRAM_MEM_BASE			(0xFF700000u)
+#define	ISRAM_MEM_SIZE			(0x20000u)
 /* PMU internel mem */
 #define	PMUMEM_REG_BASE			(0xFF720000u)
 #define	PMUMEM_REG_SIZE			(0x1000u)

@@ -63,4 +63,7 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(I2CHDMI_REG_BASE), 	I2CHDMI_REG_SIZE,	ATTR_DEV);
 	mmgr_add_entry((void*)(I2CPMU_REG_BASE), 	I2CPMU_REG_SIZE,	ATTR_DEV);
 	mmgr_add_entry((void*)(I2CAUDIO_REG_BASE), 	I2CAUDIO_REG_SIZE,	ATTR_DEV);
+
+	/* Internal SRAM */
+	mmgr_add_entry((void*)(ISRAM_MEM_BASE), 	ISRAM_MEM_SIZE,	ATTR_DEV);
 }
