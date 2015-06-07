@@ -21,5 +21,6 @@ typedef	struct {
 	uint32_t* ret_pattern;
 	TimeOut tmout;
 } APIFlagTwaitParam;
+extern int __flag_twait_stub(APIFlagTwaitParam* param);
 
 #endif /* _API_CALLER_CALLEE_H_ */

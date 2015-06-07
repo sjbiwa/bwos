@@ -35,10 +35,10 @@ timer_handler(uint32_t irqno, void* info)
 	CNTP_CVAL_set(0xffffffffffffffffLL);
 #else
 	/* Tickタイマありの場合はタイマ割り込み設定更新とTickCount更新 */
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state;
+	irq_state = irq_save();
 	tick_count++;
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 #if defined(HAVE_SCU_LOCAL_TIMER)
 	iowrite32(PTM_INTSTATUS, 0x00000001);
 #elif defined(HAVE_CP15_TIMER)
@@ -57,10 +57,10 @@ TimeSpec get_tick_count(void)
 	return conv_reg_to_time(CNTPCT_get());
 #else
 	TimeSpec ret;
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state;
+	irq_state = irq_save();
 	ret = tick_count;
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ret;
 #endif
 }
@@ -75,7 +75,7 @@ void update_first_timeout(TimeSpec tmout)
 }
 
 void
-arch_timer_init(void)
+arch_timer_init(uint32_t cpuid)
 {
 #if defined(USE_TICKLESS)
 	CNTP_CTL_set(0x00000000);
@@ -94,6 +94,8 @@ arch_timer_init(void)
 	CNTP_CTL_set(0x00000001);
 #endif
 #endif
-	__irq_add_handler(29, timer_handler, NULL);
+	if ( cpuid == MASTER_CPU_ID ) {
+		__irq_add_handler(29, CPU_SELF, timer_handler, NULL);
+	}
 	__irq_set_enable(29, IRQ_ENABLE);
 }

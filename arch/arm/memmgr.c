@@ -12,14 +12,16 @@
 #include "my_board.h"
 #include "memmgr.h"
 
+#define	SHARE_SECT			(0x01u<<16)
+#define	SHARE_PAGE			(0x01u<<10)
 
 static const uint32_t	attr_conv_tbl[][2] = {
-	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT),
-	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT),
-	[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA),
-	[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA),
-	[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV),
-	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV),
+	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT)|SHARE_SECT,
+	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT)|SHARE_PAGE,
+	[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA)|SHARE_SECT,
+	[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA)|SHARE_PAGE,
+	[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV)|SHARE_SECT,
+	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV)|SHARE_PAGE,
 };
 /* section table */
 //static uint32_t section_tbl[4096] __attribute__((aligned(16*1024)));
@@ -93,34 +95,8 @@ void mmgr_add_entry(void* addr, MemSize_t size, uint32_t attr)
 	}
 }
 
-
-void mmgr_init(void)
+void mmgr_mmu_init(void)
 {
-extern char __text_start;
-extern char __text_end;
-extern char __data_start;
-
-	/* セクションテーブル初期化 */
-	section_tbl = sectiontbl_alloc();
-
-	/****************************************************/
-	/*	MMUの設定方法									*/
-	/*													*/
-	/*	__text_start ～ __test_end		リードオンリ	*/
-	/*	__data_start ～ END_MEM_ADDR	R/W				*/
-	/*													*/
-	/****************************************************/
-
-	/* TEXT領域 */
-	mmgr_add_entry((void*)(&__text_start), (uint32_t)(&__text_end)-(uint32_t)(&__text_start), ATTR_TEXT);
-	/* DATA/BSS/HEAP領域 */
-	mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
-	/* MPCORE領域 */
-	mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
-
-	/* ボード固有領域 */
-	board_mmgr_init();
-
 	/* MMU関連レジスタ初期化 */
 	DACR_set(0xffffffff);
 	TTBCR_set(0x00000000);
@@ -142,4 +118,37 @@ extern char __data_start;
 	__dsb();
 	SCTLR_set(ctrl | ((0x1<<12)|(0x1<<11)|(0x1<<2)|(0x1<<0)));
 	__isb();
+	tprintf("SCTLR = %08X\n", SCTLR_get());
+}
+
+void mmgr_init(uint32_t cpuid)
+{
+extern char __text_start;
+extern char __text_end;
+extern char __data_start;
+
+	if ( cpuid == MASTER_CPU_ID ) {
+		/* セクションテーブル初期化 */
+		section_tbl = sectiontbl_alloc();
+
+		/****************************************************/
+		/*	MMUの設定方法									*/
+		/*													*/
+		/*	__text_start ～ __test_end		リードオンリ	*/
+		/*	__data_start ～ END_MEM_ADDR	R/W				*/
+		/*													*/
+		/****************************************************/
+
+		/* TEXT領域 */
+		mmgr_add_entry((void*)(&__text_start), (uint32_t)(&__text_end)-(uint32_t)(&__text_start), ATTR_TEXT);
+		/* DATA/BSS/HEAP領域 */
+		mmgr_add_entry((void*)(&__data_start), (END_MEM_ADDR+1) - (uint32_t)(&__data_start), ATTR_DATA);
+		/* MPCORE領域 */
+		mmgr_add_entry((void*)(MPCORE_SCU_BASE), 0x8000, ATTR_DEV);
+
+		/* ボード固有領域 */
+		board_mmgr_init();
+	}
+
+	mmgr_mmu_init();
 }

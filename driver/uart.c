@@ -232,8 +232,8 @@ static int ringbuff_read(RingBuff* ring, void* buff, int length)
 {
 	int ret = 0;
 
-	uint32_t psr;
-	irq_save(psr);
+	uint32_t irq_state;
+	irq_state = irq_save();
 
 	if ( ring->length < length ) {
 		length = ring->length;
@@ -259,7 +259,7 @@ static int ringbuff_read(RingBuff* ring, void* buff, int length)
 		ret = length;
 	}
 
-	irq_restore(psr);
+	irq_restore(irq_state);
 
 	return ret;
 }
@@ -519,8 +519,8 @@ static void uart_tx_exec(UartObject* uart_obj, uint32_t port)
 		bool do_loop = false;
 		void* ptr;
 
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 		int length = ringbuff_get_linearreadable(&uart_obj->tx, &ptr);
 		if ( 0 < length ) {
 			int tx_length = uart_tx_write(uart_obj, ptr, length);
@@ -529,7 +529,7 @@ static void uart_tx_exec(UartObject* uart_obj, uint32_t port)
 				do_loop = true;
 			}
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 		if ( !do_loop ) {
 			break;
 		}
@@ -566,8 +566,8 @@ static void uart_rx_exec(UartObject* uart_obj, uint32_t port)
 		bool do_loop = false;
 		void* ptr;
 
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 
 		int length = ringbuff_get_linearwriteable(&uart_obj->rx, &ptr);
 		if ( 0 < length ) {
@@ -577,7 +577,7 @@ static void uart_rx_exec(UartObject* uart_obj, uint32_t port)
 				do_loop = true;
 			}
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 		if ( !do_loop ) {
 			break;
 		}
@@ -601,8 +601,8 @@ int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout)
 	for (;;) {
 		int write_length = 0;
 
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 		if ( ringbuff_length(&uart_obj->tx) == 0 ) {
 			/* 送信リングバッファ内が空なら直接送信する */
 			write_length = uart_tx_write(uart_obj, buff, length);
@@ -613,7 +613,7 @@ int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout)
 		else {
 			write_length = ringbuff_write(&uart_obj->tx, PTRVAR(buff), length);
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 
 		if ( 0 < write_length ) {
 			/* 1バイト以上書き込んだので正常終了とする */
@@ -656,14 +656,14 @@ int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout)
 
 	for (;;) {
 		/* リングバッファから最大req_size分読み込み */
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 		int read_length = ringbuff_read(&uart_obj->rx, buff, length);
 		/* RTS信号制御 */
 		if ( (uart_obj->flow_control == UART_FLOW_SOFT) && !ringbuff_threshold(&uart_obj->rx) ) {
 			uart_set_rts(uart_obj, true);
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 
 		if ( 0 < read_length ) {
 			ret = read_length;
@@ -706,11 +706,11 @@ int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout)
 
 	for (;;) {
 		if ( uart_obj->err_bits ) {
-			uint32_t psr;
-			irq_save(psr);
+			uint32_t irq_state;
+			irq_state = irq_save();
 			*err_bits = uart_obj->err_bits;
 			uart_obj->err_bits = 0;
-			irq_restore(psr);
+			irq_restore(irq_state);
 		}
 		else {
 			if ( tmout != TMO_POLL ) {
