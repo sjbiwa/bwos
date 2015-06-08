@@ -38,6 +38,13 @@ typedef	struct {
 #define	TASK_ACT			(0x00000001u<<0)	/* タスク生成時にレディーキューに登録する */
 #define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
 #define	TASK_SYS			(0x00000001u<<2)	/* SYSTEMモード(特権)タスク */
+#define	CPU_MASK			(0xFFu<<24)
+#define	CPU_SELF			(0xFFu<<24)
+#define	CPU_CORE0			(0x00u<<24)
+#define	CPU_CORE1			(0x01u<<24)
+#define	CPU_CORE2			(0x02u<<24)
+#define	CPU_CORE3			(0x03u<<24)
+#define	CPU_GET(f)			(((f)&CPU_MASK)>>24)
 
 #define	TASK_SELF			(0)
 

@@ -232,8 +232,8 @@ static int ringbuff_read(RingBuff* ring, void* buff, int length)
 {
 	int ret = 0;
 
-	uint32_t psr;
-	irq_save(psr);
+	uint32_t irq_state;
+	irq_state = irq_save();
 
 	if ( ring->length < length ) {
 		length = ring->length;
@@ -259,7 +259,7 @@ static int ringbuff_read(RingBuff* ring, void* buff, int length)
 		ret = length;
 	}
 
-	irq_restore(psr);
+	irq_restore(irq_state);
 
 	return ret;
 }
@@ -381,7 +381,7 @@ void uart_register(UartDeviceInfo* info, uint32_t info_num)
 		uart_obj_tbl[ix].ev_flag = flag_create();
 		uart_obj_tbl[ix].err_bits = 0;
 
-		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE);
+		irq_set_enable(uart_obj_tbl[ix].dev->irq, IRQ_DISABLE, CPU_SELF);
 		irq_add_handler(uart_obj_tbl[ix].dev->irq, uart_irq_handler, &uart_obj_tbl[ix]);
 	}
 }
@@ -394,7 +394,7 @@ void uart_set_config(uint32_t port_no, UartConfigParam* config)
 	bool irq_enable_org = irq_get_enable(info->irq);
 
 	/* UART割り込み禁止 */
-	irq_set_enable(info->irq, IRQ_DISABLE);
+	irq_set_enable(info->irq, IRQ_DISABLE, CPU_SELF);
 	iowrite32(port+UART_IER, 0x0);
 
 	/* UARTリセット */
@@ -449,13 +449,13 @@ void uart_set_config(uint32_t port_no, UartConfigParam* config)
 						IER_TRANS_HOLD_EMPTY_INT_EN|
 						IER_RECEIVE_DATA_AVAILABLE_INT_EN);
 	if ( irq_enable_org ) {
-		irq_set_enable(info->irq, IRQ_ENABLE);
+		irq_set_enable(info->irq, IRQ_ENABLE, CPU_SELF);
 	}
 }
 
 static void uart_release_resource(UartObject* uart_obj)
 {
-	irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE);
+	irq_set_enable(uart_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
 	ringbuff_destroy(&(uart_obj->tx));
 	ringbuff_destroy(&(uart_obj->rx));
 }
@@ -474,7 +474,7 @@ void uart_open(uint32_t port_no, UartOpenParam* open)
 	}
 	uart_obj->active = true;
 	flag_clear(uart_obj->ev_flag, ~0);
-	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE);
+	irq_set_enable(uart_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 }
 
 void uart_close(uint32_t port_no)
@@ -519,8 +519,8 @@ static void uart_tx_exec(UartObject* uart_obj, uint32_t port)
 		bool do_loop = false;
 		void* ptr;
 
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 		int length = ringbuff_get_linearreadable(&uart_obj->tx, &ptr);
 		if ( 0 < length ) {
 			int tx_length = uart_tx_write(uart_obj, ptr, length);
@@ -529,7 +529,7 @@ static void uart_tx_exec(UartObject* uart_obj, uint32_t port)
 				do_loop = true;
 			}
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 		if ( !do_loop ) {
 			break;
 		}
@@ -566,8 +566,8 @@ static void uart_rx_exec(UartObject* uart_obj, uint32_t port)
 		bool do_loop = false;
 		void* ptr;
 
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 
 		int length = ringbuff_get_linearwriteable(&uart_obj->rx, &ptr);
 		if ( 0 < length ) {
@@ -577,7 +577,7 @@ static void uart_rx_exec(UartObject* uart_obj, uint32_t port)
 				do_loop = true;
 			}
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 		if ( !do_loop ) {
 			break;
 		}
@@ -601,8 +601,8 @@ int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout)
 	for (;;) {
 		int write_length = 0;
 
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 		if ( ringbuff_length(&uart_obj->tx) == 0 ) {
 			/* 送信リングバッファ内が空なら直接送信する */
 			write_length = uart_tx_write(uart_obj, buff, length);
@@ -613,7 +613,7 @@ int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout)
 		else {
 			write_length = ringbuff_write(&uart_obj->tx, PTRVAR(buff), length);
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 
 		if ( 0 < write_length ) {
 			/* 1バイト以上書き込んだので正常終了とする */
@@ -656,14 +656,14 @@ int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout)
 
 	for (;;) {
 		/* リングバッファから最大req_size分読み込み */
-		uint32_t psr;
-		irq_save(psr);
+		uint32_t irq_state;
+		irq_state = irq_save();
 		int read_length = ringbuff_read(&uart_obj->rx, buff, length);
 		/* RTS信号制御 */
 		if ( (uart_obj->flow_control == UART_FLOW_SOFT) && !ringbuff_threshold(&uart_obj->rx) ) {
 			uart_set_rts(uart_obj, true);
 		}
-		irq_restore(psr);
+		irq_restore(irq_state);
 
 		if ( 0 < read_length ) {
 			ret = read_length;
@@ -706,11 +706,11 @@ int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout)
 
 	for (;;) {
 		if ( uart_obj->err_bits ) {
-			uint32_t psr;
-			irq_save(psr);
+			uint32_t irq_state;
+			irq_state = irq_save();
 			*err_bits = uart_obj->err_bits;
 			uart_obj->err_bits = 0;
-			irq_restore(psr);
+			irq_restore(irq_state);
 		}
 		else {
 			if ( tmout != TMO_POLL ) {

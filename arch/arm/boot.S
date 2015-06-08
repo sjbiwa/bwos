@@ -9,7 +9,9 @@
 #include "arm.h"
 #include "cp15reg.h"
 
-#define	STACK_INIT(cpu_mode,mode_sp)		ldr r0, =(mode_sp);msr SP_##cpu_mode, r0
+#define	STACK_INIT(cpu_mode,mode_sp,cpuid)	ldr r0, =(mode_sp); \
+											sub r0, r0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
+											msr SP_##cpu_mode, r0
 
 /* Vector */
 	.arm
@@ -30,17 +32,25 @@ _start:
 
 	/* set SCTLR.TE */
 	SCTLR_get(r0)
-	ldr		r1, =(SCTLR_TE|SCTLR_I|SCTLR_Z)
+	ldr		r1, =(SCTLR_TE|SCTLR_I|SCTLR_Z|SCTLR_A)
 	orr		r0, r0, r1
-	bic		r0, r0, SCTLR_C
-	bic		r0, r0, SCTLR_M
+	bic		r0, r0, #SCTLR_C
+	bic		r0, r0, #SCTLR_M
+	bic		r0, r0, #SCTLR_V
 	SCTLR_set(r0)
 	isb
+	ACTLR_get(r0)
+	ldr		r1, =ACTLR_SMP
+	orr		r0, r0, r1
+	ACTLR_set(r0)
+	isb
+
 	/* switch to THUMB(Jump to Reset Vector) */
 	ldr		r0, =_vector
 	mov		r1, #0x01
 	orr		r0, r0, r1
 	bx		r0
+
 
 	.thumb
 	.thumb_func
@@ -96,12 +106,17 @@ _reset_entry:
 	VBAR_set(r0)
 
 	/* Initialize StackPointer */
-	STACK_INIT(und, stack_undef)
-	STACK_INIT(abt, stack_dabort)
-	STACK_INIT(irq, stack_irq)
-	STACK_INIT(fiq, stack_fiq)
-	STACK_INIT(usr, stack_sys)
-	STACK_INIT(svc, stack_svc)
+	CPUID_get(r2)
+	STACK_INIT(und, stack_undef,r2)
+	STACK_INIT(abt, stack_dabort,r2)
+	STACK_INIT(irq, stack_irq,r2)
+	STACK_INIT(fiq, stack_fiq,r2)
+	STACK_INIT(usr, stack_sys,r2)
+	STACK_INIT(svc, stack_svc,r2)
+
+	CPUID_get(r2)
+	cmp		r2, #0
+	bne		_bss_done
 
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start
@@ -135,36 +150,36 @@ _loop_:
 /* Stack Area */
 	.section	.stack
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_undef:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_svc:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_sys:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_dabort:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_irq:
 
 	.balign	16
-	.space	256
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_fiq:
 
 /* stack for IDLE-TASK */
 	.section .stack
 	.balign 16
-	.space	1024
+	.space	IDLE_TASK_STACK_SIZE * CPU_NUM
 stack_idle:
 
 /* 割り込みハンドラで使うスタック */
 	.balign	16
-	.space	65536
+	.space	IRQ_STACK_SIZE * CPU_NUM
 stack_intr:

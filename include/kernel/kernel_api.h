@@ -18,6 +18,7 @@
 #include "kernel/msgq.h"
 #include "kernel/fixmb.h"
 #include "kernel/malloc.h"
+#include "kernel/smp.h"
 
 /***********************************************/
 /* オブジェクト<->インデックス変換用マクロ一式 */
@@ -28,14 +29,14 @@ static int			OBJNAME##_struct_max = 0; \
 static int			OBJNAME##_struct_alloc_id = 0; \
 static int alloc_##OBJNAME##_id(void) \
 { \
-	uint32_t cpsr; \
-	irq_save(cpsr); \
+	uint32_t irq_state; \
+	irq_state = irq_save(); \
 	int ret = RT_ERR; \
 	if ( OBJNAME##_struct_alloc_id < OBJNAME##_struct_max ) { \
 		ret = OBJNAME##_struct_alloc_id; \
 		OBJNAME##_struct_alloc_id++; \
 	} \
-	irq_restore(cpsr); \
+	irq_restore(irq_state); \
 	return ret; \
 } \
 static OBJSTRUCT * OBJNAME##id2object(int id) \
@@ -50,7 +51,39 @@ void OBJNAME##_init(void) \
 	OBJNAME##_struct_array = st_malloc_align(sizeof(OBJSTRUCT) * MAX_NUM, NORMAL_ALIGN); \
 	OBJNAME##_struct_max = MAX_NUM; \
 	OBJNAME##_struct_alloc_id = 0; \
+	OBJNAME##_sub_init(); \
 }
+
+/* オブジェクト用spinlock関数 */
+#define	OBJECT_SPINLOCK_FUNC(OBJNAME,OBJSTRUCT) \
+static inline void OBJNAME##_spininit(OBJSTRUCT* obj) \
+{ \
+	spin_init(&(obj->spin_lock)); \
+} \
+static inline void OBJNAME##_spinlock(OBJSTRUCT* obj) \
+{ \
+	spin_lock(&(obj->spin_lock)); \
+} \
+static inline void OBJNAME##_spinunlock(OBJSTRUCT* obj) \
+{ \
+	spin_unlock(&(obj->spin_lock)); \
+} \
+static inline int OBJNAME##_spintrylock(OBJSTRUCT* obj) \
+{ \
+	return spin_trylock(&(obj->spin_lock)); \
+} \
+static inline uint32_t OBJNAME##_spinlock_irq_save(OBJSTRUCT* obj) \
+{ \
+	uint32_t irq_state = irq_save(); \
+	spin_lock(&(obj->spin_lock)); \
+	return irq_state; \
+} \
+static inline void OBJNAME##_spinunlock_irq_restore(OBJSTRUCT* obj, uint32_t irq_state) \
+{ \
+	spin_unlock(&(obj->spin_lock)); \
+	irq_restore(irq_state); \
+} \
+
 
 /********************************************************/
 /* OSAPISTUB											*/
@@ -104,7 +137,7 @@ OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align);
 
 /* 割り込みハンドラ関連API */
 OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
-OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting);
+OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr);
 OSAPISTUB int __irq_get_enable(uint32_t irqno);
 
 /* タイマハンドラ関連API */

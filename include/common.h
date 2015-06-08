@@ -31,6 +31,10 @@
 #define	ioset32(a,d)		iowrite32(a,ioread32(a)|(d))
 #define	ioclr32(a,d)		iowrite32(a,ioread32(a)&(~(d)))
 #define	ioset32mask(a,d,m)	iowrite32(a,(ioread32(a)&~(m))|(d))
+#define	iowrite16(a,d)		(*((volatile uint16_t*)(a))=(d))
+#define	ioread16(a)			(*((volatile uint16_t*)(a)))
+#define	iowrite8(a,d)		(*((volatile uint8_t*)(a))=(d))
+#define	ioread8(a)			(*((volatile uint8_t*)(a)))
 
 
 #define	MIN(a,b)			((a)<(b)?(a):(b))

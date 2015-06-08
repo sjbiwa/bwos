@@ -14,7 +14,10 @@ typedef	struct {
 #define	NO_ENTRY	(0xfffffffu)
 
 /* オブジェクト<->インデックス変換用 */
-OBJECT_INDEX_FUNC(fixmb,FixmbStruct,FIXMB_MAX_NUM);
+static void fixmb_sub_init(void) {}
+OBJECT_INDEX_FUNC(fixmb,FixmbStruct,FIXMB_MAX_NUM)
+OBJECT_SPINLOCK_FUNC(fixmb,FixmbStruct);
+OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 
 /* 該当ブロックの使用中状態チェック */
@@ -50,6 +53,20 @@ static uint32_t fixmb_ptr2idx(FixmbStruct* fixmb, void* ptr)
 	return (uint32_t)(((uint8_t*)ptr - (uint8_t*)(fixmb->mb_area)) / fixmb->mb_size);
 }
 
+/* タスクがタイムアウトした場合 */
+static void fixmb_wait_func(TaskStruct* task, void* wait_obj)
+{
+	FixmbStruct* fixmb = ((FixmbInfoStruct*)wait_obj)->obj;
+	CpuStruct* cpu = task->cpu_struct;
+
+	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
+	fixmb_spinlock(fixmb);
+	cpu_spinlock(cpu);
+	task_wakeup_stub(task, RT_TIMEOUT);
+	cpu_spinunlock(cpu);
+	fixmb_spinunlock(fixmb);
+}
+
 int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 {
 	link_clear(&fixmb->link);
@@ -83,6 +100,9 @@ int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 	else {
 		goto ERR_RET2;
 	}
+	fixmb_spininit(fixmb);
+	sync_barrier();
+
 	return RT_OK;
 
 ERR_RET1:
@@ -91,14 +111,17 @@ ERR_RET2:
 	return RT_ERR;
 }
 
-
 int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
+	FixmbInfoStruct fixmb_info;
 	uint32_t alloc_index;
-	uint32_t cpsr;
-	irq_save(cpsr);
+	uint32_t irq_state;
+	bool req_dispatch = false;
+	TaskStruct* task = NULL;
+	int ret = RT_OK;
 
-	_ctask->result_code = RT_OK;
+retry_lock:
+	irq_state = fixmb_spinlock_irq_save(fixmb);
 
 	if ( fixmb->use_count < fixmb->mb_length ) {
 		/* 割り当てブロックがある */
@@ -125,25 +148,43 @@ int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 	else if ( tmout == TMO_POLL ) {
 		/* 割り当てブロックがない */
 		/* ポーリングなのでタイムアウトエラーとする */
-		_ctask->result_code = RT_TIMEOUT;
+		ret = RT_TIMEOUT;
 	}
 	else {
 		/* 割り当てブロックがないので待ち状態に遷移 */
-		FixmbInfoStruct fixmb_info;
+		/* 最初に自cpuをlock */
+		task = task_self();
+		CpuStruct* cpu = task->cpu_struct;
+		if ( !cpu_spintrylock(cpu) ) {
+			/* cpuがlockできなければいったんfixmb開放して再取得 */
+			fixmb_spinunlock_irq_restore(fixmb, irq_state);
+			goto retry_lock;
+		}
+		/* fixmb + cpu をlock完了 */
+
 		fixmb_info.obj = fixmb;
 		fixmb_info.ptr = ptr;
-		task_set_wait(_ctask, (void*)(&fixmb_info), 0);
-		task_remove_queue(_ctask);
-		link_add_last(&(fixmb->link), &(_ctask->link));
+		task_set_wait(task, (void*)(&fixmb_info), fixmb_wait_func);
+		task_remove_queue(task);
+		link_add_last(&(fixmb->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */
-			task_add_timeout(_ctask, tmout);
+			task_add_timeout(task, tmout);
 		}
-		schedule();
+		req_dispatch = schedule(cpu);
+
+		cpu_spinunlock(cpu);
 	}
 
-	irq_restore(cpsr);
-	return _ctask->result_code;
+	fixmb_spinunlock(fixmb);
+
+	if ( req_dispatch ) {
+		self_request_dispatch();
+		ret = task->result_code;
+	}
+
+	irq_restore(irq_state);
+	return ret;
 }
 
 int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
@@ -154,9 +195,12 @@ int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
 int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 {
 	uint32_t area_size;
-	uint32_t		cpsr;
+	uint32_t		irq_state;
 	int				ret = RT_OK;
-	irq_save(cpsr);
+	CpuStruct*	req_dispatch_cpu = NULL;
+
+retry_lock:
+	irq_state = fixmb_spinlock_irq_save(fixmb);
 
 	/* 解放するアドレスの妥当性チェック */
 	uint32_t rel_index = fixmb_ptr2idx(fixmb, ptr);
@@ -165,7 +209,31 @@ int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 		ret = RT_ERR;
 	}
 	else {
-		if ( link_is_empty(&(fixmb->link)) ) {
+		if ( !link_is_empty(&(fixmb->link)) ) {
+			/* 解放待ちタスクをwakeup */
+			/* 開放するMBをそのままwakeupするタスクに渡す */
+			Link* link = fixmb->link.next;
+			TaskStruct* task = containerof(link, TaskStruct, link);
+			CpuStruct* cpu = task->cpu_struct;
+			if ( !cpu_spintrylock(cpu) ) {
+				/* cpuがlockできなければいったんmutex開放して再取得 */
+				fixmb_spinunlock_irq_restore(fixmb, irq_state);
+				goto retry_lock;
+			}
+			/* fixmb + cpu をlock完了 */
+
+			FixmbInfoStruct* fixmb_info;
+			link_remove(link);
+			fixmb_info = (FixmbInfoStruct*)(task->wait_obj);
+			*(fixmb_info->ptr) = ptr;
+			task_wakeup_stub(task, RT_OK);
+			if ( schedule(cpu) ) {
+				req_dispatch_cpu = cpu;
+			}
+			/* CPU開放 */
+			cpu_spinunlock(cpu);
+		}
+		else {
 			/* 解放待ちタスクがないので空きリストに返却 */
 			update_bitmap(fixmb->use_bitmap, rel_index, false);
 			fixmb->use_count--;
@@ -181,21 +249,22 @@ int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 				fixmb->list.last.index = rel_index;
 			}
 		}
+	}
+
+	fixmb_spinunlock(fixmb);
+
+	if ( req_dispatch_cpu != NULL ) {
+		if ( req_dispatch_cpu->cpuid == CPUID_get() ) {
+			/* 起床したタスクが自CPU所属なので dispatch処理をする */
+			self_request_dispatch();
+		}
 		else {
-			/* 解放待ちタスクがあるのでwakeup */
-			/* 開放するMBをそのままwakeupするタスクに渡す */
-			FixmbInfoStruct* fixmb_info;
-			Link* link = fixmb->link.next;
-			link_remove(link);
-			TaskStruct* task = containerof(link, TaskStruct, link);
-			fixmb_info = (FixmbInfoStruct*)(task->wait_obj);
-			*(fixmb_info->ptr) = ptr;
-			task_wakeup_stub(task, RT_OK);
-			schedule();
+			/* 起床したタスクが他CPU所属なので 割り込み通知する */
+			ipi_request_dispatch_one(req_dispatch_cpu);
 		}
 	}
 
-	irq_restore(cpsr);
+	irq_restore(irq_state);
 	return ret;
 }
 

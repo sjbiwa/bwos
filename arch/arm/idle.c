@@ -36,6 +36,7 @@ void fault_handler(uint32_t id, uint32_t* sp)
 	/*	  R12		*/
 	/*	  LR(ret-PC)*/
 	/****************/
+	tprintf("cpu:%d\n", CPUID_get());
 	switch (id) {
 	case 0:
 		tprintf("\nundef\n");

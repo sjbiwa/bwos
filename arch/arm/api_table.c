@@ -8,10 +8,6 @@
 #include "api_no.h"
 #include "api_caller_callee.h"
 
-/* API calleeスタブ */
-extern int __flag_twait_stub(APIFlagTwaitParam* param);
-/********************/
-
 void* svc_entry_table[] = {
 		[TASK_CREATE_APINO] =				(void*)__task_create,
 		[TASK_ACTIVE_APINO] =				(void*)__task_active,

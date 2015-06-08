@@ -60,7 +60,7 @@ OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
 
 /* 割り込みハンドラ関連API */
 OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
-OSAPI void irq_set_enable(uint32_t irqno, int setting);
+OSAPI void irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr);
 OSAPI int irq_get_enable(uint32_t irqno);
 
 /* タイマハンドラ関連API */

@@ -13,33 +13,103 @@ typedef	struct {
 } SemInfoStruct;
 
 /* オブジェクト<->インデックス変換用 */
+static void sem_sub_init(void) {}
 OBJECT_INDEX_FUNC(sem,SemStruct,SEM_MAX_NUM);
+OBJECT_SPINLOCK_FUNC(sem,SemStruct);
+OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 
-static void sem_release_body(SemStruct* sem)
+static int sem_release_body(SemStruct* sem, uint32_t num, bool is_context)
 {
+	uint32_t	irq_state;
+	bool		done_update_remain = false;
+	uint32_t	wakeup_cpu_list = 0;
+	int ret = RT_OK;
+retry_lock:
+	if ( is_context ) {
+		irq_state = irq_save();
+	}
+	sem_spinlock(sem);
+
+	if ( is_context && !done_update_remain ) {
+		/* 最初の１回目に取得値を更新する */
+		done_update_remain = true;
+		sem->remain += num;
+		if ( sem->max < sem->remain ) {
+			sem->remain = sem->max;
+		}
+	}
+
 	/* linkの先頭タスクをチェック */
 	while ( !link_is_empty(&(sem->link)) ) {
 		Link* link = sem->link.next;
 		TaskStruct* task = containerof(link, TaskStruct, link);
+		CpuStruct* cpu = task->cpu_struct;
+		if ( is_context ) {
+			if ( !cpu_spintrylock(cpu) ) {
+				/* cpuがlockできなければいったんsem開放して再取得 */
+				sem_spinunlock(sem);
+				irq_restore(irq_state);
+				goto retry_lock;
+			}
+		}
+		else {
+			cpu_spinlock(cpu);
+		}
+		/* sem + cpu をlock完了 */
+
 		SemInfoStruct* sem_info = (SemInfoStruct*)task->wait_obj;
 		/* 要求数をチェック */
 		if ( sem->remain < sem_info->count ) {
+			cpu_spinunlock(cpu);
 			break;
 		}
 		/* 要求数を満たすのでタスク起床 */
 		sem->remain -= sem_info->count;
-		link_remove(link);
-		task->wait_func = 0; /* 再度同じ処理が走らないようにクリアする */
 		task_wakeup_stub(task, RT_OK);
+		wakeup_cpu_list |= (0x01u << task->cpu_struct->cpuid);
+		cpu_spinunlock(cpu);
 	}
+
+	sem_spinunlock(sem);
+
+	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
+	wakeup_cpu_list = schedule_any(wakeup_cpu_list);
+
+	/* 自コアは除いておく */
+	uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
+
+	if ( other_cpu_list ) {
+		/* スケジュールされた全コアに 割り込み通知する */
+		ipi_request_dispatch(other_cpu_list);
+	}
+
+	if ( is_context && (wakeup_cpu_list & (0x01u<<CPUID_get())) ) {
+		self_request_dispatch();
+		ret = task_self()->result_code;
+	}
+
+	if ( is_context ) {
+		irq_restore(irq_state);
+	}
+	return ret;
 }
 
 /* セマフォ待ちのタスクがタイムアウトした場合 */
-static void sem_wait_func(TaskStruct* task)
+static void sem_wait_func(TaskStruct* task, void* wait_obj)
 {
-	SemStruct* sem = ((SemInfoStruct*)task->wait_obj)->sem;
-	sem_release_body(sem);
+	SemStruct* sem = ((SemInfoStruct*)wait_obj)->sem;
+	CpuStruct* cpu = task->cpu_struct;
+
+	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
+	sem_spinlock(sem);
+	cpu_spinlock(cpu);
+	task_wakeup_stub(task, RT_TIMEOUT);
+	cpu_spinunlock(cpu);
+	sem_spinunlock(sem);
+
+	/* リソースの待ちリストにつながれているタスクの処理 */
+	sem_release_body(sem, 0, false);
 }
 
 
@@ -47,16 +117,22 @@ int _kernel_sem_create(SemStruct* sem, uint32_t max)
 {
 	link_clear(&(sem->link));
 	sem->max = sem->remain = max;
+	sem_spininit(sem);
+	sync_barrier();
+
 	return RT_OK;
 }
 
 int _kernel_sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 {
-	uint32_t		cpsr;
-	irq_save(cpsr);
+	SemInfoStruct sem_info;
+	uint32_t		irq_state;
+	bool req_dispatch = false;
+	TaskStruct* task = NULL;
+	int ret = RT_OK;
 
-	/* リターンコード設定 */
-	_ctask->result_code = RT_OK;
+retry_lock:
+	irq_state = sem_spinlock_irq_save(sem);
 
 	if ( (num <= sem->remain) && link_is_empty(&(sem->link)) ) {
 		/* すぐに確保できる場合 */
@@ -64,47 +140,53 @@ int _kernel_sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 	}
 	else if ( tmout == TMO_POLL ) {
 		/* ポーリングなのでタイムアウトエラーとする */
-		_ctask->result_code = RT_TIMEOUT;
+		ret = RT_TIMEOUT;
 	}
 	else {
 		/* 先に待ちタスクがいるか数が足りない場合は待ちに入る */
-		SemInfoStruct sem_info;
+		/* 最初に自cpu lock */
+		task = task_self();
+		CpuStruct* cpu = task->cpu_struct;
+		if ( !cpu_spintrylock(cpu) ) {
+			/* cpuがlockできなければいったんsem開放して再取得 */
+			sem_spinunlock_irq_restore(sem, irq_state);
+			goto retry_lock;
+		}
+		/* sem + cpu をlock完了 */
+
 		sem_info.sem = sem;
 		sem_info.count = num;
-		task_remove_queue(_ctask);
-		task_set_wait(_ctask, (void*)&sem_info, sem_wait_func);
-		link_add_last(&(sem->link), &(_ctask->link));
+		task_remove_queue(task);
+		task_set_wait(task, (void*)&sem_info, sem_wait_func);
+		link_add_last(&(sem->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */
-			task_add_timeout(_ctask, tmout);
+			task_add_timeout(task, tmout);
 		}
-		schedule();
+		req_dispatch = schedule(cpu);
+
+		cpu_spinunlock(cpu);
 	}
-	irq_restore(cpsr);
-	return _ctask->result_code;
+
+	sem_spinunlock(sem);
+
+	if ( req_dispatch ) {
+		self_request_dispatch();
+		ret = task->result_code;
+	}
+
+	irq_restore(irq_state);
+	return ret;
 }
 
 int _kernel_sem_request(SemStruct* sem, uint32_t num)
 {
-	return __sem_trequest(sem, num, TMO_FEVER);
+	return _kernel_sem_trequest(sem, num, TMO_FEVER);
 }
 
 int _kernel_sem_release(SemStruct* sem, uint32_t num)
 {
-	uint32_t		cpsr;
-	int				ret = RT_OK;
-	irq_save(cpsr);
-
-	sem->remain += num;
-	if ( sem->max < sem->remain ) {
-		sem->remain = sem->max;
-	}
-
-	sem_release_body(sem);
-	schedule();
-
-	irq_restore(cpsr);
-	return ret;
+	return sem_release_body(sem, num, true);
 }
 
 OSAPISTUB int __sem_create(uint32_t max)

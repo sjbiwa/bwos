@@ -315,7 +315,12 @@
 
 /* SCTLRの各ビット */
 #define	SCTLR_TE	(0x01<<30)		/* thumb exception enable */
+#define	SCTLR_V		(0x01<<13)		/* HiVector enable */
 #define	SCTLR_I		(0x01<<12)		/* instruction cache enable */
 #define	SCTLR_Z		(0x01<<11)		/* brunch prediction enable */
 #define	SCTLR_C		(0x01<<2)		/* data cache */
+#define	SCTLR_A		(0x01<<1)		/* align check enable */
 #define	SCTLR_M		(0x01<<0)		/* MMU enable */
+
+/* ACTLRの各ビット */
+#define	ACTLR_SMP	(0x01<<6)		/* SMP eanble (cortex-A7/A15/A17 only?) */

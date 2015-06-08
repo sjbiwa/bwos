@@ -9,10 +9,14 @@
 #include "bwos.h"
 #include "arm.h"
 #include "cp15reg.h"
+#include "mpcore.h"
 #include "my_board.h"
 
 extern void	_entry_stub(void);
 extern char __heap_start;
+
+CpuStruct* cpu_struct_pointer[CPU_NUM]; /* 各コアが自身のcpu_structを取り出すためのもの */
+
 
 /* 最初に1になるビットを左側から探す */
 static inline int32_t bit_srch_l(uint32_t val)
@@ -79,9 +83,22 @@ void arch_task_active(TaskStruct* task, void* act_param)
 	ptr[TASK_FRAME_R1] = (uint32_t)act_param;
 }
 
-void arch_system_preinit(void)
+static void
+smp0_handler(uint32_t irqno, void* info)
 {
+}
+
+void arch_system_preinit(uint32_t cpuid)
+{
+	if ( cpuid == MASTER_CPU_ID ) {
+		for (int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
+			cpu_struct_pointer[cpuid] = &cpu_struct[cpuid];
+		}
+	}
+
+	tprintf("CPU= = %d\n", CPUID_get());
 	tprintf("SCTLR = %08X\n", SCTLR_get());
+	tprintf("ACTLR = %08X\n", ACTLR_get());
 	tprintf("SCR = %08X\n", SCR_get());
 	tprintf("ID_PFR0 = %08X\n", ID_PFR0_get());
 	tprintf("ID_PFR1 = %08X\n", ID_PFR1_get());
@@ -93,23 +110,27 @@ void arch_system_preinit(void)
 	uint32_t clid = CLIDR_get();
 	tprintf("CLID = %08X\n", clid);
 
+	uint32_t louu_value = (clid >> 27) & 0x07; /* Level of Unification Uniprocessor for the cache hierarchy */
 	int32_t ix;
 	/* 下位キャッシュ層から順番にinvalidate */
 	for (ix=6; 0 <= ix; ix--) {
 		if ( (0x07 << (ix*3)) & clid ) {
-			CSSELR_set(ix<<1);
-			uint32_t ccsid = CCSIDR_get();
-			uint32_t sets = ((ccsid >> 13) & 0x7fff) + 1;
-			uint32_t asos = ((ccsid >> 3) & 0x3ff) + 1;
-			uint32_t sizes_len = (ccsid & 0x7) + 4;
-			int32_t asos_len = bit_srch_l(asos-1) + 1;
-			tprintf("L:%d %d %d %d %d TOTAL=%dbytes\n", ix, sets, asos, sizes_len, asos_len, (0x1<<sizes_len)*sets*asos);
-			if ( (0 < asos_len) && (0 < sizes_len) ) {
-				uint32_t w, s;
-				for (w = 0; w < asos; w++) {
-					for (s = 0; s < sets; s++) {
-						uint32_t val = (w<<(32-asos_len))|(s<<(sizes_len))|(ix<<1);
-						DCISW_set(val);
+			/* マスタCPU または 単体CPU内キャッシュのとき */
+			if ( (cpuid == MASTER_CPU_ID) || ((ix+1) <= louu_value) ) {
+				CSSELR_set(ix<<1);
+				uint32_t ccsid = CCSIDR_get();
+				uint32_t sets = ((ccsid >> 13) & 0x7fff) + 1;
+				uint32_t asos = ((ccsid >> 3) & 0x3ff) + 1;
+				uint32_t sizes_len = (ccsid & 0x7) + 4;
+				int32_t asos_len = bit_srch_l(asos-1) + 1;
+				tprintf("L:%d %d %d %d %d TOTAL=%dbytes\n", ix, sets, asos, sizes_len, asos_len, (0x1<<sizes_len)*sets*asos);
+				if ( (0 < asos_len) && (0 < sizes_len) ) {
+					uint32_t w, s;
+					for (w = 0; w < asos; w++) {
+						for (s = 0; s < sets; s++) {
+							uint32_t val = (w<<(32-asos_len))|(s<<(sizes_len))|(ix<<1);
+							DCISW_set(val);
+						}
 					}
 				}
 			}
@@ -125,31 +146,56 @@ void arch_system_preinit(void)
 	/* テスト用にVFPレジスタ初期化 */
 	 FPEXC_set(0x40000000);
 	 FPSCR_set(0x00000000);
+
+	/* ページテーブル作成 */
+	mmgr_init(cpuid);
+
+	/* 割り込みコントローラ初期化 */
+	arch_irq_init(cpuid);
+
+	/* コア間割り込みハンドラ登録 */
+	if ( cpuid == MASTER_CPU_ID ) {
+		__irq_add_handler(0, smp0_handler, NULL);
+		__irq_add_handler(1, smp0_handler, NULL);
+	}
+	__irq_set_enable(0, IRQ_ENABLE, CPU_SELF);
+	__irq_set_enable(1, IRQ_ENABLE, CPU_SELF);
 }
 
 void arch_register_st_memory()
 {
 	/* 起動時メモリ登録 */
 	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
-	/* ページテーブル作成 */
-	mmgr_init();
 }
 arch_register_normal_memory(void)
 {
 }
 
-void arch_system_postinit(void)
+void arch_system_postinit(uint32_t cpuid)
 {
 }
 
 bool arch_can_dispatch(void)
 {
-extern	uint32_t _irq_level; /* 多重割り込みレベル */
+extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	bool ret = false;
-	if ( _irq_level == 0 ) {
+	if ( _irq_level[CPUID_get()] == 0 ) {
 		ret = true;
 	}
 	return ret;
+}
+
+void ipi_request_dispatch(uint32_t other_cpu_list)
+{
+	__dsb();
+	iowrite32(GICD_SGIR, other_cpu_list << 16);
+}
+
+void ipi_request_dispatch_one(CpuStruct* cpu)
+{
+	uint32_t cpuid = cpu->cpuid;
+	__dsb();
+	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
 }
 
 void init_task_arch_depend(void)
