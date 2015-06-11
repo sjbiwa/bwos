@@ -363,9 +363,12 @@ OSAPI int __msgq_create(uint32_t length)
 	int ret = RT_ERR;
 	int msgq_id = alloc_msgq_id();
 	if ( 0 <= msgq_id ) {
-		MsgqStruct* msgq = msgqid2object(msgq_id);
+		MsgqStruct* msgq = msgqid2buffer(msgq_id);
 		ret = _kernel_msgq_create(msgq, length);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			msgq->id_initialized = true;
+			order_barrier();
 			ret = msgq_id;
 		}
 		else {

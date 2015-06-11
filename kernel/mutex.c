@@ -160,9 +160,12 @@ OSAPISTUB int __mutex_create(void)
 	int ret = RT_ERR;
 	int mutex_id = alloc_mutex_id();
 	if ( 0 <= mutex_id ) {
-		MutexStruct* mutex = mutexid2object(mutex_id);
+		MutexStruct* mutex = mutexid2buffer(mutex_id);
 		ret = _kernel_mutex_create(mutex);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			mutex->id_initialized = true;
+			order_barrier();
 			ret = mutex_id;
 		}
 		else {

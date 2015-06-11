@@ -13,9 +13,10 @@
 #include "link.h"
 
 typedef	struct tagMutexStruct {
-	Link		link;
-	SpinLockObj	spin_lock;
-	bool		locked;	/* 獲得中？ */
+	Link			link;
+	SpinLockObj		spin_lock;
+	bool			id_initialized;	/* 初期完了フラグ */
+	bool			locked;	/* 獲得中？ */
 } MutexStruct;
 
 #endif /* MUTEX_H_ */

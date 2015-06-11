@@ -24,6 +24,7 @@ typedef	struct tagFixmbListMng {
 typedef struct tagFixmbStruct {
 	Link			link;			/* 待ちタスク連結用 */
 	SpinLockObj		spin_lock;		/* spin lock */
+	bool			id_initialized;	/* 初期完了フラグ */
 	void*			mb_area;		/* メモリブロック領域 */
 	uint32_t		mb_size;		/* メモリブロックサイズ */
 	uint32_t		mb_length;		/* メモリブロック総数 */

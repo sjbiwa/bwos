@@ -13,9 +13,10 @@
 #include "smp.h"
 
 typedef	struct tagFlagStruct {
-	Link		link;
-	SpinLockObj	spin_lock;		/* spin lock */
-	uint32_t	value;
+	Link			link;
+	SpinLockObj		spin_lock;		/* spin lock */
+	bool			id_initialized;	/* 初期完了フラグ */
+	uint32_t		value;
 } FlagStruct;
 
 

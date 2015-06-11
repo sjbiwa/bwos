@@ -194,9 +194,12 @@ OSAPISTUB int __sem_create(uint32_t max)
 	int ret = RT_ERR;
 	int sem_id = alloc_sem_id();
 	if ( 0 <= sem_id ) {
-		SemStruct* sem = semid2object(sem_id);
+		SemStruct* sem = semid2buffer(sem_id);
 		ret = _kernel_sem_create(sem, max);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			sem->id_initialized = true;
+			order_barrier();
 			ret = sem_id;
 		}
 		else {

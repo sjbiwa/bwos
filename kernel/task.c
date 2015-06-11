@@ -588,9 +588,12 @@ OSAPISTUB int __task_create(TaskCreateInfo* info)
 	int ret = RT_ERR;
 	int task_id = alloc_task_id();
 	if ( 0 <= task_id ) {
-		TaskStruct* task = taskid2object(task_id);
+		TaskStruct* task = taskid2buffer(task_id);
 		ret = _kernel_task_create(task, info);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			task->id_initialized = true;
+			order_barrier();
 			ret = task_id;
 		}
 		else {
