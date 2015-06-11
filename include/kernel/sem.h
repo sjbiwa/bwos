@@ -13,10 +13,11 @@
 #include "smp.h"
 
 typedef	struct tagSemStruct {
-	Link		link;
-	SpinLockObj	spin_lock;		/* spin lock */
-	uint32_t	max;			/* 全リソース個数 */
-	uint32_t	remain;			/* リソース残数 */
+	Link			link;
+	SpinLockObj		spin_lock;		/* spin lock */
+	bool			id_initialized;	/* 初期完了フラグ */
+	uint32_t		max;			/* 全リソース個数 */
+	uint32_t		remain;			/* リソース残数 */
 } SemStruct;
 
 

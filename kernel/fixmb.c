@@ -273,9 +273,12 @@ OSAPISTUB int __fixmb_create(uint32_t mb_size, uint32_t length)
 	int ret = RT_ERR;
 	int fixmb_id = alloc_fixmb_id();
 	if ( 0 <= fixmb_id ) {
-		FixmbStruct* fixmb = fixmbid2object(fixmb_id);
+		FixmbStruct* fixmb = fixmbid2buffer(fixmb_id);
 		ret = _kernel_fixmb_create(fixmb, mb_size, length);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			fixmb->id_initialized = true;
+			order_barrier();
 			ret = fixmb_id;
 		}
 		else {
