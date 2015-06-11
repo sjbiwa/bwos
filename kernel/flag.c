@@ -194,9 +194,12 @@ OSAPISTUB int __flag_create(void)
 	int ret = RT_ERR;
 	int flag_id = alloc_flag_id();
 	if ( 0 <= flag_id ) {
-		FlagStruct* flag = flagid2object(flag_id);
+		FlagStruct* flag = flagid2buffer(flag_id);
 		ret = _kernel_flag_create(flag);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			flag->id_initialized = true;
+			order_barrier();
 			ret = flag_id;
 		}
 		else {

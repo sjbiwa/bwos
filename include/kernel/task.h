@@ -48,6 +48,7 @@ typedef	struct tagTaskStruct {
 	void*		wait_obj;			/* 待ち状態となった対象オブジェクト */
 	void		(*wait_func)(struct tagTaskStruct* task, void* wait_obj); /* 待ち状態解除時コールバック */
 	int32_t		result_code;		/* API完了コード */
+	bool		id_initialized;		/* 初期完了フラグ */
 	struct tagCpuStruct* cpu_struct;
 } TaskStruct;
 

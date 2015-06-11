@@ -14,6 +14,7 @@
 
 typedef	struct tagTimerStruct {
 	Link		link;
+	bool		id_initialized;
 	TimeSpec	timeout;
 	TimerInfo	info;
 } TimerStruct;
@@ -85,9 +86,12 @@ OSAPISTUB int __timer_create(void)
 	int ret = RT_ERR;
 	int timer_id = alloc_timer_id();
 	if ( 0 <= timer_id ) {
-		TimerStruct* timer = timerid2object(timer_id);
+		TimerStruct* timer = timerid2buffer(timer_id);
 		ret = _kernel_timer_create(timer);
 		if ( ret == RT_OK ) {
+			order_barrier();
+			timer->id_initialized = true;
+			order_barrier();
 			ret = timer_id;
 		}
 		else {
