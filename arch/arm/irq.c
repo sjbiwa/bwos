@@ -41,7 +41,7 @@ OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
 	if ( irqno < IRQ_NUM ) {
 		irq_action[irqno].handler = func;
 		irq_action[irqno].info = info;
-		sync_barrier(); /* 念のため入れておく (この後に割り込みenableするはずなので不要かも？) */
+		__dsb(); /* 念のため入れておく (この後に割り込みenableするはずなので不要かも？) */
 	}
 }
 
@@ -69,8 +69,10 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 	}
 	else {
 		iowrite32(GICD_ICENABLER+off*4, 0x01<<bit);
-		order_barrier(); /* 割り込み禁止前後のメモリオーダー確定 */
 	}
+	__dsb(); /* 割り込み禁止/許可設定の同期化 */
+	         /* ※次の処理実行中に割り込みが発生するのを防ぐため */
+			 /*   割り込み禁止にする場合だけで良い？             */
 }
 
 /*

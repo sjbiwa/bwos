@@ -274,8 +274,9 @@ int spi_set_port_config(uint32_t port_no, SpiPortConfig* config)
 	return RT_OK;
 }
 
-int spi_set_channel_config(uint32_t port_no, uint32_t ch_no, SpiChannelConfig* config)
+int spi_set_channel_config(uint32_t port_no, SpiChannelConfig* config)
 {
+	uint32_t ch_no = config->ch_no;
 	/* パラメータチェック */
 	if ( (spi_obj_num <= port_no) || (CHANNEL_NUM <= ch_no) || !spi_obj_tbl[port_no].active ) {
 		lprintf("param error\n");
@@ -295,8 +296,9 @@ int spi_set_channel_config(uint32_t port_no, uint32_t ch_no, SpiChannelConfig* c
 	return RT_OK;
 }
 
-int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param)
+int spi_transfer(uint32_t port_no, SpiTransferParam* param)
 {
+	uint32_t ch_no = param->ch_no;
 	/* パラメータチェック */
 	if ( (spi_obj_num <= port_no) || (CHANNEL_NUM <= ch_no) || !spi_obj_tbl[port_no].active ) {
 		lprintf("param error\n");
