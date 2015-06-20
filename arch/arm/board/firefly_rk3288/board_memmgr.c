@@ -57,12 +57,12 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(SPI2_REG_BASE), SPI2_REG_SIZE, ATTR_DEV);
 
 	/* I2C */
+	mmgr_add_entry((void*)(I2CPMU_REG_BASE), 	I2CPMU_REG_SIZE,	ATTR_DEV);
+	mmgr_add_entry((void*)(I2CAUDIO_REG_BASE), 	I2CAUDIO_REG_SIZE,	ATTR_DEV);
 	mmgr_add_entry((void*)(I2CSENSOR_REG_BASE), I2CSENSOR_REG_SIZE,	ATTR_DEV);
 	mmgr_add_entry((void*)(I2CCAM_REG_BASE), 	I2CCAM_REG_SIZE,	ATTR_DEV);
 	mmgr_add_entry((void*)(I2CTP_REG_BASE), 	I2CTP_REG_SIZE,		ATTR_DEV);
 	mmgr_add_entry((void*)(I2CHDMI_REG_BASE), 	I2CHDMI_REG_SIZE,	ATTR_DEV);
-	mmgr_add_entry((void*)(I2CPMU_REG_BASE), 	I2CPMU_REG_SIZE,	ATTR_DEV);
-	mmgr_add_entry((void*)(I2CAUDIO_REG_BASE), 	I2CAUDIO_REG_SIZE,	ATTR_DEV);
 
 	/* Internal SRAM */
 	mmgr_add_entry((void*)(ISRAM_MEM_BASE), 	ISRAM_MEM_SIZE,	ATTR_DEV);

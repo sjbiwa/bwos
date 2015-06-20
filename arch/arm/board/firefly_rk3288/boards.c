@@ -10,6 +10,7 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "driver/spi.h"
+#include "driver/i2c.h"
 #include "irqdefs.h"
 #include "ioregs.h"
 #include "cruregs.h"
@@ -23,6 +24,12 @@
 #define	CLOCK_SPI0			5
 #define	CLOCK_SPI1			6
 #define	CLOCK_SPI2			7
+#define	CLOCK_I2C0			8
+#define	CLOCK_I2C1			9
+#define	CLOCK_I2C2			10
+#define	CLOCK_I2C3			11
+#define	CLOCK_I2C4			12
+#define	CLOCK_I2C5			13
 
 
 static const uint32_t	cru = CRU_REG_BASE;
@@ -39,6 +46,12 @@ static ClockRegisterParam clock_params[] = {
 	[CLOCK_SPI0]	= { 48000000 },
 	[CLOCK_SPI1]	= {        0 },	/* not used */
 	[CLOCK_SPI2]	= { 48000000 },
+	[CLOCK_I2C0]	= { 74000000 },
+	[CLOCK_I2C1]	= { 74000000 },
+	[CLOCK_I2C2]	= { 74000000 },
+	[CLOCK_I2C3]	= { 74000000 },
+	[CLOCK_I2C4]	= { 74000000 },
+	[CLOCK_I2C5]	= { 74000000 },
 };
 
 static UartDeviceInfo uart_info[] = {
@@ -65,6 +78,15 @@ static SpiDeviceInfo spi_info[] = {
 		{ SPI0_REG_BASE,  IRQ_SPI0,  CLOCK_SPI0},	/* SPI0  */
 		{ SPI1_REG_BASE,  IRQ_SPI1,  CLOCK_SPI1},	/* SPI1 (not used)  */
 		{ SPI2_REG_BASE,  IRQ_SPI2,  CLOCK_SPI2},	/* SPI2  */
+};
+
+static I2cDeviceInfo i2c_info[] = {
+		{ I2CPMU_REG_BASE,		IRQ_I2C_PMU,	CLOCK_I2C0},	/* I2C PMU  */
+		{ I2CAUDIO_REG_BASE,	IRQ_I2C_AUDIO,	CLOCK_I2C1},	/* I2C AUDIO  */
+		{ I2CSENSOR_REG_BASE,	IRQ_I2C_SENSOR, CLOCK_I2C2},	/* I2C SENSOR  */
+		{ I2CCAM_REG_BASE,  	IRQ_I2C_CAM,	CLOCK_I2C3},	/* I2C CAM  */
+		{ I2CTP_REG_BASE,		IRQ_I2C_TP,		CLOCK_I2C4},	/* I2C TP  */
+		{ I2CHDMI_REG_BASE,		IRQ_I2C_HDMI,	CLOCK_I2C5},	/* I2C HDMI  */
 };
 
 void init_task_board_depend(void)
@@ -118,9 +140,16 @@ void init_task_board_depend(void)
 	iowrite32(lvds+0x45*4, 0x3f);
 	iowrite32(lvds+0x4d*4, 0x0a);
 
-	iowrite32(pmu+0x6c/*PMU_GPIO0_C_PULL*/, 0x3ff);
+	/* PMU GPIO */
+	iowrite32(pmu+0x60/*PMU_GPIO_SR*/, 0x0007ffff);
+
+	iowrite32(pmu+0x6c/*PMU_GPIO0_C_PULL*/, 0x3c);
 	iowrite32(pmu+0x78/*PMU_GPIO0_C_DRV*/, 0x3f);
-	iowrite32(pmu+0x8c/*PMU_GPIO0_C_IOMUX*/, 0x00000000);
+	iowrite32(pmu+0x8c/*PMU_GPIO0_C_IOMUX*/, 0x00000001); /* I2C0PMU_SCL */
+
+	ioset32mask(pmu+0x68/*PMU_GPIO0_B_PULL*/, 0x00<<14, 0x03<<14);
+	ioset32mask(pmu+0x74/*PMU_GPIO0_B_DRV*/, 0x03<<14, 0x03<<14);
+	ioset32(pmu+0x88/*PMU_GPIO0_B_IOMUX*/, 0x01<<14); /* I2C0PMU_SDA */
 
 	/* for LED */
 	iowrite32(grf+GRF_GPIO8A_IOMUX, 0x003c0000); /* GPIO8A[2](POWER_LED)/[1](WORK_LED) */
@@ -131,8 +160,29 @@ void init_task_board_depend(void)
 	iowrite32(grf+GRF_GPIO8A_IOMUX, 0xf0C05040); /* SPI2:CSN0/CLK/CSN1 */
 	iowrite32(grf+GRF_GPIO8B_IOMUX, 0x000f0005); /* SPI2:TXD/RXD */
 
+	/* for I2C */
+	/* I2C2SENSOR_SCL/I2C2SENSOR_SDA */
+	iowrite32(grf+GRF_GPIO8A_IOMUX, 0x0f000500);
+	iowrite32(grf+GRF_GPIO8A_P, 0x0f000000);
+	iowrite32(grf+GRF_GPIO8A_E, 0x0f000f00);
+	/* I2C1AUDIO_SCL/I2C1AUDIO_SDA */
+	iowrite32(grf+GRF_GPIO6B_IOMUX, 0x00140014);
+	iowrite32(grf+GRF_GPIO6B_P, 0x003c0000);
+	iowrite32(grf+GRF_GPIO6B_E, 0x003c003c);
+	/* I2C3CAM_SCL/I2C3CAM_SDA */
+	iowrite32(grf+GRF_GPIO2C_IOMUX, 0x00050005);
+	iowrite32(grf+GRF_GPIO2C_P, 0x000f0000);
+	iowrite32(grf+GRF_GPIO2C_E, 0x000f000f);
+	/* I2C4TP_SCL/I2C4TP_SDA I2C5HDMI_SCL(7CH)/I2C5HDMI_SDA */
+	iowrite32(grf+GRF_GPIO7CL_IOMUX, 0x03111110);
+	iowrite32(grf+GRF_GPIO7CH_IOMUX, 0x00030001);
+	iowrite32(grf+GRF_GPIO7C_P, 0x03fc0000);
+	iowrite32(grf+GRF_GPIO7C_E, 0x03fc03fc);
+
+
 	/* register device */
 	uart_register(&uart_info, arrayof(uart_info));
 	gpio_register(&gpio_info, arrayof(gpio_info));
 	spi_register(&spi_info, arrayof(spi_info));
+	i2c_register(&i2c_info, arrayof(i2c_info));
 }

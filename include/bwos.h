@@ -8,7 +8,6 @@
 #ifndef INC_API_H_
 #define INC_API_H_
 
-#include <stdint.h>
 #include "common.h"
 #include "interface.h"
 
