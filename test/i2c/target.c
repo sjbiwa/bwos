@@ -14,11 +14,22 @@ void task1(uint32_t arg0, uint32_t arg1)
 {
 	I2cPortConfig	config;
 	I2cTransferMethod	method[6];
-	I2cTransferParam param = { arrayof(method), method };
+	I2cTransferParam param = { 1, method };
+	uint8_t	buff[64];
+
+	method[0].mode = I2C_RX_MODE;
+	method[0].addr = 0xee>>1;
+	method[0].buff = buff;
+	method[0].length = 2;
 
 	config.baudrate = 1000;
 	i2c_set_port_config(4, &config);
-	i2c_transfer(4, &param);
+	for (;;) {
+		memset(buff, 0, sizeof(buff));
+		i2c_transfer(4, &param);
+		lprintf("recv transfer:%02X:%02X\n", buff[0], buff[1]);
+		task_tsleep(MSEC(100));
+	}
 
 	//task_active(task_struct[1], (void*)2048);
 	//task_active(task_struct[2], (void*)4096);

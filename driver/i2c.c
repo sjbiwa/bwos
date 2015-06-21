@@ -62,6 +62,8 @@
 #define	INT_BRFIEN				(0x01u<<1)
 #define	INT_BTFIEN				(0x01u<<0)
 
+#define	MAX_BLOCK_LENGTH		(4*8)
+
 typedef	struct {
 	I2cDeviceInfo*	dev;					/* デバイス情報 */
 	bool			active;					/* デバイス有効フラグ */
@@ -80,8 +82,175 @@ static inline I2cObject* i2c_get_object(uint32_t port_no)
 
 static void i2c_irq_handler(uint32_t irqno, void* irq_info)
 {
-
+	I2cObject* obj = (I2cObject*)irq_info;
+	uint32_t port = obj->dev->io_addr;
+	iowrite32(port+I2C_IEN, 0); /* 割り込み禁止 */
+	flag_set(obj->ev_flag, 0x0001);
 }
+
+/* STOP 完了待ち */
+static void i2c_stop_condition(I2cObject* i2c_obj)
+{
+	I2cDeviceInfo* info = i2c_obj->dev;
+	iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
+	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
+	iowrite32(info->io_addr+I2C_CON, CON_STOP_ENABLE|CON_I2C_EN);
+	/* 完了待ち */
+	for (;;) {
+		uint32_t ret_patn;
+		iowrite32(info->io_addr+I2C_IEN, INT_STOPIEN);
+		flag_wait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn);
+		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
+		if ( intr & INT_STOPIEN ) {
+			break;
+		}
+	}
+	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
+	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+}
+
+static void i2c_send_block(I2cObject* i2c_obj, uint8_t* buff, uint32_t length)
+{
+	I2cDeviceInfo* info = i2c_obj->dev;
+	uint32_t word_data = 0;
+	uint32_t index = 0;
+	uint32_t write_index = 0;
+
+	while ( index < length ) {
+		word_data |= buff[index] << ((index % 4) * 8);
+		index++;
+		if ( ((index % 4) == 0) || (index == length) ) {
+			iowrite32(info->io_addr+I2C_TXDATA0+write_index*4, word_data);
+			write_index++;
+		}
+	}
+
+	iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
+	iowrite32(info->io_addr+I2C_MTXCNT, length);
+	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
+
+	/* 完了待ち */
+	for (;;) {
+		uint32_t ret_patn;
+		iowrite32(info->io_addr+I2C_IEN, INT_MBTFIEN);
+		flag_wait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn);
+		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
+		if ( intr & INT_MBTFIEN ) {
+			break;
+		}
+	}
+	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
+	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+}
+
+static void i2c_send_addr(I2cObject* i2c_obj, uint32_t addr)
+{
+	/* スレーブアドレスだけ別に送信する */
+	uint8_t		addr_buff[2];
+	uint32_t	length = 0;
+	if ( addr & 0x380 ) {
+		/* 10bitアドレス */
+		addr &= 0x3ff;
+		addr_buff[0] = 0xf0 | ((addr & 0x300) >> 7);
+		addr_buff[1] = addr & 0xff;
+		length = 2;
+	}
+	else {
+		/* 7bitアドレス */
+		addr &= 0x7f;
+		addr_buff[0] = addr << 1;
+		length = 1;
+	}
+	i2c_send_block(i2c_obj, addr_buff, length);
+}
+
+static void i2c_send(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uint32_t length)
+{
+	if ( length == 0 ) {
+		return;
+	}
+
+	/* スレーブアドレスを個別に送信する */
+	i2c_send_addr(i2c_obj, addr);
+
+	uint32_t block_num = ((length - 1) / MAX_BLOCK_LENGTH) + 1;
+	uint32_t last_block_length = length % MAX_BLOCK_LENGTH;
+	if ( last_block_length == 0 ) {
+		last_block_length = MAX_BLOCK_LENGTH;
+	}
+
+	for ( uint32_t index = 0; index < block_num; index++, buff += MAX_BLOCK_LENGTH ) {
+		i2c_send_block(i2c_obj, buff, ((index+1) < block_num) ? MAX_BLOCK_LENGTH : last_block_length);
+	}
+}
+
+static void i2c_recv_block(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uint32_t length, bool is_first, bool is_last)
+{
+	I2cDeviceInfo* info = i2c_obj->dev;
+	uint32_t con_value;
+
+	if ( is_first ) {
+		con_value = CON_I2C_MODE_RX_W_REG1|CON_I2C_EN;
+		iowrite32(info->io_addr+I2C_MRXADDR, 0x01000000|(addr<<1));
+		iowrite32(info->io_addr+I2C_MRXRADDR, 0);
+	}
+	else {
+		con_value = CON_I2C_MODE_RX_ONLY|CON_I2C_EN;
+	}
+	if ( is_last ) {
+		con_value |= CON_ACK_NAK;
+	}
+	iowrite32(info->io_addr+I2C_CON, con_value);
+
+	iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
+	iowrite32(info->io_addr+I2C_MRXCNT, length);
+	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
+
+	/* 完了待ち */
+	for (;;) {
+		uint32_t ret_patn;
+		iowrite32(info->io_addr+I2C_IEN, INT_MBRFIEN);
+		flag_wait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn);
+		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
+		if ( intr & INT_MBRFIEN ) {
+			break;
+		}
+	}
+	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
+	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+
+	/* 受信データコピー */
+	uint32_t word_data = 0;
+	uint32_t index = 0;
+
+	while ( index < length ) {
+		if ( (index % 4) == 0 ) {
+			word_data = ioread32(info->io_addr+I2C_RXDATA0+(index & ~0x03u));
+		}
+		buff[index] = (word_data >> (index % 4) * 8) & 0xff;
+		index++;
+	}
+}
+
+
+static void i2c_recv(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uint32_t length)
+{
+	if ( length == 0 ) {
+		return;
+	}
+
+	uint32_t block_num = ((length - 1) / MAX_BLOCK_LENGTH) + 1;
+	uint32_t last_block_length = length % MAX_BLOCK_LENGTH;
+	if ( last_block_length == 0 ) {
+		last_block_length = MAX_BLOCK_LENGTH;
+	}
+
+	for ( uint32_t index = 0; index < block_num; index++, buff += MAX_BLOCK_LENGTH ) {
+		i2c_recv_block(i2c_obj, addr, buff, ((index+1) < block_num) ? MAX_BLOCK_LENGTH : last_block_length,
+															index==0?true:false, ((index+1) < block_num)?false:true);
+	}
+}
+
 void i2c_register(I2cDeviceInfo* info, uint32_t info_num)
 {
 	int ix;
@@ -130,141 +299,28 @@ int i2c_transfer(uint32_t port_no, I2cTransferParam* param)
 	/* チャネル間排他 */
 	mutex_lock(i2c_obj->mutex);
 
-#if 1
-label1:
-	task_tsleep(MSEC(500));
-	/* 送信ONLY */
-	for (;;) {
-		uint32_t intr;
-		iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
-		intr = ioread32(info->io_addr+I2C_IPD);
-		lprintf("START INTR=%08X\n", intr);
-		iowrite32(info->io_addr+I2C_CON, CON_START_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-		iowrite32(info->io_addr+I2C_TXDATA0, 0x00000146);
-		iowrite32(info->io_addr+I2C_MTXCNT, 2);
+	/* I2C enable */
+	iowrite32(info->io_addr+I2C_CON, CON_I2C_EN);
 
-		for (;;) {
-			intr = ioread32(info->io_addr+I2C_IPD);
-			lprintf("INTR=%08X\n", intr);
-			if ( intr & INT_MBTFIEN ) {
-				intr = ioread32(info->io_addr+I2C_IPD);
-				lprintf("last INTR=%08X\n", intr);
-				break;
-			}
-			task_tsleep(MSEC(100));
+	for ( uint32_t m_id = 0; m_id < param->method_num; m_id++ ) {
+		/* START condition (2個目以降はrepearted START condition) */
+		iowrite32(info->io_addr+I2C_CON, CON_START_ENABLE|CON_I2C_EN);
+
+		if ( param->method[m_id].mode == I2C_TX_MODE ) {
+			/* 送信シーケンス */
+			i2c_send(i2c_obj, param->method[m_id].addr, param->method[m_id].buff, param->method[m_id].length);
 		}
-		iowrite32(info->io_addr+I2C_CON, CON_STOP_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-		task_tsleep(MSEC(500));
-		break;
+		else {
+			/* 受信シーケンス */
+			i2c_recv(i2c_obj, param->method[m_id].addr, param->method[m_id].buff, param->method[m_id].length);
+		}
 	}
 
-	/* 送信ONLY */
-	for (;;) {
-		uint32_t intr;
-		iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
-		intr = ioread32(info->io_addr+I2C_IPD);
-		lprintf("START INTR=%08X\n", intr);
-		iowrite32(info->io_addr+I2C_CON, CON_START_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-		iowrite32(info->io_addr+I2C_TXDATA0, 0x00001046);
-		iowrite32(info->io_addr+I2C_MTXCNT, 2);
+	/* STOP condition */
+	i2c_stop_condition(i2c_obj);
 
-		for (;;) {
-			intr = ioread32(info->io_addr+I2C_IPD);
-			lprintf("INTR=%08X\n", intr);
-			if ( intr & INT_MBTFIEN ) {
-				intr = ioread32(info->io_addr+I2C_IPD);
-				lprintf("last INTR=%08X\n", intr);
-				break;
-			}
-			task_tsleep(MSEC(100));
-		}
-		iowrite32(info->io_addr+I2C_CON, CON_STOP_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-		task_tsleep(MSEC(500));
-		break;
-	}
-#endif
-
-#if 1
-	task_tsleep(MSEC(100));
-	/* 受信ONLY */
-	for (;;) {
-		uint32_t intr;
-		iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
-		intr = ioread32(info->io_addr+I2C_IPD);
-		lprintf("START INTR=%08X\n", intr);
-		iowrite32(info->io_addr+I2C_CON, CON_ACK_NAK|CON_START_ENABLE|CON_I2C_MODE_RX_W_REG1|CON_I2C_EN);
-		iowrite32(info->io_addr+I2C_MRXADDR, 0x01000046);
-		iowrite32(info->io_addr+I2C_MRXRADDR, 0x00000000);
-		iowrite32(info->io_addr+I2C_MRXCNT, 2);
-
-		for (;;) {
-			intr = ioread32(info->io_addr+I2C_IPD);
-			lprintf("INTR=%08X\n", intr);
-			if ( intr & INT_MBRFIEN ) {
-				intr = ioread32(info->io_addr+I2C_IPD);
-				lprintf("last INTR=%08X\n", intr);
-				break;
-			}
-			task_tsleep(MSEC(100));
-		}
-		lprintf("READ=%08X\n", ioread32(info->io_addr+I2C_RXDATA0));
-		iowrite32(info->io_addr+I2C_CON, CON_STOP_ENABLE|CON_I2C_MODE_RX_W_REG1|CON_I2C_EN);
-		task_tsleep(SEC(1));
-	}
-#endif
-
-#if 0
-	/* 受信ONLY */
-	for (;;) {
-		uint32_t intr;
-		/* CMD/REG 送信 */
-		iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
-		intr = ioread32(info->io_addr+I2C_IPD);
-		lprintf("START INTR=%08X\n", intr);
-		iowrite32(info->io_addr+I2C_CON, CON_START_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-		iowrite32(info->io_addr+I2C_TXDATA0, 0x0000d0ee);
-		iowrite32(info->io_addr+I2C_MTXCNT, 2);
-		for (;;) {
-			intr = ioread32(info->io_addr+I2C_IPD);
-			lprintf("T1:INTR=%08X\n", intr);
-			if ( intr & INT_MBTFIEN ) {
-				iowrite32(info->io_addr+I2C_IPD, intr);
-				break;
-			}
-			task_tsleep(MSEC(100));
-		}
-
-		iowrite32(info->io_addr+I2C_CON, CON_START_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-		iowrite32(info->io_addr+I2C_TXDATA0, 0x000000ef);
-		iowrite32(info->io_addr+I2C_MTXCNT, 1);
-		for (;;) {
-			intr = ioread32(info->io_addr+I2C_IPD);
-			lprintf("T2:INTR=%08X\n", intr);
-			if ( intr & INT_MBTFIEN ) {
-				iowrite32(info->io_addr+I2C_IPD, intr);
-				break;
-			}
-			task_tsleep(MSEC(10));
-		}
-
-		iowrite32(info->io_addr+I2C_CON, CON_ACK_NAK|CON_I2C_MODE_RX_ONLY|CON_I2C_EN);
-		iowrite32(info->io_addr+I2C_MRXCNT, 1);
-		for (;;) {
-			intr = ioread32(info->io_addr+I2C_IPD);
-			lprintf("R:INTR=%08X\n", intr);
-			if ( intr & INT_MBRFIEN ) {
-				iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
-				break;
-			}
-			task_tsleep(MSEC(10));
-		}
-		lprintf("READ=%08X\n", ioread32(info->io_addr+I2C_RXDATA0));
-
-		iowrite32(info->io_addr+I2C_CON, CON_STOP_ENABLE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
-
-		task_tsleep(MSEC(300));
-	}
-#endif
+	/* I2C disable */
+	iowrite32(info->io_addr+I2C_CON, 0);
 
 	mutex_unlock(i2c_obj->mutex);
 
