@@ -28,6 +28,7 @@ typedef	struct {
 } SpiPortConfig;
 
 typedef	struct {
+	uint32_t		ch_no;					/* チャネル番号 */
 	uint32_t		baudrate;				/* ボーレート */
 	uint32_t		bits;					/* データビット幅 */
 	uint8_t			endian;					/* endian mode */
@@ -37,6 +38,7 @@ typedef	struct {
 } SpiChannelConfig;
 
 typedef	struct {
+	uint32_t		ch_no;					/* チャネル番号 */
 	void*			tx_buf;					/* 送信データ */
 	uint32_t		tx_length;				/* 送信データ長 */
 	void*			rx_buf;					/* 受信データ */
@@ -45,7 +47,7 @@ typedef	struct {
 
 extern void spi_register(SpiDeviceInfo* info, uint32_t info_num);
 extern int spi_set_port_config(uint32_t port_no, SpiPortConfig* config);
-extern int spi_set_channel_config(uint32_t port_no, uint32_t ch_no, SpiChannelConfig* config);
-extern int spi_transfer(uint32_t port_no, uint32_t ch_no, SpiTransferParam* param);
+extern int spi_set_channel_config(uint32_t port_no, SpiChannelConfig* config);
+extern int spi_transfer(uint32_t port_no, SpiTransferParam* param);
 
 #endif /* SPI_H_ */

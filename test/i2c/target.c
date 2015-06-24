@@ -5,28 +5,17 @@
  *      Author: biwa
  */
 #include "bwos.h"
-#include "driver/spi.h"
+#include "driver/i2c.h"
 
 /* configuration task */
 static int		task_struct[16];
 
 void task1(uint32_t arg0, uint32_t arg1)
 {
-	SpiPortConfig pconfig;
-	SpiChannelConfig chconfig;
-	SpiTransferParam param;
+	I2cPortConfig	config;
 
-	spi_set_port_config(0, &pconfig);
-	chconfig.baudrate = 100000;
-	chconfig.bits = 8;
-	chconfig.endian = SPI_ENDIAN_LITTLE;
-	chconfig.firstbit = SPI_FIRSTBIT_MSB;
-	chconfig.scpol = SPI_SCPOL_HIGH;
-	chconfig.scph = SPI_SCPH_START;
-	spi_set_channel_config(0, 0, &chconfig);
-	chconfig.baudrate = 48000000;
-	chconfig.bits = 8;
-	spi_set_channel_config(0, 1, &chconfig);
+	config.baudrate = 1000;
+	i2c_set_port_config(4, &config);
 
 	task_active(task_struct[1], (void*)2048);
 	task_active(task_struct[2], (void*)4096);
@@ -36,55 +25,58 @@ void task1(uint32_t arg0, uint32_t arg1)
 
 void task2(uint32_t arg0, uint32_t arg1)
 {
-	SpiTransferParam param;
-	uint8_t tx_buff[3];
-	uint8_t rx_buff[64];
-	memset(rx_buff, 0, sizeof(rx_buff));
+	uint8_t	buff[90];
+	I2cTransferMethod	method[] = {
+			{.mode = I2C_TX_MODE, .addr = 0x23, .bits = I2C_7BIT, .buff = (uint8_t[]){0x10}, .length = 1},
+			{.mode = I2C_RX_MODE, .addr = 0x23, .bits = I2C_7BIT, .buff = buff, .length = 2},
+			{.mode = I2C_TX_MODE, .addr = 0x23, .bits = I2C_7BIT, .buff = buff, .length = 90},
+			{.mode = I2C_RX_MODE, .addr = 0x23, .bits = I2C_7BIT, .buff = buff, .length = 2},
+			{.mode = I2C_RX_MODE, .addr = 0x23, .bits = I2C_7BIT, .buff = buff, .length = 2},
+	};
+	I2cTransferParam param[] = {
+			{ 1, &method[0]},
+			{ 1, &method[1]},
+			{ 1, &method[2]},
+			{ 2, &method[3]},
+	};
+	for ( int ix=0; ix < sizeof(buff); ix++ ) {
+		buff[ix] = ix+0x10;
+	}
 
-	lprintf("task2:%d %d\n", arg0, arg1);
-	tx_buff[0] = 0x58;
-	param.tx_buf = tx_buff;
-	param.rx_buf = rx_buff;
-	param.tx_length = 1;
-	param.rx_length = 2;
-	spi_transfer(0, 0, &param);
-	lprintf("ID=%02X\n", rx_buff[1]);
-
-	tx_buff[0] = 0x50;
+	int ret = i2c_transfer(4, &param[0], TMO_FEVER);
+	lprintf("transfer:ret=%d:%02X:%02X\n", ret, buff[0], buff[1]);
 	for (;;) {
-		memset(rx_buff, 0, sizeof(rx_buff));
-		param.tx_length = 1;
-		param.rx_length = 3;
-		spi_transfer(0, 0, &param);
-		double temp = (rx_buff[1]<<8|rx_buff[2]);
-		temp /= 128;
-		lprintf("0:%d.%02d ℃\n", (int)temp, (int)((temp-(int)temp)*100));
-		task_tsleep(SEC(1));
+		ret = i2c_transfer(4, &param[1], TMO_FEVER);
+		lprintf("0x23 transfer:ret=%d:%02X:%02X\n", ret, buff[0], buff[1]);
+		task_tsleep(MSEC(100));
 	}
 }
 
 void task3(uint32_t arg0, uint32_t arg1)
 {
-	lprintf("task3:%d %d\n", arg0, arg1);
+	uint8_t	buff[64];
+	I2cTransferMethod	method[] = {
+			{.mode = I2C_TX_MODE, .addr = 0x77, .bits = I2C_7BIT, .buff = (uint8_t[]){0xF6}, .length = 1},
+			{.mode = I2C_RX_MODE, .addr = 0x77, .bits = I2C_7BIT, .buff = buff, .length = 2},
+			{.mode = I2C_TX_MODE, .addr = 0x77, .bits = I2C_7BIT, .buff = (uint8_t[]){0xD0}, .length = 1},
+			{.mode = I2C_RX_MODE, .addr = 0x77, .bits = I2C_7BIT, .buff = buff, .length = 2},
+	};
+	I2cTransferParam param[] = {
+			{ 2, &method[0]},
+			{ 2, &method[2]},
+	};
+
 	for (;;) {
-		uint8_t tx_buff[] = { 0x08, 0x99, 0x88, 0x77, 0x66, 0x55 };
-		uint8_t rx_buff[64];
-		memset(rx_buff, 0, sizeof(rx_buff));
-		SpiTransferParam param;
-		param.tx_buf = tx_buff;
-		param.rx_buf = rx_buff;
-		param.tx_length = sizeof(tx_buff);
-		param.rx_length = 5;
-		spi_transfer(0, 1, &param);
-		lprintf("1:%02X %02X %02X %02X %02X %02X\n", rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
-		task_tsleep(SEC(3));
+		int ret = i2c_transfer(4, &param[arg0], TMO_FEVER);
+		lprintf("%d:0x77 transfer:ret=%d:%02X:%02X\n", arg0, ret, buff[0], buff[1]);
+		task_tsleep(MSEC(100));
 	}
 }
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5, (void*)128},
-		{"TASK2", TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
-		{"TASK3", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 6, (void*)512},
+		{"TASK2", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 6, (void*)0},
+		{"TASK3", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 6, (void*)1},
 };
 
 void main_task(void)

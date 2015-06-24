@@ -9,7 +9,7 @@
 #include "driver/video.h"
 
 /* configuration task */
-static int		task_struct[16];
+static int		task_struct[1000];
 static int		sync_flag;
 
 OSAPI int flag_set(int id, uint32_t pattern);
@@ -115,6 +115,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASK2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 5},
 		{"TASK3", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 5},
 		{"TASK4", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 1024, 1024, 5},
+
 };
 
 void main_task(void)
@@ -140,6 +141,7 @@ void main_task(void)
 	int ix;
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
 		task_struct[ix] = task_create(&task_info[ix]);
+		lprintf("create %d\n", task_struct[ix]);
 	}
 
 	task_sleep();
