@@ -19,12 +19,18 @@ typedef	struct {
 } I2cPortConfig;
 
 typedef	enum {
+	I2C_7BIT = 0,
+	I2C_10BIT,
+} I2cAddressBits;
+
+typedef	enum {
 	I2C_TX_MODE = 0,
 	I2C_RX_MODE,
 } I2cTransferMode;
 
 typedef	struct {
 	uint32_t		addr;					/* スレーブアドレス */
+	I2cAddressBits	bits;					/* アドレスビット */
 	I2cTransferMode	mode;					/* Read/Write モード */
 	uint8_t*		buff;					/* 転送バッファ */
 	uint32_t		length;					/* 転送サイズ */
@@ -37,6 +43,6 @@ typedef	struct {
 
 extern void i2c_register(I2cDeviceInfo* info, uint32_t info_num);
 extern int i2c_set_port_config(uint32_t port_no, I2cPortConfig* config);
-extern int i2c_transfer(uint32_t port_no, I2cTransferParam* param);
+extern int i2c_transfer(uint32_t port_no, I2cTransferParam* param, TimeOut tmout);
 
 #endif /* I2C_H_ */

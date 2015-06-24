@@ -64,11 +64,31 @@
 
 #define	MAX_BLOCK_LENGTH		(4*8)
 
+/* NAKチェックモード */
+#define	NAK_CHECK
+#if defined(NAK_CHECK)
+#define	NAK_CHECK_BIT			(INT_NAKRCVIEN)
+#define	NAK_CHECK_MODE			(CON_ACT2NAK_STOP)
+#else
+#define	NAK_CHECK_BIT			(0)
+#define	NAK_CHECK_MODE			(CON_ACT2NAK_IGNORED)
+#endif
+
+typedef	enum {
+	I2C_OK = 0,
+	I2C_ERR,
+	I2C_FATAL,
+	I2C_NAK,
+} I2C_RT_CODE;
+
+
 typedef	struct {
 	I2cDeviceInfo*	dev;					/* デバイス情報 */
 	bool			active;					/* デバイス有効フラグ */
 	int				mutex;					/* チャネル毎の排他用 */
 	int				ev_flag;				/* 転送完了待ち用フラグ */
+	TimeOut			tmout;					/* タイムアウト指定(transfer呼び出し時に設定) */
+	I2C_RT_CODE		ret_code;				/* 処理終了詳細コード */
 } I2cObject;
 
 
@@ -88,29 +108,74 @@ static void i2c_irq_handler(uint32_t irqno, void* irq_info)
 	flag_set(obj->ev_flag, 0x0001);
 }
 
+static int i2c_irq_wait(I2cObject* i2c_obj, uint32_t int_spec, uint32_t* int_ret)
+{
+	int ret = RT_OK;
+	I2cDeviceInfo* info = i2c_obj->dev;
+
+	for (;;) {
+		uint32_t ret_patn;
+		iowrite32(info->io_addr+I2C_IEN, int_spec);
+		int ret = flag_twait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn, i2c_obj->tmout);
+		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
+		if ( intr & int_spec ) {
+			if ( int_ret ) {
+				*int_ret = intr;
+			}
+			break;
+		}
+		if ( ret != RT_OK ) {
+			/* flag_twaitがerrの場合はfatalとする */
+			ret = RT_ERR;
+			i2c_obj->ret_code = I2C_FATAL;
+
+		}
+	}
+	return ret;
+}
+
+/* START 完了待ち */
+static int i2c_start_condition(I2cObject* i2c_obj, bool is_repeat)
+{
+	I2cDeviceInfo* info = i2c_obj->dev;
+	iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
+	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
+	uint32_t reg_value = CON_START_ENABLE|CON_I2C_EN;
+	if ( is_repeat  ) {
+		iowrite32(info->io_addr+I2C_CON, 0); /* repeatは一度I2C_CONを0にして再度STARTする模様 (Linuxコードより) */
+		//reg_value |= CON_STOP_ENABLE; /* repeat startの場合はSTARTとSTOPの両方をONにすると動く模様 */
+	}
+	iowrite32(info->io_addr+I2C_CON, reg_value);
+
+	/* 完了待ち */
+	int ret = i2c_irq_wait(i2c_obj, INT_STARTIEN, NULL);
+
+	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
+	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+
+	return ret;
+}
+
 /* STOP 完了待ち */
-static void i2c_stop_condition(I2cObject* i2c_obj)
+static int i2c_stop_condition(I2cObject* i2c_obj)
 {
 	I2cDeviceInfo* info = i2c_obj->dev;
 	iowrite32(info->io_addr+I2C_IPD, 0xffffffff);
 	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 	iowrite32(info->io_addr+I2C_CON, CON_STOP_ENABLE|CON_I2C_EN);
+
 	/* 完了待ち */
-	for (;;) {
-		uint32_t ret_patn;
-		iowrite32(info->io_addr+I2C_IEN, INT_STOPIEN);
-		flag_wait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn);
-		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
-		if ( intr & INT_STOPIEN ) {
-			break;
-		}
-	}
+	int ret = i2c_irq_wait(i2c_obj, INT_STOPIEN, NULL);
+
 	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
 	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+
+	return ret;
 }
 
-static void i2c_send_block(I2cObject* i2c_obj, uint8_t* buff, uint32_t length)
+static int i2c_send_block(I2cObject* i2c_obj, uint8_t* buff, uint32_t length)
 {
+	int ret = RT_OK;
 	I2cDeviceInfo* info = i2c_obj->dev;
 	uint32_t word_data = 0;
 	uint32_t index = 0;
@@ -122,6 +187,7 @@ static void i2c_send_block(I2cObject* i2c_obj, uint8_t* buff, uint32_t length)
 		if ( ((index % 4) == 0) || (index == length) ) {
 			iowrite32(info->io_addr+I2C_TXDATA0+write_index*4, word_data);
 			write_index++;
+			word_data = 0;
 		}
 	}
 
@@ -130,25 +196,25 @@ static void i2c_send_block(I2cObject* i2c_obj, uint8_t* buff, uint32_t length)
 	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 
 	/* 完了待ち */
-	for (;;) {
-		uint32_t ret_patn;
-		iowrite32(info->io_addr+I2C_IEN, INT_MBTFIEN);
-		flag_wait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn);
-		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
-		if ( intr & INT_MBTFIEN ) {
-			break;
-		}
+	uint32_t intr;
+	ret = i2c_irq_wait(i2c_obj, NAK_CHECK_BIT|INT_MBTFIEN, &intr);
+	if ( intr & NAK_CHECK_BIT ) {
+		ret = RT_ERR;
+		i2c_obj->ret_code = I2C_NAK;
 	}
+
 	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
 	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+
+	return ret;
 }
 
-static void i2c_send_addr(I2cObject* i2c_obj, uint32_t addr)
+static int i2c_send_addr(I2cObject* i2c_obj, uint32_t addr, I2cAddressBits bits)
 {
 	/* スレーブアドレスだけ別に送信する */
 	uint8_t		addr_buff[2];
 	uint32_t	length = 0;
-	if ( addr & 0x380 ) {
+	if ( bits == I2C_10BIT ) {
 		/* 10bitアドレス */
 		addr &= 0x3ff;
 		addr_buff[0] = 0xf0 | ((addr & 0x300) >> 7);
@@ -161,41 +227,61 @@ static void i2c_send_addr(I2cObject* i2c_obj, uint32_t addr)
 		addr_buff[0] = addr << 1;
 		length = 1;
 	}
-	i2c_send_block(i2c_obj, addr_buff, length);
+	return i2c_send_block(i2c_obj, addr_buff, length);
 }
 
-static void i2c_send(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uint32_t length)
+static int i2c_send(I2cObject* i2c_obj, uint32_t addr, I2cAddressBits bits, uint8_t* buff, uint32_t length)
 {
+	int ret = RT_OK;
+
 	if ( length == 0 ) {
-		return;
+		i2c_obj->ret_code = I2C_ERR;
+		ret = RT_ERR;
 	}
+	else {
+		I2cDeviceInfo* info = i2c_obj->dev;
+		iowrite32(info->io_addr+I2C_CON, NAK_CHECK_MODE|CON_I2C_MODE_TX_ONLY|CON_I2C_EN);
 
-	/* スレーブアドレスを個別に送信する */
-	i2c_send_addr(i2c_obj, addr);
+		/* スレーブアドレスを個別に送信する */
+		ret = i2c_send_addr(i2c_obj, addr, bits);
+		if ( ret == RT_OK ) {
 
-	uint32_t block_num = ((length - 1) / MAX_BLOCK_LENGTH) + 1;
-	uint32_t last_block_length = length % MAX_BLOCK_LENGTH;
-	if ( last_block_length == 0 ) {
-		last_block_length = MAX_BLOCK_LENGTH;
+			uint32_t block_num = ((length - 1) / MAX_BLOCK_LENGTH) + 1;
+			uint32_t last_block_length = length % MAX_BLOCK_LENGTH;
+			if ( last_block_length == 0 ) {
+				last_block_length = MAX_BLOCK_LENGTH;
+			}
+
+			for ( uint32_t index = 0; index < block_num; index++, buff += MAX_BLOCK_LENGTH ) {
+				ret = i2c_send_block(i2c_obj, buff, ((index+1) < block_num) ? MAX_BLOCK_LENGTH : last_block_length);
+				if ( ret != RT_OK ) {
+					break;
+				}
+			}
+		}
 	}
-
-	for ( uint32_t index = 0; index < block_num; index++, buff += MAX_BLOCK_LENGTH ) {
-		i2c_send_block(i2c_obj, buff, ((index+1) < block_num) ? MAX_BLOCK_LENGTH : last_block_length);
-	}
+	return ret;
 }
 
-static void i2c_recv_block(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uint32_t length, bool is_first, bool is_last)
+static int i2c_recv_block(I2cObject* i2c_obj, uint32_t addr, I2cAddressBits bits, uint8_t* buff, uint32_t length, bool is_first, bool is_last)
 {
 	I2cDeviceInfo* info = i2c_obj->dev;
-	uint32_t con_value;
 
+	uint32_t con_value = NAK_CHECK_MODE;
 	if ( is_first ) {
-		con_value = CON_I2C_MODE_RX_W_REG1|CON_I2C_EN;
-		iowrite32(info->io_addr+I2C_MRXADDR, 0x01000000|(addr<<1));
+		con_value |= CON_I2C_MODE_RX_W_REG1|CON_I2C_EN;
+		uint32_t rxaddr;
+		if ( bits == I2C_10BIT ) {
+			rxaddr = 0x03000000u | ((addr & 0xff) << 8) | (0xf0 | ((addr >> 7) & 0x6));
+		}
+		else {
+			rxaddr = 0x01000000u | (addr << 1);
+		}
+		iowrite32(info->io_addr+I2C_MRXADDR, rxaddr);
 		iowrite32(info->io_addr+I2C_MRXRADDR, 0);
 	}
 	else {
-		con_value = CON_I2C_MODE_RX_ONLY|CON_I2C_EN;
+		con_value |= CON_I2C_MODE_RX_ONLY|CON_I2C_EN;
 	}
 	if ( is_last ) {
 		con_value |= CON_ACK_NAK;
@@ -207,48 +293,58 @@ static void i2c_recv_block(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uin
 	irq_set_enable(i2c_obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 
 	/* 完了待ち */
-	for (;;) {
-		uint32_t ret_patn;
-		iowrite32(info->io_addr+I2C_IEN, INT_MBRFIEN);
-		flag_wait(i2c_obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_patn);
-		uint32_t intr = ioread32(info->io_addr+I2C_IPD);
-		if ( intr & INT_MBRFIEN ) {
-			break;
-		}
+	int ret = RT_OK;
+	uint32_t intr;
+	ret = i2c_irq_wait(i2c_obj, NAK_CHECK_BIT|INT_MBRFIEN, &intr);
+	if ( intr & NAK_CHECK_BIT ) {
+		ret = RT_ERR;
+		i2c_obj->ret_code = I2C_NAK;
 	}
+
 	iowrite32(info->io_addr+I2C_IEN, 0); /* 念のため */
 	irq_set_enable(i2c_obj->dev->irq, IRQ_DISABLE, CPU_SELF);
 
-	/* 受信データコピー */
-	uint32_t word_data = 0;
-	uint32_t index = 0;
+	if ( ret == RT_OK ) {
+		/* 受信データコピー */
+		uint32_t word_data = 0;
+		uint32_t index = 0;
 
-	while ( index < length ) {
-		if ( (index % 4) == 0 ) {
-			word_data = ioread32(info->io_addr+I2C_RXDATA0+(index & ~0x03u));
+		while ( index < length ) {
+			if ( (index % 4) == 0 ) {
+				word_data = ioread32(info->io_addr+I2C_RXDATA0+(index & ~0x03u));
+			}
+			buff[index] = (word_data >> (index % 4) * 8) & 0xff;
+			index++;
 		}
-		buff[index] = (word_data >> (index % 4) * 8) & 0xff;
-		index++;
 	}
+	return ret;
 }
 
 
-static void i2c_recv(I2cObject* i2c_obj, uint32_t addr, uint8_t* buff, uint32_t length)
+static int i2c_recv(I2cObject* i2c_obj, uint32_t addr, I2cAddressBits bits, uint8_t* buff, uint32_t length)
 {
+	int ret = RT_OK;
+
 	if ( length == 0 ) {
-		return;
+		i2c_obj->ret_code = I2C_ERR;
+		ret = RT_ERR;
 	}
+	else {
+		uint32_t block_num = ((length - 1) / MAX_BLOCK_LENGTH) + 1;
+		uint32_t last_block_length = length % MAX_BLOCK_LENGTH;
+		if ( last_block_length == 0 ) {
+			last_block_length = MAX_BLOCK_LENGTH;
+		}
 
-	uint32_t block_num = ((length - 1) / MAX_BLOCK_LENGTH) + 1;
-	uint32_t last_block_length = length % MAX_BLOCK_LENGTH;
-	if ( last_block_length == 0 ) {
-		last_block_length = MAX_BLOCK_LENGTH;
+		for ( uint32_t index = 0; index < block_num; index++, buff += MAX_BLOCK_LENGTH ) {
+			ret = i2c_recv_block(i2c_obj, addr, bits, buff, ((index+1) < block_num) ? MAX_BLOCK_LENGTH : last_block_length,
+																index==0?true:false, ((index+1) < block_num)?false:true);
+			if ( ret != RT_OK ) {
+				break;
+			}
+		}
 	}
-
-	for ( uint32_t index = 0; index < block_num; index++, buff += MAX_BLOCK_LENGTH ) {
-		i2c_recv_block(i2c_obj, addr, buff, ((index+1) < block_num) ? MAX_BLOCK_LENGTH : last_block_length,
-															index==0?true:false, ((index+1) < block_num)?false:true);
-	}
+	return ret;
 }
 
 void i2c_register(I2cDeviceInfo* info, uint32_t info_num)
@@ -281,10 +377,11 @@ int i2c_set_port_config(uint32_t port_no, I2cPortConfig* config)
 	iowrite32(info->io_addr+I2C_CON, 0); /* all disable */
 	uint32_t clkdiv = ((clock_get(info->clock_src) / (config->baudrate * 8 * 2)) - 1) & 0xffff;
 	iowrite32(info->io_addr+I2C_CLKDIV, (clkdiv<<16) | clkdiv);
+	iowrite32(info->io_addr+I2C_CON, CON_I2C_EN);
 	i2c_obj->active = true;
 }
 
-int i2c_transfer(uint32_t port_no, I2cTransferParam* param)
+int i2c_transfer(uint32_t port_no, I2cTransferParam* param, TimeOut tmout)
 {
 	if ( !i2c_obj_tbl || (i2c_obj_num < port_no) ) {
 		return RT_ERR;
@@ -299,30 +396,42 @@ int i2c_transfer(uint32_t port_no, I2cTransferParam* param)
 	/* チャネル間排他 */
 	mutex_lock(i2c_obj->mutex);
 
-	/* I2C enable */
-	iowrite32(info->io_addr+I2C_CON, CON_I2C_EN);
+	i2c_obj->tmout = tmout;
+	i2c_obj->ret_code = I2C_OK;
 
-	for ( uint32_t m_id = 0; m_id < param->method_num; m_id++ ) {
-		/* START condition (2個目以降はrepearted START condition) */
-		iowrite32(info->io_addr+I2C_CON, CON_START_ENABLE|CON_I2C_EN);
-
+	int ret = RT_OK;
+	for ( uint32_t m_id = 0; (ret == RT_OK) && (m_id < param->method_num); m_id++ ) {
+		/* START condition (2個目以降はrepeated START condition) */
+		ret = i2c_start_condition(i2c_obj, (m_id == 0) ? false : true);
+		if ( ret != RT_OK ) {
+			break;
+		}
 		if ( param->method[m_id].mode == I2C_TX_MODE ) {
 			/* 送信シーケンス */
-			i2c_send(i2c_obj, param->method[m_id].addr, param->method[m_id].buff, param->method[m_id].length);
+			ret = i2c_send(i2c_obj, param->method[m_id].addr, param->method[m_id].bits, param->method[m_id].buff, param->method[m_id].length);
 		}
 		else {
 			/* 受信シーケンス */
-			i2c_recv(i2c_obj, param->method[m_id].addr, param->method[m_id].buff, param->method[m_id].length);
+			ret = i2c_recv(i2c_obj, param->method[m_id].addr, param->method[m_id].bits, param->method[m_id].buff, param->method[m_id].length);
 		}
 	}
 
 	/* STOP condition */
-	i2c_stop_condition(i2c_obj);
-
-	/* I2C disable */
-	iowrite32(info->io_addr+I2C_CON, 0);
+	if ( (ret == RT_OK) || (i2c_obj->ret_code == I2C_ERR) ) {
+		/* 通常のSTOPシーケンス実行 */
+		i2c_stop_condition(i2c_obj);
+	}
+	else if ( i2c_obj->ret_code == I2C_FATAL ) {
+		/* 致命的エラーのため一度デバイス自体をdisableする */
+		iowrite32(info->io_addr+I2C_CON, 0);
+		iowrite32(info->io_addr+I2C_CON, CON_I2C_EN);
+	}
+	else {
+		/* NAK受信時シーケンス */
+		/* NAK受信を認識する場合は自動的にSTOPシーケンスが実行されるためなにもしない */
+	}
 
 	mutex_unlock(i2c_obj->mutex);
 
-	return RT_OK;
+	return ret;
 }
