@@ -102,6 +102,7 @@ void arch_system_preinit(uint32_t cpuid)
 	tprintf("SCR = %08X\n", SCR_get());
 	tprintf("ID_PFR0 = %08X\n", ID_PFR0_get());
 	tprintf("ID_PFR1 = %08X\n", ID_PFR1_get());
+	tprintf("ID_DFR0 = %08X\n", ID_DFR0_get());
 
 	/* PROC_ID / ASID を初期化 */
 	CONTEXTIDR_set(0);
