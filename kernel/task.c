@@ -305,8 +305,10 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	}
 	task->task_attr = task_attr;
 	task->entry = entry;
+#if !defined(NO_USE_SVC_STACK)
 	task->init_sp = 0;
 	task->stack_size = 2048; /* SVCスタックサイズ */
+#endif
 	task->usr_init_sp = usr_init_sp;
 	task->usr_stack_size = usr_stack_size;
 	task->priority = priority;
@@ -338,7 +340,9 @@ void task_init_task_create(void)
 						1024, /* USRスタックサイズ */
 						0);
 	/* STACK */
+#if !defined(NO_USE_SVC_STACK)
 	init_task_struct.init_sp = sys_malloc_align_body(init_task_struct.stack_size, 8);
+#endif
 	init_task_struct.usr_init_sp = sys_malloc_align_body(init_task_struct.usr_stack_size, 8);
 
 	arch_init_task_create(&init_task_struct);
@@ -348,7 +352,9 @@ void task_init_task_create(void)
 
 int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 {
+#if !defined(NO_USE_SVC_STACK)
 	bool is_alloc_sp = false;
+#endif
 	bool is_alloc_usr_sp = false;
 	task_init_struct(task,
 					info->name,
@@ -357,6 +363,7 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 					info->usr_init_sp,
 					info->usr_stack_size,
 					info->priority);
+#if !defined(NO_USE_SVC_STACK)
 	/* SVC_stack */
 	if ( task->init_sp == 0 ) {
 		/* stackをヒープから確保 */
@@ -366,6 +373,7 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 		}
 		is_alloc_sp = true;
 	}
+#endif
 	/* USR stack */
 	if ( task->usr_init_sp == 0 ) {
 		/* stackをヒープから確保 */
@@ -417,9 +425,11 @@ ERR_RET3:
 		__sys_free(task->usr_init_sp);
 	}
 ERR_RET2:
+#if !defined(NO_USE_SVC_STACK)
 	if ( is_alloc_sp ) {
 		__sys_free(task->init_sp);
 	}
+#endif
 ERR_RET1:
 	__sys_free(task);
 	return RT_ERR;

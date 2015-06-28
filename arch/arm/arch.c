@@ -32,10 +32,12 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 {
 	uint32_t*		ptr;
 	uint32_t*		usr_stack;
+#if !defined(NO_USE_SVC_STACK)
 	/* SVC stack */
 	ptr = (uint32_t*)((PtrInt_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
 	ptr = PRE_ALIGN_BY(ptr, STACK_ALIGN);
 	task->save_sp = ptr;
+#endif
 	/* USR/SYS stack */
 	usr_stack = (uint32_t*)((PtrInt_t)(task->usr_init_sp) + task->usr_stack_size);
 	usr_stack = PRE_ALIGN_BY(usr_stack, STACK_ALIGN);

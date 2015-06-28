@@ -6,6 +6,7 @@
  */
 #include "bwos.h"
 #include "driver/i2c.h"
+#include "cp15reg.h"
 
 /* configuration task */
 static int		task_struct[16];

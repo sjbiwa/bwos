@@ -1,3 +1,6 @@
+#ifndef CP15REG_H_
+#define	CP15REG_H_
+
 #ifdef __ASM__
 #define MIDR_get(reg)     mrc p15,0,reg,c0,c0,0
 #define CTR_get(reg)     mrc p15,0,reg,c0,c0,1
@@ -110,6 +113,36 @@
 #define TLBIALLH_set(reg)     mcr p15,4,reg,c8,c7,0
 #define TLBIMVAH_set(reg)     mcr p15,4,reg,c8,c7,1
 #define TLBIALLNSNH_set(reg)     mcr p15,4,reg,c8,c7,4
+
+#define PMCR_get(reg)    MRC p15,0,reg,c9,c12,0
+#define PMCR_set(reg)    MCR p15,0,reg,c9,c12,0
+#define PMCNTENSET_get(reg)    MRC p15,0,reg,c9,c12,1
+#define PMCNTENSET_set(reg)    MCR p15,0,reg,c9,c12,1
+#define PMCNTENCLR_get(reg)    MRC p15,0,reg,c9,c12,2
+#define PMCNTENCLR_set(reg)    MCR p15,0,reg,c9,c12,2
+#define PMOVSR_get(reg)    MRC p15,0,reg,c9,c12,3
+#define PMOVSR_set(reg)    MCR p15,0,reg,c9,c12,3
+#define PMSWINC_set(reg)    MCR p15,0,reg,c9,c12,4
+#define PMSELR_get(reg)    MRC p15,0,reg,c9,c12,5
+#define PMSELR_set(reg)    MCR p15,0,reg,c9,c12,5
+#define PMCEID0_get(reg)    MRC p15,0,reg,c9,c12,6
+#define PMCEID1_get(reg)    MRC p15,0,reg,c9,c12,7
+#define PMCCNTR_get(reg)    MRC p15,0,reg,c9,c13,0
+#define PMCCNTR_set(reg)    MCR p15,0,reg,c9,c13,0
+#define PMXEVTYPER_get(reg)    MRC p15,0,reg,c9,c13,1
+#define PMXEVTYPER_set(reg)    MCR p15,0,reg,c9,c13,1
+#define PMXEVCNTR_get(reg)    MRC p15,0,reg,c9,c13,2
+#define PMXEVCNTR_set(reg)    MCR p15,0,reg,c9,c13,2
+#define PMUSERENR_get(reg)    MRC p15,0,reg,c9,c14,0
+#define PMUSERENR_set(reg)    MCR p15,0,reg,c9,c14,0
+#define PMINTENSET_get(reg)    MRC p15,0,reg,c9,c14,1
+#define PMINTENSET_set(reg)    MCR p15,0,reg,c9,c14,1
+#define PMINTENCLR_get(reg)    MRC p15,0,reg,c9,c14,2
+#define PMINTENCLR_set(reg)    MCR p15,0,reg,c9,c14,2
+#define PMOVSSET_get(reg)    MRC p15,0,reg,c9,c14,3
+#define PMOVSSET_set(reg)    MCR p15,0,reg,c9,c14,3
+
+
 #define PRRR_get(reg)     mrc p15,0,reg,c10,c2,0
 #define PRRR_set(reg)     mcr p15,0,reg,c10,c2,0
 #define MAIR0_get(reg)     mrc p15,0,reg,c10,c2,0
@@ -249,6 +282,33 @@
 #define TLBIALLH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,0"::"r"(reg):"memory");} while(0)
 #define TLBIMVAH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,1"::"r"(reg):"memory");} while (0)
 #define TLBIALLNSNH_set(reg)     do {__asm__ volatile ("mcr p15,4,%0,c8,c7,4"::"r"(reg):"memory");} while (0)
+#define PMCR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,0;":"=r"((reg))::"cc");reg;})
+#define PMCR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c12,0;"::"r"((reg)):"cc"); } while (0)
+#define PMCNTENSET_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,1;":"=r"((reg))::"cc");reg;})
+#define PMCNTENSET_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c12,1;"::"r"((reg)):"cc"); } while (0)
+#define PMCNTENCLR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,2;":"=r"((reg))::"cc");reg;})
+#define PMCNTENCLR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c12,2;"::"r"((reg)):"cc"); } while (0)
+#define PMOVSR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,3;":"=r"((reg))::"cc");reg;})
+#define PMOVSR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c12,3;"::"r"((reg)):"cc"); } while (0)
+#define PMSWINC_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c12,4;"::"r"((reg)):"cc"); } while (0)
+#define PMSELR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,5;":"=r"((reg))::"cc");reg;})
+#define PMSELR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c12,5;"::"r"((reg)):"cc"); } while (0)
+#define PMCEID0_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,6;":"=r"((reg))::"cc");reg;})
+#define PMCEID1_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c12,7;":"=r"((reg))::"cc");reg;})
+#define PMCCNTR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c13,0;":"=r"((reg))::"cc");reg;})
+#define PMCCNTR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c13,0;"::"r"((reg)):"cc"); } while (0)
+#define PMXEVTYPER_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c13,1;":"=r"((reg))::"cc");reg;})
+#define PMXEVTYPER_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c13,1;"::"r"((reg)):"cc"); } while (0)
+#define PMXEVCNTR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c13,2;":"=r"((reg))::"cc");reg;})
+#define PMXEVCNTR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c13,2;"::"r"((reg)):"cc"); } while (0)
+#define PMUSERENR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c14,0;":"=r"((reg))::"cc");reg;})
+#define PMUSERENR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c14,0;"::"r"((reg)):"cc"); } while (0)
+#define PMINTENSET_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c14,1;":"=r"((reg))::"cc");reg;})
+#define PMINTENSET_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c14,1;"::"r"((reg)):"cc"); } while (0)
+#define PMINTENCLR_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c14,2;":"=r"((reg))::"cc");reg;})
+#define PMINTENCLR_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c14,2;"::"r"((reg)):"cc"); } while (0)
+#define PMOVSSET_get()  ({unsigned int reg;__asm__ volatile ("MRC p15,0,%0,c9,c14,3;":"=r"((reg))::"cc");reg;})
+#define PMOVSSET_set(reg)  do { __asm__ volatile ("MCR p15,0,%0,c9,c14,3;"::"r"((reg)):"cc"); } while (0)
 #define PRRR_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c10,c2,0":"=r"(_reg_)::"memory");_reg_;})
 #define PRRR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c10,c2,0"::"r"(reg):"memory");} while (0)
 #define MAIR0_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c10,c2,0":"=r"(_reg_)::"memory");_reg_;})
@@ -324,3 +384,5 @@
 
 /* ACTLRの各ビット */
 #define	ACTLR_SMP	(0x01<<6)		/* SMP eanble (cortex-A7/A15/A17 only?) */
+
+#endif

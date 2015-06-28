@@ -8,6 +8,10 @@
 #ifndef INC_API_H_
 #define INC_API_H_
 
+#if defined(NO_USE_SVC_CALL)
+#include "no_svc_call.h"
+#endif
+
 #include "common.h"
 #include "interface.h"
 
@@ -44,7 +48,7 @@ OSAPI int msgq_create(uint32_t length);
 OSAPI int msgq_send(int id, void* ptr, uint32_t length);
 OSAPI int msgq_tsend(int id, void* ptr, uint32_t length, TimeOut tmout);
 OSAPI int msgq_recv(int id, void* ptr, uint32_t length);
-OSAPI int msgq_trecv(int id, void** ptr, uint32_t length, TimeOut tmout);
+OSAPI int msgq_trecv(int id, void* ptr, uint32_t length, TimeOut tmout);
 
 /* 固定長メモリブロック関連API */
 OSAPI int fixmb_create(uint32_t mb_size, uint32_t length);
