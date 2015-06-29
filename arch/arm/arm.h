@@ -73,12 +73,20 @@
 #define FPEXC_set(reg)  do {__asm__ volatile ("vmsr FPEXC,%0"::"r"(reg):"memory");} while (0)
 
 /* コアID取得 */
+#if USE_SMP==1
 #define	CPUID_get()		(MPIDR_get() & 0xff)
-
 #else
+#define	CPUID_get()		(0)
+#endif
+
+#else /* __ASM__ */
 
 /* コアID取得 */
+#if USE_SMP==1
 #define	CPUID_get(reg)		MPIDR_get(reg);and reg, #0xff
+#else
+#define	CPUID_get(reg)		mov reg, #0
+#endif
 
 #endif
 

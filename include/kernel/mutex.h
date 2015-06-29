@@ -14,7 +14,9 @@
 
 typedef	struct tagMutexStruct {
 	Link			link;
+#if USE_SMP==1
 	SpinLockObj		spin_lock;
+#endif
 	bool			id_initialized;	/* 初期完了フラグ */
 	bool			locked;	/* 獲得中？ */
 } MutexStruct;

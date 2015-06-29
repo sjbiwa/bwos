@@ -15,9 +15,4 @@
 
 typedef	uint32_t	SpinLockObj;
 
-void spin_init(SpinLockObj* ptr);
-void spin_lock(SpinLockObj* ptr);
-void spin_unlock(SpinLockObj* ptr);
-int spin_trylock(SpinLockObj* ptr);
-
 #endif /* _ARCH_SMP_H_ */
