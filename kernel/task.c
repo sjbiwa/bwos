@@ -332,7 +332,12 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->wait_func = 0;
 	task->result_code = 0;
 	uint32_t cpuid = CPU_GET(task_attr);
-	if ( cpuid == CPU_GET(CPU_SELF) ) {
+	if ( USE_SMP == 1 ) {
+		if ( cpuid == CPU_GET(CPU_SELF) ) {
+			cpuid = CPUID_get();
+		}
+	}
+	else {
 		cpuid = CPUID_get();
 	}
 	task->cpu_struct = &cpu_struct[cpuid];
