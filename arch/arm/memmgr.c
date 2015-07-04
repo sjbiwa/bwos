@@ -106,6 +106,7 @@ void mmgr_mmu_init(void)
 	/* いったん命令キャッシュをdisable */
 	uint32_t ctrl = SCTLR_get();
 	SCTLR_set(ctrl & ~((0x1<<12)|(0x1<<11)));
+	__isb();
 
 	/* キャッシュをすべてinvalidate */
 	ICIALLUIS_set(0);

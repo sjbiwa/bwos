@@ -60,5 +60,5 @@ void _pendsvc_entry(void)
 }
 void _systick_entry(void)
 {
-
+	timer_handler(0,0);
 }

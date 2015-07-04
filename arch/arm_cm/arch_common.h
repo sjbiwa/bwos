@@ -14,10 +14,23 @@
 #include "my_board.h"
 #include "arm.h"
 
-#define	irq_enable()		do { uint32_t _reg = 0; __asm__ volatile ("MSR PRIMASK, %0"::"r"(_reg):"memory"); } while (0)
-#define	irq_disable()		do { uint32_t _reg = 1; __asm__ volatile ("MSR PRIMASK, %0"::"r"(_reg):"memory"); } while (0)
+#define	RESET_STACK_NO				(0)
+#define	RESET_ENTRY_NO				(1)
+#define	NMI_ENTRY_NO				(2)
+#define	HARD_FAULT_ENTRY_NO			(3)
+#define	MEM_MANAGE_ENTRY_NO			(4)
+#define	BUS_FAULT_ENTRY_NO			(5)
+#define	USAGE_FAULT_ENTRY_NO		(6)
+#define	SVC_ENTRY_NO				(11)
+#define	DEBUG_ENTRY_NO				(12)
+#define	PENDSVC_ENTRY_NO			(14)
+#define	SYSTICK_ENTRY_NO			(15)
 
-#define	irq_save()			({ uint32_t ret; uint32_t _reg = 1; __asm__ volatile ("MRS %0, PRIMASK;MSR PRIMASK, %1":"=r"(ret):"r"(_reg):"memory"); ret;})
+
+#define	irq_enable()		do { __asm__ volatile ("cpsie i":::"memory"); } while (0)
+#define	irq_disable()		do { __asm__ volatile ("cpsid i":::"memory"); } while (0)
+
+#define	irq_save()			({ uint32_t ret; __asm__ volatile ("MRS %0, PRIMASK; cpsid i":"=r"(ret)::"memory"); ret;})
 #define	irq_restore(reg)	do { __asm__ volatile ("MSR PRIMASK, %0"::"r"(reg):"memory"); } while (0)
 
 #define	STACK_ALIGN			(8)

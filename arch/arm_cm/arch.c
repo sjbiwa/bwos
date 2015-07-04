@@ -40,11 +40,22 @@ void arch_task_active(TaskStruct* task, void* act_param)
 {
 }
 
+static void loop(uint32_t cnt)
+{
+static volatile uint32_t counter;
+	while (0 < cnt ) {
+		counter = cnt;
+		cnt--;
+	}
+}
+
 void arch_system_preinit(uint32_t cpuid)
 {
+	Board_SystemInit();
+	Board_Init();
+
 	/* 割り込みコントローラ初期化 */
 	arch_irq_init(cpuid);
-
 }
 
 void arch_register_st_memory()
@@ -84,6 +95,19 @@ extern void init_task_board_depend(void);
 	init_task_board_depend();
 }
 
+void system_init(void)
+{
+	extern uint32_t	handler_entry;
+	SCB->VTOR = (uint32_t)(&handler_entry);
+	SCB->CCR |= SCB_CCR_STKALIGN_Msk | SCB_CCR_UNALIGN_TRP_Msk;
+	SCB->SHP[MEM_MANAGE_ENTRY_NO-4]		= 0x00;
+	SCB->SHP[BUS_FAULT_ENTRY_NO-4]		= 0x00;
+	SCB->SHP[USAGE_FAULT_ENTRY_NO-4]	= 0x00;
+	SCB->SHP[SVC_ENTRY_NO-4]			= 0xff;
+	SCB->SHP[PENDSVC_ENTRY_NO-4]		= 0xff;
+	SCB->SHP[SYSTICK_ENTRY_NO-4]		= 0x80;
+	SCB->SHCSR = SCB_SHCSR_USGFAULTENA_Msk|SCB_SHCSR_BUSFAULTENA_Msk|SCB_SHCSR_MEMFAULTENA_Msk;
+}
 
 /* ０除算呼び出し */
 void raise(void)
@@ -93,9 +117,4 @@ void raise(void)
 	/* ０番地にアクセスして例外を発生させる */
 	uint32_t value = *((volatile uint32_t*)0);
 	for (;;);
-}
-
-
-void _dispatch()
-{
 }

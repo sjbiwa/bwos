@@ -10,8 +10,8 @@ TARGET_BIN = $(PROJECT).bin
 TARGET_ELF = $(PROJECT).elf
 
 # for CYGWIN
-TOOL_PREFIX = arm-linux-gnueabihf-
-#TOOL_PREFIX = arm-none-eabi-
+#TOOL_PREFIX = arm-linux-gnueabihf-
+TOOL_PREFIX = arm-none-eabi-
 
 #for Linux
 #TOOL_PREFIX = arm-unknown-linux-gnueabi-

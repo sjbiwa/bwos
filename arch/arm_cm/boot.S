@@ -13,7 +13,26 @@
 
 	.globl	_reset_entry
 	.type   _reset_entry, %function
+	.globl	_start
+	.type   _start, %function
 _reset_entry:
+_start:
+	mov		r0, #1
+	msr		PRIMASK, r0
+	mov		r0, #0
+	msr		FAULTMASK, r0
+	msr		BASEPRI, r0
+	msr		CONTROL, r0
+	isb
+	ldr		r0, =stack_master
+	msr		MSP, r0
+	ldr		r0, =stack_idle
+	msr		PSP, r0
+
+	/* change to PSP for stack */
+	mov		r0, #0x2
+	msr		CONTROL, r0
+	isb
 
 	/* Copy from idata to data */
 	ldr		r0, =__idata_start
@@ -39,20 +58,30 @@ _bss_loop:
 	b		_bss_loop
 _bss_done:
 
+	bl		system_init
+
 	bl		startup
 
 _loop_:
+	b		_loop_
+
+
+	.globl	_dispatch
+	.type   _dispatch, %function
+_dispatch:
+	mov		r0, #0
+	msr		PRIMASK, r0
 	b		_loop_
 
 /* stack for IDLE-TASK */
 	.section .stack
 	.balign 16
 	.globl	stack_idle
-	.space	IDLE_TASK_STACK_SIZE * CPU_NUM
+	.space	IDLE_TASK_STACK_SIZE
 stack_idle:
 
 /* MSP(割り込みハンドラ)で使うスタック */
 	.balign	16
 	.globl	stack_master
-	.space	IRQ_STACK_SIZE * CPU_NUM
+	.space	IRQ_STACK_SIZE
 stack_master:

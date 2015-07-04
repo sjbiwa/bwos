@@ -6,19 +6,6 @@
  */
 #include "common.h"
 
-#define	RESET_STACK_NO				(0)
-#define	RESET_ENTRY_NO				(1)
-#define	NMI_ENTRY_NO				(2)
-#define	HARD_FAULT_ENTRY_NO			(3)
-#define	MEM_MANAGE_ENTRY_NO			(4)
-#define	BUS_FAULT_ENTRY_NO			(5)
-#define	USAGE_FAULT_ENTRY_NO		(6)
-#define	SVC_ENTRY_NO				(11)
-#define	DEBUG_ENTRY_NO				(12)
-#define	PENDSVC_ENTRY_NO			(14)
-#define	SYSTICK_ENTRY_NO			(15)
-
-
 typedef	void (*HandlerEntry)(void);
 
 extern	void _reset_entry(void);
@@ -34,7 +21,7 @@ extern	void _systick_entry(void);
 
 extern	uint8_t			stack_master;
 
-const HandlerEntry handler_entry[IRQ_NUM] = {
+const HandlerEntry handler_entry[IRQ_NUM]  __attribute__ ((section (".vector"))) = {
 	[RESET_STACK_NO]		= (HandlerEntry)(&stack_master),
 	[RESET_ENTRY_NO]		= _reset_entry,
 	[NMI_ENTRY_NO]			= _nmi_entry,

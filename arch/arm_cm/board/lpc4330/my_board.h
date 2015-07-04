@@ -9,6 +9,7 @@
 #define MY_BOARD_H_
 
 #include "stdint.h"
+#include "cmsis.h"
 
 #define	START_MEM_ADDR		(0x10000000u)
 #define	END_MEM_ADDR		(0x1001FFFFu)
