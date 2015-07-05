@@ -1,5 +1,4 @@
 	.syntax unified
-	.cpu cortex-a7
 	.thumb
 	.thumb_func
 //
@@ -7,205 +6,160 @@
 //
 
 #include "arm.h"
-#include "cp15reg.h"
 
 	.text
 	.balign 4
 
 /**
 ** _dispatch
-**    LR: return address
-**    SVCモード/割り込み禁止で呼び出すこと
-**
-**       TASK_CONTEXT
-**			---------------------
-** SVC_SP-> | SPSR_svc			|+0
-** 			| SP_usr			|+4
-**			| LR_usr			|+8
-**			---------------------
-** SVC_SP->	| FPEXC				|+12
-**			| R0				|+16
-** 			| R4				|+20
-**			| R5				|+24
-**			| R6				|+28
-**			| R7				|+32
-**			| R8				|+36
-**			| R9				|+40
-**			| R10				|+44
-**			| R11				|+48
-** 			| LR(return address)|+52 <- _dispatch()の戻りアドレス または 割り込み復帰用スタブへのアドレス
-**			----------------------
-**  	  ** entry/IRQからの復帰 **
-**			----------------------
-**			| R0				|+56
-**			| R1				|+60
-**			| R2				|+64
-**			| R3				|+68
-**			| R12				|+72
-**			| LR				|+76
-**			| PC(return address)|+80  <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+84
-**			---------------------
-** beforeSP |					|+88
-**
-**		import _ctask	(current task)
-**		import _ntask	(next task)
+**  割り込み禁止状態で呼び出すこと
+**  スレッド状態であること
 */
 	.global _dispatch
 	.type   _dispatch, %function
 
 _dispatch:
-	/* ※ 関数として呼ばれるエントリなので R0/R1/R2/R3/R12は破壊されても良い */
-	push	{lr}
+	/* SVCコールするために割り込み許可する
+	**  自タスク(ctask)は休止状態になっている
+	**  ※ 割り込み許可->SVC までの間に外部割込みが発生した場合にどうなるか?
+	*/
+	mov		r0, #0
+	msr		PRIMASK, r0
+	svc		#0
+	bx		lr
 
-	/* check _ctask	*/
-	ldr		lr, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		lr, [lr, r0, LSL #2]		/* lr <- cpu_struct */
-	ldr		lr, [lr, #CPUSTRUCT_CTASK] /* lr <- ctask */
-	cmp		lr, #0
 
-	/* IF _ctask not available ignore save_context */
-	addeq	sp, sp, #4
+/* _dispatch_handler
+**    ハンドラモード / 割り込み禁止状態
+**    LR: EXC_RETURN
+**				----------------------
+** 		PSP		| R0				|+0
+**				| R1				|+4
+**				| R2				|+8
+**				| R3				|+12
+**				| R12				|+16
+**				| LR				|+20
+**				| PC(return address)|+24
+**				| xPSR              |+28
+**				---------------------
+**				| (padding)			|+32
+**				---------------------
+**   beforePSP	|					|+32 (+4)
+**
+**			↓↓↓ dispatch実行後
+**
+**				----------------------
+** 		PSP		| R4				|+0
+**				| R5				|+4
+**				| R6				|+8
+**				| R7				|+12
+**				| R8				|+16
+**				| R9				|+20
+**				| R10				|+24
+**				| R11				|+28
+**				---------------------
+**				| EXC_RETURN		|+32
+**				----------------------
+**				| R0				|+36
+**				| R1				|+40
+**				| R2				|+44
+**				| R3				|+48
+**				| R12				|+52
+**				| LR				|+56
+**				| PC(return address)|+60
+**				| xPSR              |+64
+**				---------------------
+**				| (padding)			|+68
+**				---------------------
+**   beforePSP	|					|+68 (+4)
+**
+*/
+	.type   _dispatch_handler, %function
+_dispatch_handler:
+	/* ctask != ntask の確認 */
+	ldr		r2, =cpu_struct
+	ldr		r0, [r2, #CPUSTRUCT_CTASK] /* r0 <- ctask */
+	ldr		r1, [r2, #CPUSTRUCT_NTASK] /* r1 <- ntask */
+	cmp		r0, #0
 	beq		_restore_context
+	/* ctask==ntask (and ctask != 0) の時はなにもせず終了(現タスクを継続) */
+	cmp		r0, r1
+	beq		_dispatch_fin
 
-_save_and_restore:
-	/* save _ctask state (LR is _ctask) */
-	push	{r0,r4-r11}
-	/* save FPEXC */
-	vmrs	r1, FPEXC
-	push	{r1}
-	/*********************************/
-	/* if FPEXC.EN==1 save VFP !!!!! */
-	/*********************************/
-	tst		r1, #0x40000000
-	beq		_no_save_vfp
-	ldr		r1, [lr, #SAVE_VFP]
-	vstmia	r1!, {d0-d15}
-	vstmia	r1!, {d16-d31}
-	vmrs	r0, FPSCR
-	str		r0, [r1]
-
-_no_save_vfp:
-	/* save USR/SYS info */
-	mrs		r0, SPSR_svc
-	mrs		r1, SP_usr
-	mrs		r2, LR_usr
-	push	{r0,r1,r2}
-
-	str		sp, [lr,#SAVE_SP]
+_save_context:
+	mrs		r3, PSP
+	stmdb	r3!, {r4-r11,lr}
+	str		r3, [r0, #SAVE_SP]
 
 _restore_context:
-	/* All register done saved */
-
 	/* copy _ntask -> _ctask */
-	ldr		lr, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		r0, [lr, r0, LSL #2]		/* lr <- cpu_struct */
-	ldr		lr, [r0, #CPUSTRUCT_NTASK] 	/* r0 <- ntask */
-	str		lr, [r0, #CPUSTRUCT_CTASK]	/* r0 -> ctask */
+	str		r1, [r2, #CPUSTRUCT_CTASK]
 
-	/* check _ntask */
-	cmp		lr, #0
+	/* check _ntask != 0 (IDLE?) */
+	cmp		r1, #0
 	beq		_idle_loop
 
-	/* restore SP (LR is _ntask)*/
-	ldr		sp, [lr,#SAVE_SP]
+	/* R1: _ntask 他のレジスタは空き */
+	ldr		r3, [r1, #SAVE_SP]
+	ldmia	r3!, {r4-r11,lr}
+	msr		PSP, r3
 
-	/* restore USR/SYS info */
-	pop		{r0,r1,r2}
-	msr		SPSR_svc, r0
-	msr		SP_usr, r1
-	msr		LR_usr, r2
-
-	/* restore FPEXC */
-	pop		{r1}
-	vmsr	FPEXC, r1
-	/*********************************/
-	/* if FPEXC.EN==1 restore VFP !!!!! */
-	/*********************************/
-	tst		r1, #0x40000000
-	beq		_no_load_vfp
-	ldr		r1, [lr, #SAVE_VFP]
-	vldmia	r1!, {d0-d15}
-	vldmia	r1!, {d16-d31}
-	ldr		r0, [r1]
-	vmsr	FPSCR, r0
-
-_no_load_vfp:
-	/* restore general-regs and return from _dispatch */
-	pop		{r0,r4-r11,pc}
+_dispatch_fin:
+	bx		lr
 
 /*
-**	_entry_stub
-**		タスクエントリーから起動するためのスタブ
+** _svc_entry
 */
-	.global _entry_stub
-	.type   _entry_stub, %function
-_entry_stub:
-	pop		{r0-r3,r12,lr}
-	rfeia	sp!
-
+/************************************************************************************/
+/* 再度割り込み禁止にしてdispatch処理実行											*/
+/* --------------------------------------------------------------------------------	*/
+/*  ※割り込み許可->SVC->割り込み禁止 までの間に割り込みが発生した場合の懸案事項	*/
+/*    大前提として、ここに処理が来るのは、ctask==自タスク であるはず            	*/
+/*    懸案は自タスクがWAIT状態ではない場合                                     		*/
+/*    1.割り込みハンドラにて 自タスク(ctask)がREADY状態になった場合           		*/
+/*      ctask!=ntaskであれば　preemptでdispatchを継続で問題なし                		*/
+/*      ctask==ntaskとなる場合が有り得る。このときはdispatchせずにそのまま復帰		*/
+/*	対策として、割り込み禁止後に再度ctask!=ntaskであることを確認すればよい			*/
+/*   																				*/
+/************************************************************************************/
+	.global _svc_entry
+	.type   _svc_entry, %function
+_svc_entry:
+	mov		r0, #1
+	msr		PRIMASK, r0
+	b		_dispatch_handler
 /*
-**  _dispatch_irq
-**
-**  MODE:SVC
-**  IRQ:disable
-**	FPEXC: current-TASK FP-MODE
-**
-**			----------------------
-**SVC_SP	| R0				|+40
-**			| R1				|+44
-**			| R2				|+48
-**			| R3				|+52
-**			| R12				|+56
-**			| LR				|+60
-**			| PC(return address)|+64  <- 割り込み発生時の戻りアドレス
-**			| CPSR              |+68
-**			---------------------
-** beforePS |					|+72
+**  _pendsvc_entry
+**   PendSVC割り込みハンドラ
+**    処理はSVCハンドラと同じ
 */
+	.global _pendsvc_entry
+	.type   _pendsvc_entry, %function
+_pendsvc_entry:
+	b		_svc_entry
 
-	.global _dispatch_irq
-	.global	_nodispatch_irq
-	.type   _dispatch_irq, %function
-	.type   _nodispatch_irq, %function
-
-_dispatch_irq:
-	/* ※ R0/R1/R2/R3/R12/LRはすでに退避されているので破壊されても良い */
-	/* compare _ctask and _ntask */
-	ldr		r1, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		r1, [r1, r0, LSL #2]		/* r1 <- cpu_struct */
-	ldr		r0, [r1, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
-	ldr		r1, [r1, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
-	cmp		r0, r1
-	beq		_nodispatch_irq /* _ctask == _ntask ? */
-
-	/* r0:_ctask r1:_ntask */
-	/* _ctask check */
-	cmp		r0, #0
-	beq		_restore_context /* _ctask is NULL ? */
-
-	/* save current task context */
-	ldr		lr, =_entry_stub
-	push	{lr}
-	mov		lr, r0
-	b		_save_and_restore
-
-_nodispatch_irq:
-	b		_entry_stub
 
 /*
 **	_idle_loop
+**  ここにはハンドラモードで呼ばれるので、EXC_RETURNでアイドルタスクに遷移する
+**				----------------------
+**				| R0				|+36
+**				| R1				|+40
+**				| R2				|+44
+**				| R3				|+48
+**				| R12				|+52
+**				| LR				|+56
+**				| PC(return address)|+60
+**				| xPSR              |+64
+**				---------------------
 */
 	.type   _idle_loop, %function
 _idle_loop:
-	cps		#MODE_SVC
-	ldr		r0, =stack_idle
-	CPUID_get(r1)
-	sub		r0, r0, r1, LSR #IDLE_TASK_STACK_SIZE_SHIFT
-	mov		sp, r0
-1:
-	bl		idle_task
-	b		1b
+	ldr		lr, =stack_idle
+	bic		lr, lr, #0x7 /* 8byte align */
+	ldr		r6, =idle_task
+	ldr		r7, =(0x01<<24) /* T_BIT */
+	stmdb	lr!, {r0-r7}
+	msr		PSP, lr
+	ldr		lr, =0xFFFFFFFD; /* Threadモード/Procesスタック に遷移 */
+	bx		lr

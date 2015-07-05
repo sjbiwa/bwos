@@ -86,7 +86,7 @@ retry_lock:
 		}
 	}
 
-	if ( is_context && (wakeup_cpu_list & (0x01u<<CPUID_get())) ) {
+	if ( wakeup_cpu_list & (0x01u<<CPUID_get()) ) {
 		self_request_dispatch();
 		ret = task_self()->result_code;
 	}

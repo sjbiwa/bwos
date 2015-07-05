@@ -244,8 +244,9 @@ void task_tick(void)
 
 		req_sched = true;
 	}
+	bool req_dispatch = false;
 	if ( req_sched ) {
-		schedule(cpu);
+		req_dispatch = schedule(cpu);
 	}
 	_kernel_timer_update(task_time_out_list);
 
@@ -255,6 +256,10 @@ void task_tick(void)
 	/* タイマハンドラは登録/呼び出しが同一コアでしかできないので */
 	/* cpu lockしなくても良い(他コアからアクセスされることが無い) */
 	_timer_notify_tick(tick_count);
+
+	if ( req_dispatch ) {
+		self_request_dispatch();
+	}
 
 	irq_restore(irq_state);
 }
@@ -299,6 +304,9 @@ void self_request_dispatch(void)
 {
 	if ( can_dispatch() ) {
 		_dispatch();
+	}
+	else {
+		_delayed_dispatch();
 	}
 }
 

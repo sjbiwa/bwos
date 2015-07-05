@@ -4,7 +4,7 @@
 	.thumb_func
 
 /*
-** emos boot.S
+** bwos boot.S
 */
 #include "arm.h"
 #include "cp15reg.h"

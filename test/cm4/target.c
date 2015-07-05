@@ -11,11 +11,23 @@ static int		task_struct[16];
 
 void task1(uint32_t arg0, uint32_t arg1)
 {
-	task_sleep();
+	for (;;) {
+		lprintf("task1\n");
+		task_tsleep(SEC(2));
+	}
+}
+
+void task2(uint32_t arg0, uint32_t arg1)
+{
+	for (;;) {
+		lprintf("task2\n");
+		task_tsleep(SEC(3));
+	}
 }
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5, (void*)128},
+		{"TASK2", TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)128},
 };
 
 void main_task(void)

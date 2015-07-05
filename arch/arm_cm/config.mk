@@ -22,7 +22,7 @@ LD = $(TOOL_PREFIX)gcc
 OBJCOPY = $(TOOL_PREFIX)objcopy
 RM = rm
 
-A_SRCS += boot.S
+A_SRCS += boot.S dispatch.S
 C_SRCS += vector.c arch.c memmgr.c idle.c
 C_SRCS += arch_timer.c
 

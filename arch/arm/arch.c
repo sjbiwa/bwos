@@ -179,6 +179,10 @@ void arch_system_postinit(uint32_t cpuid)
 {
 }
 
+void _delayed_dispatch(void)
+{
+}
+
 bool arch_can_dispatch(void)
 {
 extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */

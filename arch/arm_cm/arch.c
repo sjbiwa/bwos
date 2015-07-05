@@ -24,29 +24,44 @@ static inline int32_t bit_srch_l(uint32_t val)
 	return ret;
 }
 
+static inline void arch_init_task(TaskStruct* task, void* cre_param)
+{
+	uint32_t*		ptr;
+	uint32_t*		usr_stack;
+	/* USR/SYS stack */
+	usr_stack = (uint32_t*)((PtrInt_t)(task->usr_init_sp) + task->usr_stack_size);
+	usr_stack = PRE_ALIGN_BY(usr_stack, STACK_ALIGN);
+	ptr = (uint32_t*)((PtrInt_t)usr_stack - TASK_FRAME_SIZE);
+	task->save_sp = ptr;
+
+	/* setup task-context */
+	ptr[TASK_FRAME_PC] = (PtrInt_t)task->entry;
+	ptr[TASK_FRAME_PSR] = FLAG_T;
+	ptr[TASK_FRAME_EXC_RETURN] = 0xFFFFFFFD; /* Thread/ process */
+	/* Task entry arg */
+	ptr[TASK_FRAME_R0] = (uint32_t)cre_param;
+	ptr[TASK_FRAME_R1] = 0;
+	ptr[TASK_FRAME_R2] = 0;
+	ptr[TASK_FRAME_R3] = 0;
+}
+
 void arch_init_task_create(TaskStruct* task)
 {
+	arch_init_task(task, NULL);
 }
 
 int arch_task_create(TaskStruct* task, void* cre_param)
 {
 	int ret = RT_OK;
-	//arch_init_task(task, cre_param);
+	arch_init_task(task, cre_param);
 
 	return ret;
 }
 
 void arch_task_active(TaskStruct* task, void* act_param)
 {
-}
-
-static void loop(uint32_t cnt)
-{
-static volatile uint32_t counter;
-	while (0 < cnt ) {
-		counter = cnt;
-		cnt--;
-	}
+	uint32_t*		ptr = task->save_sp;
+	ptr[TASK_FRAME_R1] = (uint32_t)act_param;
 }
 
 void arch_system_preinit(uint32_t cpuid)
@@ -74,11 +89,16 @@ void arch_system_postinit(uint32_t cpuid)
 bool arch_can_dispatch(void)
 {
 	bool ret = true;
-	if ( 1/* ハンドラモード ? */ ) {
+	if ( xpsr_get() & 0x1ff ) {
 		ret = false;
-		/* PendSVC設定 */
 	}
 	return ret;
+}
+
+void _delayed_dispatch(void)
+{
+	/* PendSVC設定 */
+	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 }
 
 void ipi_request_dispatch(uint32_t other_cpu_list)

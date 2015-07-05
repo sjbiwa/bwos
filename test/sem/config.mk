@@ -1,7 +1,7 @@
 #
 # config file
 #
-ARCH = arm
-CPU  = cortex-a7
-BOARD = cubietruck
+ARCH = arm_cm
+CPU  = cortex-m4
+BOARD = lpc4330
 APPLICATION = application

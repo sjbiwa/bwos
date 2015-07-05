@@ -3,7 +3,7 @@
 	.thumb_func
 
 /*
-** emos boot.S
+** bwos boot.S
 */
 #include "arm.h"
 
@@ -65,13 +65,6 @@ _bss_done:
 _loop_:
 	b		_loop_
 
-
-	.globl	_dispatch
-	.type   _dispatch, %function
-_dispatch:
-	mov		r0, #0
-	msr		PRIMASK, r0
-	b		_loop_
 
 /* stack for IDLE-TASK */
 	.section .stack

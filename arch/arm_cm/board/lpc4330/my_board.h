@@ -18,7 +18,7 @@
 
 #define	CACHE_LINE_SIZE		(64)
 
-#define	CPU_CLOCK			(72000000)/* CPUクロック */
+#define	CPU_CLOCK			(MAX_CLOCK_FREQ)/* CPUクロック */
 
 /*** Tick管理パラメータ ***/
 typedef	uint64_t	TimeSpec;	/* OS内部での時間単位 */

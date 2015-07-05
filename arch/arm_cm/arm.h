@@ -8,6 +8,8 @@
 #ifndef ARM_H_
 #define ARM_H_
 
+#define	FLAG_T			(0x1u<<24)
+
 /* スタックサイズ */
 #define	EXCEPTION_STACK_SIZE_SHIFT		10
 #define	IDLE_TASK_STACK_SIZE_SHIFT		11
@@ -18,27 +20,23 @@
 
 
 /* タスクスタック上の位置(スタックに退避する情報に依存) */
-#define	TASK_FRAME_SIZE		(4*22)	/* タスク情報退避エリアのサイズ(スタック上) */
-#define	TASK_FRAME_FPEXC	(3)		/* タスク情報退避エリアのFPEXC位置 */
-#define	TASK_FRAME_R0		(14)	/* タスク情報退避エリアのR0 */
-#define	TASK_FRAME_R1		(15)	/* タスク情報退避エリアのR1 */
-#define	TASK_FRAME_R2		(16)	/* タスク情報退避エリアのR2 */
-#define	TASK_FRAME_R3		(17)	/* タスク情報退避エリアのR3 */
-#define	TASK_FRAME_PC		(20)	/* タスク情報退避エリアのPC位置 */
-#define	TASK_FRAME_PSR		(21)	/* タスク情報退避エリアのCPSR位置 */
-#define	TASK_FRAME_STUB		(13)	/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
-#define	TASK_FRAME_SPSR		(0)		/* タスク情報退避エリアのSPSR_svc */
-#define	TASK_FRAME_SP_USR	(1)		/* タスク情報退避エリアのSP_usr */
-#define	TASK_FRAME_LR_USR	(2)		/* タスク情報退避エリアのLR_usr */
+#define	TASK_FRAME_SIZE			(4*17)	/* タスク情報退避エリアのサイズ(スタック上) */
+#define	TASK_FRAME_EXC_RETURN	(8)		/* タスク情報退避エリアのEXC_RETURN */
+#define	TASK_FRAME_R0			(9)		/* タスク情報退避エリアのR0 */
+#define	TASK_FRAME_R1			(10)	/* タスク情報退避エリアのR1 */
+#define	TASK_FRAME_R2			(11)	/* タスク情報退避エリアのR2 */
+#define	TASK_FRAME_R3			(12)	/* タスク情報退避エリアのR3 */
+#define	TASK_FRAME_PC			(15)	/* タスク情報退避エリアのPC位置 */
+#define	TASK_FRAME_PSR			(16)	/* タスク情報退避エリアのCPSR位置 */
 
+
+/* ※下記定義は構造体メンバのオフセット値なのでコンパイル時にエラーチェックが可能なはず */
 /* TaskStruct上の位置(TaskStructの構造に依存) */
 #define	SAVE_SP				(8)		/* タスク構造体内にあるsave_spのオフセット */
-#define	ARCH_TLS			(12)	/* ARCH固有のタスク情報(今はVFPレジスタ退避用アドレス)の位置 */
-#define	SAVE_VFP			(12)	/* 上と同じ */
+#define	ARCH_TLS			(12)	/* ARCH固有のタスク情報の位置 */
 /* CpuStruct上の位置(TaskStructの構造に依存) */
 #define	CPUSTRUCT_CTASK		(0)		/* _ctaskのオフセット */
 #define	CPUSTRUCT_NTASK		(4)		/* _ntaskのオフセット */
-#define	CPUSTRUCK_LOCK		(8)		/* spinlockのオフセット */
 
 #ifndef __ASM__
 

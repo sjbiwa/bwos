@@ -28,36 +28,30 @@ void fault_handler(uint32_t id, uint32_t* sp)
 
 void _nmi_entry(void)
 {
-
+	fault_handler(0, 0);
 }
 void _hard_fault_entry(void)
 {
-
+	fault_handler(0, 0);
 }
 void _mem_manage_entry(void)
 {
-
+	fault_handler(0, 0);
 }
 void _bus_fault_entry(void)
 {
-
+	fault_handler(0, 0);
 }
 void _usage_fault_entry(void)
 {
-
+	fault_handler(0, 0);
 }
-void _svc_entry(void)
-{
 
-}
 void _debug_entry(void)
 {
-
+	fault_handler(0, 0);
 }
-void _pendsvc_entry(void)
-{
 
-}
 void _systick_entry(void)
 {
 	timer_handler(0,0);
