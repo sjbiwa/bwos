@@ -1,5 +1,6 @@
 ====
-ARMv7-Aアーキテクチャー向けマルチタスクOSです。
+ARMアーキテクチャー向けマルチタスクOSです。
+ARMv7-A / ARMv7-M / ARMv8-A がターゲットです。(ARMv8-Aは未着手)
 
 フルスクラッチでOSを作ろう、というところが出発点です。
 (※でもprintf.cだけは拝借しました。)
@@ -7,11 +8,18 @@ ARMv7-Aアーキテクチャー向けマルチタスクOSです。
 ターゲット環境：
 Firefly RK3288 (Cortex-A17 x 4)
 CUBIETRUCK (cortex-A7 x 2)
+LPC4330-Xplorer Board (Cortex-M4F + Cortex-M0)
 
 ビルド環境：
 cygwin
 linaro ARM-GCC (arm-linux-gnueabihf-gcc v4.9)
+
+デバッグ環境： (リリース内容には含まれていません)
+CUBIETRUCK
 IAR workbench + JTAG-ICE(デバッグ用途:CUBIETRUCKのみ)
+
+LPC4330-Xplorer Board
+uVision + JTAG-ICE
 
 
 ビルド方法：
