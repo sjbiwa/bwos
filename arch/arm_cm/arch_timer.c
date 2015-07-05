@@ -9,26 +9,6 @@
 /* Tick処理 */
 static TimeSpec		tick_count;	/* Tick Counter */
 
-static void led_flash(void)
-{
-static uint32_t delay = 0;
-static bool		up = false;
-	if ( delay == 0) {
-		if ( up ) {
-			Board_LED_Set(0, 0);
-			up = false;
-		}
-		else {
-			Board_LED_Set(0, 1);
-			up = true;
-		}
-		delay = 1000;
-	}
-	else {
-		delay--;
-	}
-}
-
 void timer_handler(uint32_t irqno, void* info)
 {
 	/* Tickタイマありの場合はタイマ割り込み設定更新とTickCount更新 */
@@ -39,8 +19,6 @@ void timer_handler(uint32_t irqno, void* info)
 
 	/* OSのタイムアウト処理呼び出し */
 	task_tick();
-
-	led_flash();
 }
 
 /* TICKカウンタの取得 */
