@@ -2,13 +2,13 @@
 #
 #
 .c.o:
-	$(CC) -c $(CFLAGS) $(INC) $(DEFS) -v $<
+	$(CC) -c $(CFLAGS) $(INC) $(DEFS) $<
 
 .cpp.o:
-	$(CC) -c $(CPPFLAGS) $(INC) $(DEFS) -v $<
+	$(CC) -c $(CPPFLAGS) $(INC) $(DEFS) $<
 
 .S.o:
-	$(AS) -c $(AFLAGS) $(INC) $(DEFS) -v $<
+	$(AS) -c $(AFLAGS) $(INC) $(DEFS) $<
 	
 $(TARGET_BIN): $(OBJS)
 	$(LD) $(LDFLAGS) -o $(TARGET_ELF) $(OBJS)

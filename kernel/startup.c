@@ -21,17 +21,19 @@ static void wait_loop()
 static void boot_each_core(uint32_t cpuid)
 {
 	schedule(&cpu_struct[cpuid]);
-	cpu_boot_sync_flag[cpuid] = 1;
-	sync_barrier();
-	for (;;) {
-		int ix;
-		for ( ix=0; ix<CPU_NUM; ix++ ) {
-			if ( cpu_boot_sync_flag[ix] == 0 ) {
+	if ( USE_SMP == 1 ) {
+		cpu_boot_sync_flag[cpuid] = 1;
+		sync_barrier();
+		for (;;) {
+			int ix;
+			for ( ix=0; ix<CPU_NUM; ix++ ) {
+				if ( cpu_boot_sync_flag[ix] == 0 ) {
+					break;
+				}
+			}
+			if ( ix == CPU_NUM ) {
 				break;
 			}
-		}
-		if ( ix == CPU_NUM ) {
-			break;
 		}
 	}
 	_dispatch();
@@ -71,12 +73,14 @@ static void startup_master(uint32_t cpuid)
 	/* 初期タスク生成 */
 	task_init_task_create();
 
-	/* コア起動完了同期フラグ */
-	for ( ix=0; ix < CPU_NUM; ix++ ) {
-		cpu_boot_sync_flag[ix] = 0;
-	}
+	if ( USE_SMP == 1 ) {
+		/* コア起動完了同期フラグ */
+		for ( ix=0; ix < CPU_NUM; ix++ ) {
+			cpu_boot_sync_flag[ix] = 0;
+		}
 
-	smp_boot_slave_cpu();
+		smp_boot_slave_cpu();
+	}
 
 	boot_each_core(cpuid);
 }
@@ -93,7 +97,7 @@ static void startup_slave(uint32_t cpuid)
 void startup(void)
 {
 	uint32_t cpuid = CPUID_get();
-	if ( cpuid == MASTER_CPU_ID ) {
+	if ( (USE_SMP == 0) || (cpuid == MASTER_CPU_ID) ) {
 		startup_master(cpuid);
 	}
 	else {

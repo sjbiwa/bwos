@@ -109,12 +109,14 @@ int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 	/* 起床/休止した全タスクに対応するcpuについて再スケジュール */
 	wakeup_cpu_list = schedule_any(wakeup_cpu_list);
 
-	/* 自コアは除いておく */
-	uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
+	if  ( USE_SMP == 1 ) {
+		/* 自コアは除いておく */
+		uint32_t other_cpu_list = wakeup_cpu_list & ~(0x01u<<CPUID_get());
 
-	if ( other_cpu_list ) {
-		/* スケジュールされた全コアに 割り込み通知する */
-		ipi_request_dispatch(other_cpu_list);
+		if ( other_cpu_list ) {
+			/* スケジュールされた全コアに 割り込み通知する */
+			ipi_request_dispatch(other_cpu_list);
+		}
 	}
 
 	if ( wakeup_cpu_list & (0x01u<<CPUID_get()) ) {

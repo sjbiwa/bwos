@@ -14,7 +14,9 @@
 
 typedef	struct tagMsgqStruct {
 	Link			link;
+#if USE_SMP==1
 	SpinLockObj		spin_lock;			/* spin lock */
+#endif
 	bool			id_initialized;	/* 初期完了フラグ */
 	uint8_t*		data;
 	uint32_t		length;

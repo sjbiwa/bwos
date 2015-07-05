@@ -14,7 +14,9 @@
 
 typedef	struct tagFlagStruct {
 	Link			link;
+#if USE_SMP==1
 	SpinLockObj		spin_lock;		/* spin lock */
+#endif
 	bool			id_initialized;	/* 初期完了フラグ */
 	uint32_t		value;
 } FlagStruct;

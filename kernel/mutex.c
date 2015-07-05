@@ -136,7 +136,7 @@ retry_lock:
 	mutex_spinunlock(mtx);
 
 	if ( req_dispatch_cpu != NULL ) {
-		if ( req_dispatch_cpu->cpuid == CPUID_get() ) {
+		if ( (USE_SMP == 0) || (req_dispatch_cpu->cpuid == CPUID_get()) ) {
 			/* 起床したタスクが自CPU所属なので dispatch処理をする */
 			self_request_dispatch();
 		}

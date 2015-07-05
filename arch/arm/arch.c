@@ -145,6 +145,7 @@ void arch_system_preinit(uint32_t cpuid)
 	cpval &= 0x0fffffff;
 	cpval |= ((0x3<<(10*2))|(0x3<<(11*2)));
 	CPACR_set(cpval);
+	__isb();
 
 	/* テスト用にVFPレジスタ初期化 */
 	 FPEXC_set(0x40000000);
@@ -175,6 +176,10 @@ arch_register_normal_memory(void)
 }
 
 void arch_system_postinit(uint32_t cpuid)
+{
+}
+
+void _delayed_dispatch(void)
 {
 }
 

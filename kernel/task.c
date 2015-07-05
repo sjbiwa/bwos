@@ -43,6 +43,17 @@ void task_sub_init(void)
 	}
 }
 
+static void request_dispatch_all(CpuStruct* cpu_struct)
+{
+	if ( (USE_SMP == 0) || (cpu_struct->cpuid == CPUID_get()) ) {
+		/* 起床したタスクが自CPU所属なので dispatch処理をする */
+		self_request_dispatch();
+	}
+	else {
+		/* 起床したタスクが他CPU所属なので 割り込み通知する */
+		ipi_request_dispatch_one(cpu_struct);
+	}
+}
 
 static inline bool can_dispatch(void)
 {
@@ -233,8 +244,9 @@ void task_tick(void)
 
 		req_sched = true;
 	}
+	bool req_dispatch = false;
 	if ( req_sched ) {
-		schedule(cpu);
+		req_dispatch = schedule(cpu);
 	}
 	_kernel_timer_update(task_time_out_list);
 
@@ -244,6 +256,10 @@ void task_tick(void)
 	/* タイマハンドラは登録/呼び出しが同一コアでしかできないので */
 	/* cpu lockしなくても良い(他コアからアクセスされることが無い) */
 	_timer_notify_tick(tick_count);
+
+	if ( req_dispatch ) {
+		self_request_dispatch();
+	}
 
 	irq_restore(irq_state);
 }
@@ -289,6 +305,9 @@ void self_request_dispatch(void)
 	if ( can_dispatch() ) {
 		_dispatch();
 	}
+	else {
+		_delayed_dispatch();
+	}
 }
 
 static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t task_attr, void* entry,
@@ -321,7 +340,12 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->wait_func = 0;
 	task->result_code = 0;
 	uint32_t cpuid = CPU_GET(task_attr);
-	if ( cpuid == CPU_GET(CPU_SELF) ) {
+	if ( USE_SMP == 1 ) {
+		if ( cpuid == CPU_GET(CPU_SELF) ) {
+			cpuid = CPUID_get();
+		}
+	}
+	else {
 		cpuid = CPUID_get();
 	}
 	task->cpu_struct = &cpu_struct[cpuid];
@@ -407,14 +431,7 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 		bool req_dispatch = schedule(task->cpu_struct);
 		cpu_spinunlock(task->cpu_struct);
 		if ( req_dispatch ) {
-			if ( task->cpu_struct->cpuid == CPUID_get() ) {
-				/* 起床したタスクが自CPU所属なので dispatch処理をする */
-				self_request_dispatch();
-			}
-			else {
-				/* 起床したタスクが他CPU所属なので 割り込み通知する */
-				ipi_request_dispatch_one(task->cpu_struct);
-			}
+			request_dispatch_all(task->cpu_struct);
 		}
 		irq_restore(irq_state);
 	}
@@ -455,14 +472,7 @@ int _kernel_task_active(TaskStruct* task, void* act_param)
 	cpu_spinunlock(task->cpu_struct);
 
 	if ( req_dispatch ) {
-		if ( task->cpu_struct->cpuid == CPUID_get() ) {
-			/* 起床したタスクが自CPU所属なので dispatch処理をする */
-			self_request_dispatch();
-		}
-		else {
-			/* 起床したタスクが他CPU所属なので 割り込み通知する */
-			ipi_request_dispatch_one(task->cpu_struct);
-		}
+		request_dispatch_all(task->cpu_struct);
 	}
 	irq_restore(irq_state);
 
@@ -507,14 +517,7 @@ int _kernel_task_wakeup(TaskStruct* task)
 	cpu_spinlock(cpu);
 
 	if ( req_dispatch ) {
-		if ( cpu->cpuid == CPUID_get() ) {
-			/* 起床したタスクが自CPU所属なので dispatch処理をする */
-			self_request_dispatch();
-		}
-		else {
-			/* 起床したタスクが他CPU所属なので 割り込み通知する */
-			ipi_request_dispatch_one(cpu);
-		}
+		request_dispatch_all(cpu);
 	}
 
 	irq_restore(irq_state);
@@ -539,14 +542,7 @@ int _kernel_task_tsleep(TimeOut tm)
 	cpu_spinunlock(cpu);
 
 	if ( req_dispatch ) {
-		if ( cpu->cpuid == CPUID_get() ) {
-			/* 起床したタスクが自CPU所属なので dispatch処理をする */
-			self_request_dispatch();
-		}
-		else {
-			/* 起床したタスクが他CPU所属なので 割り込み通知する */
-			ipi_request_dispatch_one(cpu);
-		}
+		request_dispatch_all(cpu);
 	}
 
 	irq_restore(irq_state);
@@ -569,14 +565,7 @@ int _kernel_task_dormant(void)
 	cpu_spinunlock(cpu);
 
 	if ( req_dispatch ) {
-		if ( cpu->cpuid == CPUID_get() ) {
-			/* 起床したタスクが自CPU所属なので dispatch処理をする */
-			self_request_dispatch();
-		}
-		else {
-			/* 起床したタスクが他CPU所属なので 割り込み通知する */
-			ipi_request_dispatch_one(cpu);
-		}
+		request_dispatch_all(cpu);
 	}
 
 	irq_restore(irq_state);

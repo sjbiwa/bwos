@@ -63,7 +63,9 @@ typedef struct tagRunQueue {
 typedef	struct tagCpuStruct {
 	TaskStruct*		ctask;
 	TaskStruct*		ntask;
+#if USE_SMP==1
 	SpinLockObj		spin_lock;
+#endif
 	uint32_t		cpuid;
 	Link			task_time_out_list;
 	RunQueue		run_queue;

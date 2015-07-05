@@ -30,7 +30,7 @@ LDSCRIPT = $(ARCHDIR)/link.lds
 
 #DEFS = -DCYGWIN
 
-DEFS += -DCPU_NUM=$(SMP_CPU_NUM)
+DEFS += -DUSE_SMP=1 -DCPU_NUM=$(SMP_CPU_NUM)
 C_SRCS += arch_smp.c
 A_SRCS += spinlock.S
 

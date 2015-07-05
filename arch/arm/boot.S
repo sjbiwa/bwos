@@ -4,7 +4,7 @@
 	.thumb_func
 
 /*
-** emos boot.S
+** bwos boot.S
 */
 #include "arm.h"
 #include "cp15reg.h"
@@ -128,7 +128,7 @@ _data_loop:
 	ldr		r3, [r0], #4
 	str		r3, [r1], #4
 	cmp		r1, r2
-	bne		_data_loop
+	blo		_data_loop
 _data_done:
 
 	/* bss clear */
@@ -137,7 +137,7 @@ _data_done:
 	mov		r2, #0
 _bss_loop:
 	cmp		r0, r1
-	beq		_bss_done
+	bhs		_bss_done
 	str		r2, [r0], #4
 	b		_bss_loop
 _bss_done:
