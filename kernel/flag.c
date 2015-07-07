@@ -19,6 +19,7 @@ OBJECT_INDEX_FUNC(flag,FlagStruct,FLAG_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(flag,FlagStruct);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
+#if FLAG_MAX_NUM != 0
 
 static inline bool is_complete(uint32_t result, uint32_t pattern, uint32_t wait_mode)
 {
@@ -235,3 +236,31 @@ OSAPISTUB int __flag_clear(int id, uint32_t pattern)
 	FlagStruct* flag = flagid2object(id);
 	return _kernel_flag_clear(flag, pattern);
 }
+
+#else
+OSAPISTUB int __flag_create(void)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __flag_set(int id, uint32_t pattern)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __flag_wait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __flag_clear(int id, uint32_t pattern)
+{
+	return RT_ERR;
+}
+
+#endif

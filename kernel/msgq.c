@@ -26,7 +26,7 @@ OBJECT_INDEX_FUNC(msgq,MsgqStruct,MSGQ_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(msgq,MsgqStruct);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
-
+#if MSGQ_MAX_NUM != 0
 static uint32_t queue_space(MsgqStruct* msgq)
 {
 	return msgq->length - msgq->data_num;
@@ -407,3 +407,30 @@ OSAPI int __msgq_trecv(int id, void* ptr, uint32_t length, TimeOut tmout)
 	MsgqStruct* msgq = msgqid2object(id);
 	return _kernel_msgq_trecv(msgq, ptr, length, tmout);
 }
+
+#else
+OSAPI int __msgq_create(uint32_t length)
+{
+	return RT_ERR;
+}
+
+OSAPI int __msgq_send(int id, void* ptr, uint32_t length)
+{
+	return RT_ERR;
+}
+
+OSAPI int __msgq_tsend(int id, void* ptr, uint32_t length, TimeOut tmout)
+{
+	return RT_ERR;
+}
+
+OSAPI int __msgq_recv(int id, void* ptr, uint32_t length)
+{
+	return RT_ERR;
+}
+
+OSAPI int __msgq_trecv(int id, void* ptr, uint32_t length, TimeOut tmout)
+{
+	return RT_ERR;
+}
+#endif

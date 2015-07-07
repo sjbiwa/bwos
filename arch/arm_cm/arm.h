@@ -8,7 +8,8 @@
 #ifndef ARM_H_
 #define ARM_H_
 
-#define	FLAG_T			(0x1u<<24)
+#define	FLAG_T			(0x1<<24)
+
 
 /* スタックサイズ */
 #define	EXCEPTION_STACK_SIZE_SHIFT		10

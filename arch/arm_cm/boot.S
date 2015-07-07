@@ -17,11 +17,13 @@
 	.type   _start, %function
 _reset_entry:
 _start:
-	mov		r0, #1
+	movs	r0, #1
 	msr		PRIMASK, r0
-	mov		r0, #0
+	movs	r0, #0
+#if __ARM_ARCH == 7
 	msr		FAULTMASK, r0
 	msr		BASEPRI, r0
+#endif
 	msr		CONTROL, r0
 	isb
 	ldr		r0, =stack_master
@@ -30,7 +32,7 @@ _start:
 	msr		PSP, r0
 
 	/* change to PSP for stack */
-	mov		r0, #0x2
+	movs	r0, #0x2
 	msr		CONTROL, r0
 	isb
 
@@ -41,8 +43,15 @@ _start:
 	cmp		r0, r1
 	beq		_data_done
 _data_loop:
+#if __ARM_ARCH == 7
 	ldr		r3, [r0], #4
 	str		r3, [r1], #4
+#else
+	ldr		r3, [r0]
+	str		r3, [r1]
+	adds	r0, #4
+	adds	r1, #4
+#endif
 	cmp		r1, r2
 	blo		_data_loop
 _data_done:
@@ -50,11 +59,16 @@ _data_done:
 	/* bss clear */
 	ldr		r0, =__bss_start
 	ldr		r1, =__bss_end
-	mov		r2, #0
+	movs	r2, #0
 _bss_loop:
 	cmp		r0, r1
 	bhs		_bss_done
+#if __ARM_ARCH == 7
 	str		r2, [r0], #4
+#else
+	str		r2, [r0]
+	adds	r0, #4
+#endif
 	b		_bss_loop
 _bss_done:
 

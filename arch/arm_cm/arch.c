@@ -10,19 +10,8 @@
 #include "arm.h"
 #include "my_board.h"
 
-extern void	_entry_stub(void);
 extern char __heap_start;
 
-
-/* 最初に1になるビットを左側から探す */
-static inline int32_t bit_srch_l(uint32_t val)
-{
-	int32_t ret = 31;
-	while ( (0 <= ret) && ((val & (0x01u<<ret)) == 0) ) {
-		ret--;
-	}
-	return ret;
-}
 
 static inline void arch_init_task(TaskStruct* task, void* cre_param)
 {
@@ -78,7 +67,8 @@ void arch_register_st_memory()
 	/* 起動時メモリ登録 */
 	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
 }
-arch_register_normal_memory(void)
+
+void arch_register_normal_memory(void)
 {
 }
 
@@ -127,6 +117,12 @@ void system_init(void)
 	SCB->SHP[PENDSVC_ENTRY_NO-4]		= 0xff;
 	SCB->SHP[SYSTICK_ENTRY_NO-4]		= 0x80;
 	SCB->SHCSR = SCB_SHCSR_USGFAULTENA_Msk|SCB_SHCSR_BUSFAULTENA_Msk|SCB_SHCSR_MEMFAULTENA_Msk;
+#if defined(USE_VFP)
+	SCB->CPACR = 0x00F00000; /* enable VFP */
+	FPU->FPCCR = FPU_FPCCR_ASPEN_Msk | FPU_FPCCR_LSPEN_Msk;
+	FPU->FPDSCR = 0x00000000;
+#endif
+	__dsb();
 }
 
 /* ０除算呼び出し */

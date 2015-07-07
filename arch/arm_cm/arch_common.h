@@ -35,6 +35,9 @@
 
 #define	xpsr_get()			({ uint32_t ret; __asm__ volatile ("MRS %0, xPSR":"=r"(ret)::"memory"); ret;})
 
+#define	fpscr_set(reg)		do { __asm__ volatile ("VMSR FPSCR, %0"::"r"(reg):"memory"); } while (0)
+#define	fpscr_get()			({ uint32_t ret; __asm__ volatile ("VMRS %0, FPSCR:"=r"(ret)"::"memory"); ret;})
+
 #define	STACK_ALIGN			(8)
 #define	NORMAL_ALIGN		(8)
 

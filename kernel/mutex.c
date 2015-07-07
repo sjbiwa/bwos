@@ -13,6 +13,7 @@ OBJECT_INDEX_FUNC(mutex,MutexStruct,MUTEX_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(mutex,MutexStruct);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
+#if MUTEX_MAX_NUM != 0
 int _kernel_mutex_create(MutexStruct* mtx)
 {
 	link_clear(&(mtx->link));
@@ -192,3 +193,27 @@ OSAPISTUB int __mutex_tlock(int id, TimeOut tmout)
 	MutexStruct* mutex = mutexid2object(id);
 	return _kernel_mutex_tlock(mutex, tmout);
 }
+
+#else
+
+OSAPISTUB int __mutex_create(void)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __mutex_unlock(int id)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __mutex_lock(int id)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __mutex_tlock(int id, TimeOut tmout)
+{
+	return RT_ERR;
+}
+
+#endif

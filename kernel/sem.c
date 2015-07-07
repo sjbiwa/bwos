@@ -18,6 +18,7 @@ OBJECT_INDEX_FUNC(sem,SemStruct,SEM_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(sem,SemStruct);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
+#if SEM_MAX_NUM != 0
 
 static int sem_release_body(SemStruct* sem, uint32_t num, bool is_context)
 {
@@ -228,3 +229,27 @@ OSAPISTUB int __sem_release(int id, uint32_t num)
 	SemStruct* sem = semid2object(id);
 	return _kernel_sem_release(sem, num);
 }
+
+#else
+
+OSAPISTUB int __sem_create(uint32_t max)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __sem_request(int id, uint32_t num)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __sem_trequest(int id, uint32_t num, TimeOut tmout)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __sem_release(int id, uint32_t num)
+{
+	return RT_ERR;
+}
+
+#endif

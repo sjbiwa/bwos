@@ -20,6 +20,7 @@ OBJECT_SPINLOCK_FUNC(fixmb,FixmbStruct);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 
+#if FIXMB_MAX_NUM != 0
 /* 該当ブロックの使用中状態チェック */
 static bool check_bitmap(uint32_t* bitmap, uint32_t cu_index)
 {
@@ -305,3 +306,27 @@ OSAPISTUB int __fixmb_release(int id, void* ptr)
 	FixmbStruct* fixmb = fixmbid2object(id);
 	return _kernel_fixmb_release(fixmb, ptr);
 }
+
+#else
+
+OSAPISTUB int __fixmb_create(uint32_t mb_size, uint32_t length)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __fixmb_request(int id, void** ptr)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __fixmb_trequest(int id, void** ptr, TimeOut tmout)
+{
+	return RT_ERR;
+}
+
+OSAPISTUB int __fixmb_release(int id, void* ptr)
+{
+	return RT_ERR;
+}
+
+#endif
