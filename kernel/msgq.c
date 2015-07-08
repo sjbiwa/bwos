@@ -216,7 +216,7 @@ retry_lock:
 			/* 受信待ちタスクでデータが満たされるものをすべて起床する */
 			wakeup_cpu_list = msgq_recv_wakeup_body(msgq);
 		}
-		else if ( tmout == TMO_POLL ) {
+		else if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 			/* ポーリングなのでタイムアウトエラーとする */
 			ret = RT_TIMEOUT;
 		}
@@ -300,7 +300,7 @@ retry_lock:
 			/* 送信待ちタスクでデータが格納できるものはすべて起床する */
 			wakeup_cpu_list = msgq_send_wakeup_body(msgq);
 		}
-		else if ( tmout == TMO_POLL ) {
+		else if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 			/* ポーリングなのでタイムアウトエラーとする */
 			ret = RT_TIMEOUT;
 		}

@@ -141,7 +141,7 @@ retry_lock:
 		/* すぐに確保できる場合 */
 		sem->remain -= num;
 	}
-	else if ( tmout == TMO_POLL ) {
+	else if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 		/* ポーリングなのでタイムアウトエラーとする */
 		ret = RT_TIMEOUT;
 	}

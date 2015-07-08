@@ -55,11 +55,6 @@ static void request_dispatch_all(CpuStruct* cpu_struct)
 	}
 }
 
-static inline bool can_dispatch(void)
-{
-	return arch_can_dispatch();
-}
-
 static inline int32_t lowest_bit(uint32_t value)
 {
 	int32_t ret = 0;
@@ -106,6 +101,11 @@ static void task_add_queue(TaskStruct* task)
 		link_add_last(top, &(task->link));
 		run_queue->pri_bits |= (0x00000001u << pri);
 	}
+}
+
+bool can_dispatch(void)
+{
+	return arch_can_dispatch();
 }
 
 void _kernel_timer_update(Link* task_time_out_list)

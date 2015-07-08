@@ -58,8 +58,7 @@ void arch_task_active(TaskStruct* task, void* act_param)
 
 void arch_system_preinit(uint32_t cpuid)
 {
-	Board_SystemInit();
-	Board_Init();
+	board_system_preinit();
 
 	/* 割り込みコントローラ初期化 */
 	arch_irq_init(cpuid);

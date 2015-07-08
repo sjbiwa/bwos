@@ -17,3 +17,9 @@ void init_task_board_depend(void)
 	/* pin configure		*/
 	/************************/
 }
+
+void board_system_preinit(void)
+{
+	Board_SystemInit();
+	Board_Init();
+}

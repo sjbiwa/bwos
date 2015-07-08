@@ -37,8 +37,12 @@
 #define	ioread8(a)			(*((volatile uint8_t*)(a)))
 
 
+#ifndef MIN
 #define	MIN(a,b)			((a)<(b)?(a):(b))
+#endif
+#ifndef MAX
 #define	MAX(a,b)			((a)>(b)?(a):(b))
+#endif
 
 /* アドレスアラインメント演算用マクロ */
 #define	PRE_ALIGN_BY(x,n)		((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))

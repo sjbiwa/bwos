@@ -146,9 +146,9 @@ retry_lock:
 			fixmb->list.top.index = fixmb->list.last.index = NO_ENTRY;
 		}
 	}
-	else if ( tmout == TMO_POLL ) {
+	else if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 		/* 割り当てブロックがない */
-		/* ポーリングなのでタイムアウトエラーとする */
+		/* ポーリングまたはディスパッチ禁止なのでタイムアウトエラーとする */
 		ret = RT_TIMEOUT;
 	}
 	else {

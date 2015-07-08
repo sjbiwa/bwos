@@ -40,6 +40,6 @@ void update_first_timeout(TimeSpec tmout)
 void
 arch_timer_init(uint32_t cpuid)
 {
-	SysTick->LOAD = MAX_CLOCK_FREQ / 1000;
+	SysTick->LOAD = MAX_CLOCK_FREQ / (1000 / TICK_TIME);
 	SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
 }

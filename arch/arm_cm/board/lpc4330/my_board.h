@@ -20,13 +20,15 @@
 
 #define	CPU_CLOCK			(MAX_CLOCK_FREQ)/* CPUクロック */
 
+#define	TICK_TIME			(1)		/* tick周期 10ms */
+
 /*** Tick管理パラメータ ***/
-typedef	uint64_t	TimeSpec;	/* OS内部での時間単位 */
-typedef	uint32_t	TimeOut;	/* APIで指定するタイムアウト単位 */
+typedef	uint64_t			TimeSpec;	/* OS内部での時間単位 */
+typedef	uint32_t			TimeOut;	/* APIで指定するタイムアウト単位 */
 
 /* TIME_UNIT値に追従すること */
 #define	SEC(n)		((n)*1000)
-#define	MSEC(n)		(n)
+#define	MSEC(n)		((n))
 #define	USEC(n)		(1)
 #define	NSEC(n)		(1)
 

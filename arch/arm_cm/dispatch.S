@@ -119,13 +119,22 @@ _dispatch:
 */
 	.type   _dispatch_handler, %function
 _dispatch_handler:
+
 	/* 割り込み禁止 */
 	cpsid		i
-
-	/* ctask != ntask の確認 */
+	/* ctask != ntask の確認 (_dispatch_handlerまでは割り込み許可なので */
+	/* その間にctask==ntaskになる場合のチェック)						*/
 	ldr			r2, =cpu_struct
 	ldr			r0, [r2, #CPUSTRUCT_CTASK] /* r0 <- ctask */
 	ldr			r1, [r2, #CPUSTRUCT_NTASK] /* r1 <- ntask */
+	str			r1, [r2, #CPUSTRUCT_CTASK] /* copy ntask -> ctask */
+	/* 割り込み許可 */
+	cpsie		i
+	/* 以降は割り込みは受け付ける。										 */
+	/* ハンドラモードなのでPendSV割り込みは発生しないのでdispatchしない  */
+	/* ctaskはこの処理でRUNするタスク。それと違うタスクが再スケジュール  */
+	/* された時だけ PendSV要求があればよい。                             */
+
 	cmp			r0, #0
 	beq			_restore_context
 	/* ctask==ntask (and ctask != 0) の時はなにもせず終了(現タスクを継続) */
@@ -155,9 +164,6 @@ _save_context:
 	str			r3, [r0, #SAVE_SP]
 
 _restore_context:
-	/* copy _ntask -> _ctask */
-	str			r1, [r2, #CPUSTRUCT_CTASK]
-
 	/* check _ntask != 0 (IDLE?) */
 	cmp			r1, #0
 	beq			_idle_loop
@@ -185,8 +191,6 @@ _restore_context:
 	msr			PSP, r3
 
 _dispatch_fin:
-	/* 割り込み許可 */
-	cpsie		i
 
 	bx			lr
 

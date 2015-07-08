@@ -51,7 +51,7 @@ retry_lock:
 		/* lock中のタスクが無ければ自タスクのlockは成功 */
 		mtx->locked = true;
 	}
-	else if ( tmout == TMO_POLL ) {
+	else if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 		/* ポーリングなのでタイムアウトエラーとする */
 		ret = RT_TIMEOUT;
 	}

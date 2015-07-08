@@ -140,7 +140,7 @@ int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, u
 
 	/* フラグ値とタスクの待ちパターンとで処理する */
 	if ( !check_and_result(flag, pattern, wait_mode, ret_pattern) ) {
-		if ( tmout == TMO_POLL ) {
+		if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 			/* ポーリングでcompleteしない場合 */
 			ret = RT_TIMEOUT;
 		}

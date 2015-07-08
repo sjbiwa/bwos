@@ -34,9 +34,9 @@ void task1(uint32_t arg0, uint32_t arg1)
 	lprintf("task1\n");
 	for (;;) {
 		Board_LED_Set(0, 0);
-		task_tsleep(MSEC(20));
+		task_tsleep(MSEC(200));
 		Board_LED_Set(0, 1);
-		task_tsleep(MSEC(10));
+		task_tsleep(MSEC(100));
 	}
 }
 
@@ -45,9 +45,9 @@ void task2(uint32_t arg0, uint32_t arg1)
 	lprintf("task2\n");
 	for (;;) {
 		Board_LED_Set(1, 0);
-		task_tsleep(MSEC(50));
+		task_tsleep(MSEC(500));
 		Board_LED_Set(1, 1);
-		task_tsleep(MSEC(50));
+		task_tsleep(MSEC(500));
 	}
 }
 
