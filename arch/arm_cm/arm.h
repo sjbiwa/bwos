@@ -27,6 +27,8 @@
 #define	TASK_FRAME_R1			(10)	/* タスク情報退避エリアのR1 */
 #define	TASK_FRAME_R2			(11)	/* タスク情報退避エリアのR2 */
 #define	TASK_FRAME_R3			(12)	/* タスク情報退避エリアのR3 */
+#define	TASK_FRAME_R12			(13)	/* タスク情報退避エリアのR12 */
+#define	TASK_FRAME_LR			(14)	/* タスク情報退避エリアのRLR */
 #define	TASK_FRAME_PC			(15)	/* タスク情報退避エリアのPC位置 */
 #define	TASK_FRAME_PSR			(16)	/* タスク情報退避エリアのCPSR位置 */
 

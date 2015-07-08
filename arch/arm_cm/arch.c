@@ -12,6 +12,7 @@
 
 extern char __heap_start;
 
+extern void	_entry_stub(void);
 
 static inline void arch_init_task(TaskStruct* task, void* cre_param)
 {
@@ -24,14 +25,16 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 	task->save_sp = ptr;
 
 	/* setup task-context */
-	ptr[TASK_FRAME_PC] = (PtrInt_t)task->entry;
+	ptr[TASK_FRAME_PC] = (PtrInt_t)_entry_stub;
 	ptr[TASK_FRAME_PSR] = FLAG_T;
 	ptr[TASK_FRAME_EXC_RETURN] = 0xFFFFFFFD; /* Thread/ process */
 	/* Task entry arg */
 	ptr[TASK_FRAME_R0] = (uint32_t)cre_param;
-	ptr[TASK_FRAME_R1] = 0;
+	ptr[TASK_FRAME_R1] = 0; /* task_active()で設定可 */
 	ptr[TASK_FRAME_R2] = 0;
 	ptr[TASK_FRAME_R3] = 0;
+	ptr[TASK_FRAME_R12] = (PtrInt_t)task->entry; /* _entry_stubからここに分岐する */
+	ptr[TASK_FRAME_LR] = (PtrInt_t)task_dormant;
 }
 
 void arch_init_task_create(TaskStruct* task)

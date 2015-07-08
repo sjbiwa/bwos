@@ -8,8 +8,9 @@
 #include "arm.h"
 
 #if defined(USE_VFP)
-#define	EXC_RET_VFP		(0x01<<4)
+#define	EXC_RET_VFP			(0x01<<4)
 #endif
+
 
 	.text
 	.balign 4
@@ -27,9 +28,9 @@ _dispatch:
 	**  自タスク(ctask)は休止状態になっている
 	**  ※ 割り込み許可->SVC までの間に外部割込みが発生した場合にどうなるか?
 	*/
-	movs		r0, #0
-	msr			PRIMASK, r0
+	cpsie		i
 	svc			#0
+	cpsid		i
 	bx			lr
 
 
@@ -118,6 +119,9 @@ _dispatch:
 */
 	.type   _dispatch_handler, %function
 _dispatch_handler:
+	/* 割り込み禁止 */
+	cpsid		i
+
 	/* ctask != ntask の確認 */
 	ldr			r2, =cpu_struct
 	ldr			r0, [r2, #CPUSTRUCT_CTASK] /* r0 <- ctask */
@@ -181,10 +185,14 @@ _restore_context:
 	msr			PSP, r3
 
 _dispatch_fin:
+	/* 割り込み許可 */
+	cpsie		i
+
 	bx			lr
 
 /*
 ** _svc_entry
+**  _pendsvc_entry
 */
 /************************************************************************************/
 /* 再度割り込み禁止にしてdispatch処理実行											*/
@@ -200,20 +208,22 @@ _dispatch_fin:
 /************************************************************************************/
 	.global _svc_entry
 	.type   _svc_entry, %function
-_svc_entry:
-	movs		r0, #1
-	msr			PRIMASK, r0
-	b			_dispatch_handler
-/*
-**  _pendsvc_entry
-**   PendSVC割り込みハンドラ
-**    処理はSVCハンドラと同じ
-*/
 	.global _pendsvc_entry
 	.type   _pendsvc_entry, %function
+_svc_entry:
 _pendsvc_entry:
-	b			_svc_entry
+	b			_dispatch_handler
 
+
+/*
+**	_entry_stub
+**		タスクエントリーから起動するためのスタブ
+*/
+	.global _entry_stub
+	.type   _entry_stub, %function
+_entry_stub:
+	cpsie		i
+	bx			r12
 
 /*
 **	_idle_loop
