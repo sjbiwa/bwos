@@ -34,9 +34,9 @@ void task1(uint32_t arg0, uint32_t arg1)
 	lprintf("task1\n");
 	for (;;) {
 		Board_LED_Set(0, 0);
-		task_tsleep(MSEC(200));
+		task_tsleep(SEC(1));
 		Board_LED_Set(0, 1);
-		task_tsleep(MSEC(100));
+		task_tsleep(SEC(1));
 	}
 }
 
@@ -76,13 +76,13 @@ void task4(uint32_t arg0, uint32_t arg1)
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", TASK_ACT, task1, 0, 1024, 1024, 5, (void*)128},
-		{"TASK2", TASK_ACT, task2, 0, 1024, 1024, 6, (void*)128},
-		{"TASK3", TASK_ACT, task3, 0, 1024, 1024, 7, (void*)128},
-		{"TASK4", TASK_ACT, task4, 0, 1024, 1024, 8, (void*)128},
-		{"TASK5", TASK_ACT, task1, 0, 1024, 1024, 9, (void*)128},
-		{"TASK6", TASK_ACT, task2, 0, 1024, 1024, 10, (void*)128},
-		{"TASK7", TASK_ACT, task3, 0, 1024, 1024, 11, (void*)128},
-		{"TASK8", TASK_ACT, task4, 0, 1024, 1024, 12, (void*)128},
+//		{"TASK2", TASK_ACT, task2, 0, 1024, 1024, 6, (void*)128},
+//		{"TASK3", TASK_ACT, task3, 0, 1024, 1024, 7, (void*)128},
+//		{"TASK4", TASK_ACT, task4, 0, 1024, 1024, 8, (void*)128},
+//		{"TASK5", TASK_ACT, task1, 0, 1024, 1024, 9, (void*)128},
+//		{"TASK6", TASK_ACT, task2, 0, 1024, 1024, 10, (void*)128},
+//		{"TASK7", TASK_ACT, task3, 0, 1024, 1024, 11, (void*)128},
+//		{"TASK8", TASK_ACT, task4, 0, 1024, 1024, 12, (void*)128},
 };
 
 void main_task(void)

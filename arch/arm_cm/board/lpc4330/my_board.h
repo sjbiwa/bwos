@@ -14,7 +14,7 @@
 #define	START_MEM_ADDR		(0x10000000u)
 #define	END_MEM_ADDR		(0x1001FFFFu)
 
-#define	IRQ_NUM				(256)
+#define	IRQ_NUM				(53+16)
 
 #define	CACHE_LINE_SIZE		(64)
 

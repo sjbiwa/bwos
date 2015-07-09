@@ -14,19 +14,6 @@
 #include "my_board.h"
 #include "arm.h"
 
-#define	RESET_STACK_NO				(0)
-#define	RESET_ENTRY_NO				(1)
-#define	NMI_ENTRY_NO				(2)
-#define	HARD_FAULT_ENTRY_NO			(3)
-#define	MEM_MANAGE_ENTRY_NO			(4)
-#define	BUS_FAULT_ENTRY_NO			(5)
-#define	USAGE_FAULT_ENTRY_NO		(6)
-#define	SVC_ENTRY_NO				(11)
-#define	DEBUG_ENTRY_NO				(12)
-#define	PENDSVC_ENTRY_NO			(14)
-#define	SYSTICK_ENTRY_NO			(15)
-
-
 #define	irq_enable()		do { __asm__ volatile ("cpsie i":::"memory"); } while (0)
 #define	irq_disable()		do { __asm__ volatile ("cpsid i":::"memory"); } while (0)
 

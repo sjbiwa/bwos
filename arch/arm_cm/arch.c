@@ -10,6 +10,8 @@
 #include "arm.h"
 #include "my_board.h"
 
+#define	SHP_NO(n)			((n)+12)
+
 extern char __heap_start;
 
 extern void	_entry_stub(void);
@@ -112,12 +114,13 @@ void system_init(void)
 	extern uint32_t	handler_entry;
 	SCB->VTOR = (uint32_t)(&handler_entry);
 	SCB->CCR |= SCB_CCR_STKALIGN_Msk | SCB_CCR_UNALIGN_TRP_Msk;
-	SCB->SHP[MEM_MANAGE_ENTRY_NO-4]		= 0x00;
-	SCB->SHP[BUS_FAULT_ENTRY_NO-4]		= 0x00;
-	SCB->SHP[USAGE_FAULT_ENTRY_NO-4]	= 0x00;
-	SCB->SHP[SVC_ENTRY_NO-4]			= 0xff;
-	SCB->SHP[PENDSVC_ENTRY_NO-4]		= 0xff;
-	SCB->SHP[SYSTICK_ENTRY_NO-4]		= 0x80;
+	SCB->SHP[SHP_NO(MemoryManagement_IRQn)]		= 0x00;
+	SCB->SHP[SHP_NO(BusFault_IRQn)]				= 0x00;
+	SCB->SHP[SHP_NO(UsageFault_IRQn)]			= 0x00;
+	SCB->SHP[SHP_NO(SVCall_IRQn)]				= 0xff;
+	SCB->SHP[SHP_NO(DebugMonitor_IRQn)]			= 0xff;
+	SCB->SHP[SHP_NO(PendSV_IRQn)]				= 0xff;
+	SCB->SHP[SHP_NO(SysTick_IRQn)]				= 0x40;
 	SCB->SHCSR = SCB_SHCSR_USGFAULTENA_Msk|SCB_SHCSR_BUSFAULTENA_Msk|SCB_SHCSR_MEMFAULTENA_Msk;
 #if defined(USE_VFP)
 	SCB->CPACR = 0x00F00000; /* enable VFP */

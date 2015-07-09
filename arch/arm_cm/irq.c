@@ -25,9 +25,23 @@ OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info)
  */
 OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 {
-	__dsb(); /* 割り込み禁止/許可設定の同期化 */
-	         /* ※次の処理実行中に割り込みが発生するのを防ぐため */
-			 /*   割り込み禁止にする場合だけで良い？             */
+	if ( irqno < IRQ_NUM ) {
+		uint32_t off = irqno / 32;
+		uint32_t bit = irqno % 32;
+		if ( setting == IRQ_ENABLE ) {
+			/* 割り込み有効 */
+			order_barrier(); /* 割り込み許可前後のメモリオーダー確定 */
+			NVIC->IP[irqno] = 0x20;
+			NVIC->ISER[off] = (0x1u << bit);
+		}
+		else {
+			/* 割り込み禁止 */
+			NVIC->ICER[off] = (0x1u << bit);
+		}
+		__dsb(); /* 割り込み禁止/許可設定の同期化 */
+				 /* ※次の処理実行中に割り込みが発生するのを防ぐため */
+				 /*   割り込み禁止にする場合だけで良い？             */
+	}
 }
 
 /*
@@ -35,7 +49,14 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
  */
 OSAPISTUB int __irq_get_enable(uint32_t irqno)
 {
-	int ret;
+	int ret = IRQ_DISABLE;
+	if ( irqno < IRQ_NUM ) {
+		uint32_t off = irqno / 32;
+		uint32_t bit = irqno % 32;
+		if ( NVIC->ISER[off] & (0x1u << bit) ) {
+			int ret = IRQ_ENABLE;
+		}
+	}
 	return ret;
 }
 
