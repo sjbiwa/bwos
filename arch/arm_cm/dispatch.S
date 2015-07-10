@@ -220,16 +220,6 @@ _pendsvc_entry:
 
 
 /*
-**	_entry_stub
-**		タスクエントリーから起動するためのスタブ
-*/
-	.global _entry_stub
-	.type   _entry_stub, %function
-_entry_stub:
-	cpsie		i
-	bx			r12
-
-/*
 **	_idle_loop
 **  ここにはハンドラモードで呼ばれるので、EXC_RETURNでアイドルタスクに遷移する
 **				----------------------
