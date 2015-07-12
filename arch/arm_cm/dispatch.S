@@ -144,7 +144,7 @@ _dispatch_handler:
 _save_context:
 	mrs			r3, PSP
 #if __ARM_ARCH == 7
-#if USE_VFP
+#if defined(USE_VFP)
 	tst			lr, #EXC_RET_VFP
 	vstmdbeq	r3!, {s16-s31}
 #endif
@@ -172,7 +172,7 @@ _restore_context:
 	ldr			r3, [r1, #SAVE_SP]
 #if __ARM_ARCH == 7
 	ldmia		r3!, {r4-r11,lr}
-#if USE_VFP
+#if defined(USE_VFP)
 	tst			lr, #EXC_RET_VFP
 	vldmiaeq	r3!, {s16-s31}
 #endif

@@ -109,19 +109,51 @@ extern void init_task_board_depend(void);
 	init_task_board_depend();
 }
 
+static inline void setup_sys_int(uint32_t id, uint32_t pri)
+{
+#if __ARM_ARCH == 7
+	SCB->SHP[id] = pri;
+#else
+	id -= 4;
+	uint32_t pri_off = id / 4;
+	uint32_t pri_pos = (id % 4) * 8;
+	SCB->SHP[pri_off] = (SCB->SHP[pri_off] & ~(0xff << pri_pos)) | (pri << pri_pos);
+#endif
+}
 void system_init(void)
 {
 	extern uint32_t	handler_entry;
+#if defined(HAVE_VTOR)
 	SCB->VTOR = (uint32_t)(&handler_entry);
+#endif
+
 	SCB->CCR |= SCB_CCR_STKALIGN_Msk | SCB_CCR_UNALIGN_TRP_Msk;
-	SCB->SHP[SHP_NO(MemoryManagement_IRQn)]		= 0x00;
-	SCB->SHP[SHP_NO(BusFault_IRQn)]				= 0x00;
-	SCB->SHP[SHP_NO(UsageFault_IRQn)]			= 0x00;
-	SCB->SHP[SHP_NO(SVCall_IRQn)]				= 0xff;
-	SCB->SHP[SHP_NO(DebugMonitor_IRQn)]			= 0xff;
-	SCB->SHP[SHP_NO(PendSV_IRQn)]				= 0xff;
-	SCB->SHP[SHP_NO(SysTick_IRQn)]				= 0x40;
-	SCB->SHCSR = SCB_SHCSR_USGFAULTENA_Msk|SCB_SHCSR_BUSFAULTENA_Msk|SCB_SHCSR_MEMFAULTENA_Msk;
+
+	SCB->SHCSR = 0;
+#if defined(MPU_FAULT_PRIORITY)
+	setup_sys_int(SHP_NO(MemoryManagement_IRQn), MPU_FAULT_PRIORITY);
+	SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk;
+#endif
+#if defined(BUS_FAULT_PRIORITY)
+	setup_sys_int(SHP_NO(BusFault_IRQn), BUS_FAULT_PRIORITY);
+	SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;
+#endif
+#if defined(USAGE_FAULT_PRIORITY)
+	setup_sys_int(SHP_NO(UsageFault_IRQn), USAGE_FAULT_PRIORITY);
+	SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk;
+#endif
+#if defined(SVCALL_PRIORITY)
+	setup_sys_int(SHP_NO(SVCall_IRQn), SVCALL_PRIORITY);
+#endif
+#if defined(DEBUG_MONITOR_PRIORITY)
+	setup_sys_int(SHP_NO(DebugMonitor_IRQn), DEBUG_MONITOR_PRIORITY);
+#endif
+#if defined(PENDSV_PRIORITY)
+	setup_sys_int(SHP_NO(PendSV_IRQn), PENDSV_PRIORITY);
+#endif
+#if defined(SYSTICK_PRIORITY)
+	setup_sys_int(SHP_NO(SysTick_IRQn), SYSTICK_PRIORITY);
+#endif
 #if defined(USE_VFP)
 	SCB->CPACR = 0x00F00000; /* enable VFP */
 	FPU->FPCCR = FPU_FPCCR_ASPEN_Msk | FPU_FPCCR_LSPEN_Msk;

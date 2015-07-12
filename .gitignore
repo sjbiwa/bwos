@@ -7,3 +7,4 @@ build/bwos.elf
 .settings/
 *.bin
 *.elf
+arch/arm_cm/board/nrf51822/nRF51_SDK_8.0.0/

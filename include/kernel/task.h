@@ -68,8 +68,8 @@ typedef	struct tagCpuStruct {
 #endif
 	uint32_t		cpuid;
 	Link			task_time_out_list;
-	RunQueue		run_queue;
 	Link			timer_list;
+	RunQueue		run_queue;
 } CpuStruct;
 
 extern CpuStruct cpu_struct[CPU_NUM];

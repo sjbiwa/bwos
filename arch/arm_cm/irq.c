@@ -31,7 +31,13 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 		if ( setting == IRQ_ENABLE ) {
 			/* 割り込み有効 */
 			order_barrier(); /* 割り込み許可前後のメモリオーダー確定 */
-			NVIC->IP[irqno] = 0x20;
+#if __ARM_ARCH == 7
+			NVIC->IP[irqno] = 0xff;
+#else
+			uint32_t pri_off = irqno / 4;
+			uint32_t pri_pos = (irqno % 4) * 8;
+			NVIC->IP[pri_off] = (NVIC->IP[pri_off] & ~(0xff << pri_pos)) | (0x40 << pri_pos);
+#endif
 			NVIC->ISER[off] = (0x1u << bit);
 		}
 		else {
