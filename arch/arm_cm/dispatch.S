@@ -15,6 +15,7 @@
 	.text
 	.balign 4
 
+#if 0
 /**
 ** _dispatch
 **  割り込み禁止状態で呼び出すこと
@@ -32,7 +33,7 @@ _dispatch:
 	svc			#0
 	cpsid		i
 	bx			lr
-
+#endif
 
 /* _dispatch_handler
 **    ハンドラモード / 割り込み禁止状態

@@ -12,8 +12,8 @@
 
 
 /* スタックサイズ */
-#define	IDLE_TASK_STACK_SIZE_SHIFT		8
-#define	IRQ_STACK_SIZE_SHIFT			9
+#define	IDLE_TASK_STACK_SIZE_SHIFT		10
+#define	IRQ_STACK_SIZE_SHIFT			10
 #define	IDLE_TASK_STACK_SIZE			(1<<IDLE_TASK_STACK_SIZE_SHIFT)
 #define	IRQ_STACK_SIZE					(1<<IRQ_STACK_SIZE_SHIFT)
 
@@ -44,7 +44,7 @@
 #define	__dmb()				__asm__ volatile ("dmb":::"memory")
 #define	__dsb()				__asm__ volatile ("dsb":::"memory")
 #define	__isb()				__asm__ volatile ("isb":::"memory")
-#define	__swi()				__asm__ volatile ("swi 0":::"memory")
+#define	__svc()				__asm__ volatile ("svc 0":::"memory")
 #define	__wfi()				__asm__ volatile ("dsb;wfi":::"memory")
 #define	__wfe()				__asm__ volatile ("dsb;wfe":::"memory")
 #define	__sev()				__asm__ volatile ("dsb;sev":::"memory")

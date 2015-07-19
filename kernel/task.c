@@ -7,8 +7,13 @@
 
 #include "kernel.h"
 
-/* configuration end */
-/***********************/
+/* デフォルトスタックサイズ */
+#if !defined(TASK_SVC_STACK_SIZE)
+#define	TASK_SVC_STACK_SIZE					(2048)
+#endif
+#if !defined(INITIAL_TASK_USR_STACK_SIZE)
+#define	INITIAL_TASK_USR_STACK_SIZE			(1024)
+#endif
 
 CpuStruct			cpu_struct[CPU_NUM];
 
@@ -326,7 +331,7 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->entry = entry;
 #if !defined(NO_USE_SVC_STACK)
 	task->init_sp = 0;
-	task->stack_size = 2048; /* SVCスタックサイズ */
+	task->stack_size = TASK_SVC_STACK_SIZE; /* SVCスタックサイズ */
 #endif
 	task->usr_init_sp = usr_init_sp;
 	task->usr_stack_size = usr_stack_size;
@@ -361,7 +366,7 @@ void task_init_task_create(void)
 						TASK_ACT|TASK_SYS,
 						init_task,
 						0,
-						1024, /* USRスタックサイズ */
+						INITIAL_TASK_USR_STACK_SIZE, /* USRスタックサイズ */
 						0);
 	/* STACK */
 #if !defined(NO_USE_SVC_STACK)

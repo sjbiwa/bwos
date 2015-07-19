@@ -95,6 +95,28 @@ void _delayed_dispatch(void)
 	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 }
 
+/* SVCコールするために割り込み許可する
+**  自タスク(ctask)は休止状態になっている
+**  ※ 割り込み許可->SVC までの間に外部割込みが発生した場合にどうなるか?
+*/
+void _dispatch(void)
+{
+#if defined(USE_SVC_DISPATCH)
+	/* API呼び出しでのdispatchにSVCを使う */
+	irq_enable();
+	__svc();
+	irq_disable();
+#else
+	/* API呼び出しでのdispatchもPendSVを使う */
+	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+	irq_enable();
+	__dsb();
+	while (SCB->ICSR & SCB_ICSR_PENDSVSET_Msk);
+	irq_disable();
+#endif
+}
+
+
 void ipi_request_dispatch(uint32_t other_cpu_list)
 {
 }

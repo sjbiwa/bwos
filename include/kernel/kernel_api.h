@@ -30,7 +30,12 @@ static int			OBJNAME##_struct_alloc_id = 0; \
 static SpinLockObj	OBJNAME##_struct_spinlock; \
 void OBJNAME##_init(void) \
 { \
-	OBJNAME##_struct_array = st_malloc_align(sizeof(OBJSTRUCT) * MAX_NUM, NORMAL_ALIGN); \
+	if ( 0 < MAX_NUM ) { \
+		OBJNAME##_struct_array = st_malloc_align(sizeof(OBJSTRUCT) * MAX_NUM, NORMAL_ALIGN); \
+	} \
+	else { \
+		OBJNAME##_struct_array = 0; \
+	} \
 	OBJNAME##_struct_max = MAX_NUM; \
 	OBJNAME##_struct_alloc_id = 0; \
 	OBJNAME##_struct_alloc_id = 0; \

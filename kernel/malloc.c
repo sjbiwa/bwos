@@ -144,55 +144,57 @@ void* sys_malloc_align_body(MemSize_t size, uint32_t align)
 {
 	void* ret = NULL;
 
-	/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
-	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
+	if ( size != 0 ) {
+		/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
+		size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
-	/* 指定サイズ以上の空きブロックを探す */
-	MBSpaceProlog* mb_space = NULL;
-	Link* find_link = NULL;
-	for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
-		MBSpaceProlog* mb_space_prolog = containerof(find_link, MBSpaceProlog, link);
-		/* 空きブロックを使用ブロックにしたときに実データがalignに合うかチェック */
-		if ( ((PtrInt_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
-			/* 指定サイズが確保できればそのまま使う */
-			if ( size <= mb_space_prolog->mb_size ) {
-				mb_space = mb_space_prolog;
-				/* 空きリンクから外しておく */
-				link_remove(&(mb_space->link));
-				break;
+		/* 指定サイズ以上の空きブロックを探す */
+		MBSpaceProlog* mb_space = NULL;
+		Link* find_link = NULL;
+		for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
+			MBSpaceProlog* mb_space_prolog = containerof(find_link, MBSpaceProlog, link);
+			/* 空きブロックを使用ブロックにしたときに実データがalignに合うかチェック */
+			if ( ((PtrInt_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
+				/* 指定サイズが確保できればそのまま使う */
+				if ( size <= mb_space_prolog->mb_size ) {
+					mb_space = mb_space_prolog;
+					/* 空きリンクから外しておく */
+					link_remove(&(mb_space->link));
+					break;
+				}
+			}
+			else {
+				/* alignされた使用中ブロックとなる実データ領域のアドレスを求める */
+				uint8_t* aligned_addr = PTRVAR(mb_space_prolog+1)+sizeof(MBSpaceEpilog)+sizeof(MBUseProlog);
+				aligned_addr = PTRVAR(POST_ALIGN_BY(aligned_addr, align));
+				/* 新たに空きブロックとなる領域のサイズ */
+				MemSize_t f_size = (PTRVAR(aligned_addr) - sizeof(MBUseProlog)) - PTRVAR(mb_space_prolog);
+				if ( (f_size + size) <= mb_space_prolog->mb_size ) {
+					/* 領域分割してアラインド領域を確保 */
+					MemSize_t second_mb_size = mb_space_prolog->mb_size - f_size;
+					/* 最初のブロック */
+					MBSpaceEpilog* mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + f_size) - 1;
+					mb_space_epilog->identify.signature = MB_SIGNATURE;
+					mb_space_epilog->identify.status = MB_SPACE;
+					mb_space_prolog->mb_size = mb_space_epilog->mb_size = f_size;
+					/* ２番目のブロック (とりあえず空きブロックにする) */
+					mb_space_prolog = (MBSpaceProlog*)(mb_space_epilog + 1);
+					mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + second_mb_size) - 1;
+					mb_space_prolog->identify.signature = MB_SIGNATURE;
+					mb_space_prolog->identify.status = MB_USE;
+					mb_space_prolog->mb_size = mb_space_epilog->mb_size = second_mb_size;
+					mb_space = mb_space_prolog;
+					break;
+				}
 			}
 		}
-		else {
-			/* alignされた使用中ブロックとなる実データ領域のアドレスを求める */
-			uint8_t* aligned_addr = PTRVAR(mb_space_prolog+1)+sizeof(MBSpaceEpilog)+sizeof(MBUseProlog);
-			aligned_addr = PTRVAR(POST_ALIGN_BY(aligned_addr, align));
-			/* 新たに空きブロックとなる領域のサイズ */
-			MemSize_t f_size = (PTRVAR(aligned_addr) - sizeof(MBUseProlog)) - PTRVAR(mb_space_prolog);
-			if ( (f_size + size) <= mb_space_prolog->mb_size ) {
-				/* 領域分割してアラインド領域を確保 */
-				MemSize_t second_mb_size = mb_space_prolog->mb_size - f_size;
-				/* 最初のブロック */
-				MBSpaceEpilog* mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + f_size) - 1;
-				mb_space_epilog->identify.signature = MB_SIGNATURE;
-				mb_space_epilog->identify.status = MB_SPACE;
-				mb_space_prolog->mb_size = mb_space_epilog->mb_size = f_size;
-				/* ２番目のブロック (とりあえず空きブロックにする) */
-				mb_space_prolog = (MBSpaceProlog*)(mb_space_epilog + 1);
-				mb_space_epilog = (MBSpaceEpilog*)(PTRVAR(mb_space_prolog) + second_mb_size) - 1;
-				mb_space_prolog->identify.signature = MB_SIGNATURE;
-				mb_space_prolog->identify.status = MB_USE;
-				mb_space_prolog->mb_size = mb_space_epilog->mb_size = second_mb_size;
-				mb_space = mb_space_prolog;
-				break;
-			}
-		}
-	}
 
-	if ( mb_space ) {
-		/* 指定の空きブロックからメモリ割り当て */
-		ret = mb_alloc(mb_space, size);
-		if ( !ret ) {
-			//tprintf("system error.(malloc\n");
+		if ( mb_space ) {
+			/* 指定の空きブロックからメモリ割り当て */
+			ret = mb_alloc(mb_space, size);
+			if ( !ret ) {
+				//tprintf("system error.(malloc\n");
+			}
 		}
 	}
 
@@ -205,30 +207,31 @@ void* sys_malloc_body(MemSize_t size)
 {
 	void* ret = NULL;
 
-	/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
-	size = POST_ALIGN(size + MB_USE_INFO_SIZE);
+	if ( size != 0 ) {
+		/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
+		size = POST_ALIGN(size + MB_USE_INFO_SIZE);
 
-	/* 指定サイズ以上の空きブロックを探す */
-	MBSpaceProlog* mb_space = NULL;
-	Link* find_link = NULL;
-	for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
-		MBSpaceProlog* mb_temp = containerof(find_link, MBSpaceProlog, link);
-		if ( size <= mb_temp->mb_size ) {
-			mb_space = mb_temp;
-			break;
+		/* 指定サイズ以上の空きブロックを探す */
+		MBSpaceProlog* mb_space = NULL;
+		Link* find_link = NULL;
+		for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
+			MBSpaceProlog* mb_temp = containerof(find_link, MBSpaceProlog, link);
+			if ( size <= mb_temp->mb_size ) {
+				mb_space = mb_temp;
+				break;
+			}
+		}
+		if ( mb_space ) {
+			/* 対象空きブロックをリンクリストから外す */
+			link_remove(&(mb_space->link));
+
+			/* 指定の空きブロックからメモリ割り当て */
+			ret = mb_alloc(mb_space, size);
+			if ( !ret ) {
+				//tprintf("system error.(malloc\n");
+			}
 		}
 	}
-	if ( mb_space ) {
-		/* 対象空きブロックをリンクリストから外す */
-		link_remove(&(mb_space->link));
-
-		/* 指定の空きブロックからメモリ割り当て */
-		ret = mb_alloc(mb_space, size);
-		if ( !ret ) {
-			//tprintf("system error.(malloc\n");
-		}
-	}
-
 	return ret;
 }
 

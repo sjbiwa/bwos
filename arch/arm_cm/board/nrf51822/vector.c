@@ -17,6 +17,7 @@ extern	void _svc_entry(void);
 extern	void _debug_entry(void);
 extern	void _pendsvc_entry(void);
 extern	void _rtc0_entry(void);
+extern  void _timer2_entry(void);
 
 extern	uint8_t			stack_master;
 
@@ -28,6 +29,7 @@ const HandlerEntry handler_entry[IRQ_NUM]  __attribute__ ((section (".vector")))
 	[VECT_NO(SVCall_IRQn)]				= _svc_entry,
 	[VECT_NO(DebugMonitor_IRQn)]		= _debug_entry,
 	[VECT_NO(PendSV_IRQn)]				= _pendsvc_entry,
-	[VECT_NO(RTC0_IRQn)]				= _rtc0_entry,
+//	[VECT_NO(RTC0_IRQn)]				= _rtc0_entry,
+	[VECT_NO(TIMER2_IRQn)]				= _timer2_entry,
 };
 

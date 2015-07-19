@@ -24,17 +24,16 @@ static void update_timer(TimeSpec tm_diff)
 	if ( NORMAL_TMOUT_COUNT < tm_diff ) {
 		tm_diff = NORMAL_TMOUT_COUNT;
 	}
-	NRF_TIMER2->CC[0] = tm_diff;
-	NRF_TIMER2->TASKS_CLEAR = 1;
+	NRF_RTC0->CC[0] = tm_diff;
+	NRF_RTC0->TASKS_CLEAR = 1;
 }
 
-void _timer2_entry(void)
+void _rtc0_entry(void)
 {
 	uint32_t irq_state = irq_save();
-	NRF_TIMER2->EVENTS_COMPARE[0] = 0;  /* 割り込み要求ビットクリア */
+	NRF_RTC0->EVENTS_COMPARE[0] = 0;  /* 割り込み要求ビットクリア */
 	/* TICK値更新 */
-	NRF_TIMER2->TASKS_CAPTURE[1] = 1;
-	tick_count += NRF_TIMER2->CC[1];
+	tick_count += NRF_RTC0->COUNTER;
 	if ( tmout_count <= tick_count ) {
 		TimeSpec tm_diff = tick_count - tmout_count;
 		update_timer(tm_diff);
@@ -57,8 +56,7 @@ TimeSpec get_tick_count(void)
 {
 	TimeSpec ret;
 	uint32_t irq_state = irq_save();
-	NRF_TIMER2->TASKS_CAPTURE[1] = 1;
-	ret = tick_count + NRF_TIMER2->CC[1];
+	ret = tick_count + NRF_RTC0->COUNTER;
 	irq_restore(irq_state);
 	return ret;
 }
@@ -72,7 +70,7 @@ void update_first_timeout(TimeSpec tmout)
 	TimeSpec curr_count = tick_count/* + LPC_TIMER0->TC*/;
 	if ( tmout_count <= curr_count ) {
 		/* すでに過ぎているのでTIMER割り込みONする */
-		NVIC->ISPR[TIMER2_IRQn/32] = 0x1u << (TIMER2_IRQn % 32);
+		NVIC->ISPR[RTC0_IRQn/32] = 0x1u << (RTC0_IRQn % 32);
 	}
 	else {
 		TimeSpec tm_diff = tmout_count - tick_count;
@@ -84,22 +82,24 @@ void update_first_timeout(TimeSpec tmout)
 void
 arch_timer_init(uint32_t cpuid)
 {
-	__irq_set_enable(TIMER2_IRQn, IRQ_DISABLE, 0);
+	__irq_set_enable(RTC0_IRQn, IRQ_DISABLE, 0);
 
 	/* LFCLK start */
-	//NRF_CLOCK->TASKS_LFCLKSTART = 1;
+	NRF_CLOCK->TASKS_LFCLKSTART = 1;
 
 	/* PRESCALE設定 (10ms毎にカウントアップ) */
-	NRF_TIMER2->PRESCALER = 4;
-	NRF_TIMER2->MODE = 0;
-	NRF_TIMER2->BITMODE = 3;
-	NRF_TIMER2->INTENSET = 0x1u<<16;
-	NRF_TIMER2->TASKS_START = 1;
+	NRF_RTC0->PRESCALER = 327;
+
+	//LPC_TIMER0->MCR = 0x01;
+	//LPC_TIMER0->TCR = 0x03;
+	NRF_RTC0->INTENSET = 0x1u<<16;
+	NRF_RTC0->TASKS_START = 1;
 
 	/* 標準タイムアウト値をMATCHレジスタに設定 */
 	update_timer(NO_TMOUT_COUNT);
 
 	tmout_count = NO_TMOUT_COUNT;
 
-	__irq_set_enable(TIMER2_IRQn, IRQ_ENABLE, 0);
+	//LPC_TIMER0->TCR = 0x01;
+	__irq_set_enable(RTC0_IRQn, IRQ_ENABLE, 0);
 }
