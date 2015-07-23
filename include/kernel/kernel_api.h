@@ -75,6 +75,8 @@ static void free_##OBJNAME##_struct(int id) \
 }
 
 /* オブジェクト用spinlock関数 */
+#if USE_SMP==1
+
 #define	OBJECT_SPINLOCK_FUNC(OBJNAME,OBJSTRUCT) \
 static inline void OBJNAME##_spininit(OBJSTRUCT* obj) \
 { \
@@ -102,7 +104,34 @@ static inline void OBJNAME##_spinunlock_irq_restore(OBJSTRUCT* obj, uint32_t irq
 { \
 	spin_unlock(&(obj->spin_lock)); \
 	irq_restore(irq_state); \
+}
+
+#else
+
+#define	OBJECT_SPINLOCK_FUNC(OBJNAME,OBJSTRUCT) \
+static inline void OBJNAME##_spininit(OBJSTRUCT* obj) \
+{ \
 } \
+static inline void OBJNAME##_spinlock(OBJSTRUCT* obj) \
+{ \
+} \
+static inline void OBJNAME##_spinunlock(OBJSTRUCT* obj) \
+{ \
+} \
+static inline int OBJNAME##_spintrylock(OBJSTRUCT* obj) \
+{ \
+	return 1; \
+} \
+static inline uint32_t OBJNAME##_spinlock_irq_save(OBJSTRUCT* obj) \
+{ \
+	return irq_save(); \
+} \
+static inline void OBJNAME##_spinunlock_irq_restore(OBJSTRUCT* obj, uint32_t irq_state) \
+{ \
+	irq_restore(irq_state); \
+}
+
+#endif
 
 
 /********************************************************/
