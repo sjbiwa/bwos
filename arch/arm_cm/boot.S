@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
 	.syntax unified
 	.thumb
 	.thumb_func

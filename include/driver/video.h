@@ -1,4 +1,8 @@
 /*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
+/*
  * video.h
  *
  *  Created on: 2015/04/25

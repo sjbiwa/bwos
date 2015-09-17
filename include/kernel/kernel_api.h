@@ -1,4 +1,8 @@
 /*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
+/*
  * kernel_api.h
  *
  *  Created on: 2014/11/15

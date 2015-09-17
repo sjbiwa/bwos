@@ -1,4 +1,8 @@
 /*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
+/*
  * init_task.c
  *
  *  Created on: 2015/02/07

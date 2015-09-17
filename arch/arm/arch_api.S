@@ -1,4 +1,8 @@
 /*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
+/*
 **
 */
 	.syntax unified

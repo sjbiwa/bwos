@@ -1,4 +1,8 @@
 /*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
+/*
  * fixmb.c
  *
  *  Created on: 2015/01/16

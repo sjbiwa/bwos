@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 syujibiwa All rights reserved.
+ */
+
 #ifndef CP15REG_H_
 #define	CP15REG_H_
 
