@@ -216,6 +216,16 @@ extern void init_task_board_depend(void);
 	init_task_board_depend();
 }
 
+OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
+
+uint32_t _update_and_get_ctask(CpuStruct* cpu)
+{
+	uint32_t ret;
+	cpu_spinlock(cpu);
+	ret = cpu->ctask = cpu->ntask;
+	cpu_spinunlock(cpu);
+	return (uint32_t)ret;
+}
 
 /* ０除算呼び出し */
 void raise(void)

@@ -13,6 +13,14 @@
 #include "arm.h"
 #include "cp15reg.h"
 
+/* cpu_struct/ctaskを取得 */
+#define	GET_CTASK(cpu_struct,ctask) \
+	ldr		cpu_struct, =cpu_struct_pointer; \
+	CPUID_get(ctask); \
+	ldr		cpu_struct, [cpu_struct, ctask, LSL #2]; \
+	ldr		ctask,  [cpu_struct, #CPUSTRUCT_CTASK];
+
+
 	.text
 	.balign 4
 
@@ -62,19 +70,15 @@ _dispatch:
 	/* ※ 関数として呼ばれるエントリなので R0/R1/R2/R3/R12は破壊されても良い */
 	push	{lr}
 
-	/* check _ctask	*/
-	ldr		lr, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		lr, [lr, r0, LSL #2]		/* lr <- cpu_struct */
-	ldr		lr, [lr, #CPUSTRUCT_CTASK] /* lr <- ctask */
-	cmp		lr, #0
+	GET_CTASK(r0,lr)
+	/* R0:cpu_struck  R1:ctask */
 
 	/* IF _ctask not available ignore save_context */
-	addeq	sp, sp, #4
+	cmp		lr, #0
 	beq		_restore_context
 
 _save_and_restore:
-	/* save _ctask state (LR is _ctask) */
+	/* save _ctask state */
 	push	{r0,r4-r11}
 	/* save FPEXC */
 	vmrs	r1, FPEXC
@@ -87,40 +91,40 @@ _save_and_restore:
 	ldr		r1, [lr, #SAVE_VFP]
 	vstmia	r1!, {d0-d15}
 	vstmia	r1!, {d16-d31}
-	vmrs	r0, FPSCR
-	str		r0, [r1]
+	vmrs	r2, FPSCR
+	str		r2, [r1]
 
 _no_save_vfp:
 	/* save USR/SYS info */
-	mrs		r0, SPSR_svc
-	mrs		r1, SP_usr
-	mrs		r2, LR_usr
-	push	{r0,r1,r2}
+	mrs		r1, SPSR_svc
+	mrs		r2, SP_usr
+	mrs		r3, LR_usr
+	push	{r1,r2,r3}
 
 	str		sp, [lr,#SAVE_SP]
 
 _restore_context:
 	/* All register done saved */
 
-	/* copy _ntask -> _ctask */
-	ldr		lr, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		r0, [lr, r0, LSL #2]		/* lr <- cpu_struct */
-	ldr		lr, [r0, #CPUSTRUCT_NTASK] 	/* r0 <- ntask */
-	str		lr, [r0, #CPUSTRUCT_CTASK]	/* r0 -> ctask */
+	/* update ctask<-ntask and return new ctask */
+	/* 全レジスタは退避済み SPは現在の値が一応使える */
+	/* R0:cpu_struct */
+	bl		_update_and_get_ctask
 
-	/* check _ntask */
+	mov		lr, r0	/* LR <- new ctask */
+
+	/* check new ctask */
 	cmp		lr, #0
 	beq		_idle_loop
 
-	/* restore SP (LR is _ntask)*/
+	/* restore SP (LR is new ctask) */
 	ldr		sp, [lr,#SAVE_SP]
 
 	/* restore USR/SYS info */
-	pop		{r0,r1,r2}
-	msr		SPSR_svc, r0
-	msr		SP_usr, r1
-	msr		LR_usr, r2
+	pop		{r1,r2,r3}
+	msr		SPSR_svc, r1
+	msr		SP_usr, r2
+	msr		LR_usr, r3
 
 	/* restore FPEXC */
 	pop		{r1}
@@ -177,24 +181,21 @@ _entry_stub:
 
 _dispatch_irq:
 	/* ※ R0/R1/R2/R3/R12/LRはすでに退避されているので破壊されても良い */
-	/* compare _ctask and _ntask */
-	ldr		r1, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		r1, [r1, r0, LSL #2]		/* r1 <- cpu_struct */
-	ldr		r0, [r1, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
-	ldr		r1, [r1, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
-	cmp		r0, r1
-	beq		_nodispatch_irq /* _ctask == _ntask ? */
 
-	/* r0:_ctask r1:_ntask */
+	GET_CTASK(r0,lr)
+	ldr		r1,  [r0, #CPUSTRUCT_NTASK]
+	/* R0:cpu_struck  R1:_ntask  LR:_ctask */
+
+	cmp		r1, lr
+	beq		_nodispatch_irq /* _ntask == _ctask ? */
+
 	/* _ctask check */
-	cmp		r0, #0
+	cmp		lr, #0
 	beq		_restore_context /* _ctask is NULL ? */
 
 	/* save current task context */
-	ldr		lr, =_entry_stub
-	push	{lr}
-	mov		lr, r0
+	ldr		r1, =_entry_stub
+	push	{r1}
 	b		_save_and_restore
 
 _nodispatch_irq:

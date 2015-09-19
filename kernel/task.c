@@ -273,6 +273,8 @@ void task_tick(void)
 	irq_restore(irq_state);
 }
 
+/* 指定したCPU用ランキューのスケジュールを行う */
+/* 割り込み禁止/cpu_spinlock状態で呼び出すこと */
 bool schedule(CpuStruct* cpu)
 {
 	RunQueue* run_queue = &(cpu->run_queue);
@@ -281,14 +283,7 @@ bool schedule(CpuStruct* cpu)
 		uint32_t bits = lowest_bit(run_queue->pri_bits);
 		cpu->ntask = (TaskStruct*)(run_queue->task[bits].next);
 	}
-	/*********************************************************************/
-	/* 本来はspinlock取得中にntaskは書き換えられるのでbarrierはいらない */
-	/* ただ、dispatcherでntaskを参照する時にもspinlockする必要があるが  */
-	/* それでは処理オーバーヘッドがあるので、spinlockしなくても良いよう */
-	/* にこのでorder_barrier()を入れる。                                */
-	/*********************************************************************/
 	bool ret = (cpu->ctask != cpu->ntask) ? true : false;
-	order_barrier();
 	return ret;
 }
 

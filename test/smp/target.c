@@ -183,8 +183,6 @@ void task_msgq_3(void)
 
 
 TaskCreateInfo	task_info[] = {
-#if 0
-#if 1
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)1},
@@ -202,7 +200,6 @@ TaskCreateInfo	task_info[] = {
 		{"TASK13", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task5, 0, 1024, 0, 7, (void*)0},
 		{"TASK15", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task7, 0, 1024, 0, 8, (void*)0},
 		{"TASK16", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task8, 0, 1024, 0, 7, (void*)0},
-#endif
 		{"TASKm1", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
 		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
@@ -215,7 +212,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
-#endif
+#if 0
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)1},
@@ -245,6 +242,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 0, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 0, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
+#endif
 };
 
 void main_task(void)
