@@ -54,7 +54,7 @@
 /* CpuStruct上の位置(TaskStructの構造に依存) */
 #define	CPUSTRUCT_CTASK		(0)		/* _ctaskのオフセット */
 #define	CPUSTRUCT_NTASK		(4)		/* _ntaskのオフセット */
-#define	CPUSTRUCK_LOCK		(8)		/* spinlockのオフセット */
+#define	CPUSTRUCT_LOCK		(8)		/* spinlockのオフセット */
 
 #ifndef __ASM__
 

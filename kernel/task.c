@@ -274,14 +274,16 @@ void task_tick(void)
 }
 
 /* 指定したCPU用ランキューのスケジュールを行う */
-/* 割り込み禁止/cpu_spinlock状態で呼び出すこと */
+/* 割り込み禁止/対象cpu_spinlock状態で呼び出すこと */
 bool schedule(CpuStruct* cpu)
 {
 	RunQueue* run_queue = &(cpu->run_queue);
-	cpu->ntask = NULL;
 	if ( run_queue->pri_bits != 0 ) {
 		uint32_t bits = lowest_bit(run_queue->pri_bits);
 		cpu->ntask = (TaskStruct*)(run_queue->task[bits].next);
+	}
+	else {
+		cpu->ntask = NULL;
 	}
 	bool ret = (cpu->ctask != cpu->ntask) ? true : false;
 	return ret;
