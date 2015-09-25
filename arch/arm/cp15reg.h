@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 syujibiwa All rights reserved.
+ * Copyright (C) 2015 sjbiwa All rights reserved.
  */
 
 #ifndef CP15REG_H_
