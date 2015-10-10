@@ -59,15 +59,6 @@ static const uint32_t	attr_conv_tbl[][2] = {
 static uint32_t* section_tbl;
 
 
-static bool mmgr_is_section(uint32_t entry)
-{
-	bool ret = false;
-	if ( (entry & 0x00000003) == 0x00000001 ) {
-		ret = true;
-	}
-	return ret;
-}
-
 /* セクションテーブルの割り当て */
 static uint32_t* sectiontbl_alloc(void)
 {

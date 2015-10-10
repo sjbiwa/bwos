@@ -218,8 +218,14 @@
 #define NSACR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c1,c1,2"::"r"(reg):"memory");} while (0)
 #define TTBR0_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c2,c0,0":"=r"(_reg_)::"memory");_reg_;})
 #define TTBR0_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c2,c0,0"::"r"(reg):"memory");} while (0)
+#define TTBRX0_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,0,%0,%1,c2":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
+#define TTBRX0_set(reg)     do {__asm__ volatile ("mcrr p15,0,%0,%1,c2"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
 #define TTBR1_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c2,c0,1":"=r"(_reg_)::"memory");_reg_;})
 #define TTBR1_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c2,c0,1"::"r"(reg):"memory");} while (0)
+#define TTBRX1_get()     ({uint32_t _regl_, _regh_;__asm__ volatile ("mrrc p15,1,%0,%1,c2":"=r"(_regl_),"=r"(_regh_)::"memory"); \
+										(((uint64_t)(_regh_)<<32)|(uint64_t)(_regl_));})
+#define TTBRX1_set(reg)     do {__asm__ volatile ("mcrr p15,1,%0,%1,c2"::"r"((uint32_t)reg),"r"((uint32_t)(reg>>32)):"memory");} while (0)
 #define TTBCR_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c2,c0,2":"=r"(_reg_)::"memory");_reg_;})
 #define TTBCR_set(reg)     do {__asm__ volatile ("mcr p15,0,%0,c2,c0,2"::"r"(reg):"memory");} while (0)
 #define VTCR_get()     ({uint32_t _reg_;__asm__ volatile ("mrc p15,0,%0,c2,c1,2":"=r"(_reg_)::"memory");_reg_;})

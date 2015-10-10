@@ -4,7 +4,7 @@
 
 /*
  * arch_ptbl_lpae.c
- *   support ARMv7-A LargePhysicalAddressExtension
+ *   support ARMv7-A LPAE(LargePhysicalAddressExtension)
  *
  *  Created on: 2015/10/07
  *      Author: biwa
@@ -17,92 +17,151 @@
 #include "my_board.h"
 #include "memmgr.h"
 
-#define	FIRST_TBL_NUM			(4)
-#define	SECOND_TABLE_SIZE		(0x1000u)
-#define	THIRD_TABLE_SIZE		(0x1000u)
-#define	SECOND_TABLE_NUM		(SECOND_TABLE_SIZE/sizeof(uint64_t))
-#define	THIRD_TABLE_NUM			(THIRD_TABLE_SIZE/sizeof(uint64_t))
 
-#define	SHARE_SECT				(0x01u<<16)
-#define	SHARE_PAGE				(0x01u<<10)
+/*****************************************************************************/
+/*
+ * ページテーブルの抽象化
+ *
+ * アドレスの定義
+ *       ------------------------------------------------------------------------------------
+ *  PTR  |  セクションテーブルインデックス  | ページテーブルインデックス | ページオフセット |
+ *       ------------------------------------------------------------------------------------
+ *         or
+ *       ------------------------------------------------------------------------------------
+ *  PTR  |  セクションテーブルインデックス  |              ページオフセット                 |
+ *       ------------------------------------------------------------------------------------
+ *
+ * 変換テーブル
+ *         セクションテーブル
+ *  TOP  ->-------------------            セクション領域
+ *         |                 |--------> -------------------
+ *         -------------------          |                 |
+ *         |                 |          |  TEXT/DATA etc  |
+ *         -------------------          |                 |
+ *         |                 |          |                 |
+ *         -------------------          -------------------
+ *         |                 |
+ *         -------------------            ページテーブル
+ *         |                 | -------> -------------------              ページ領域
+ *         -------------------          |                 | --------> -------------------
+ *         |                 |          -------------------           |                 |
+ *         -------------------          |                 |           | TEXT/DATA etc   |
+ *         |                 |          -------------------           |                 |
+ *         -------------------          |                 |           |                 |
+ *         |                 |          -------------------           -------------------
+ *         -------------------          |                 |
+ *         |                 |          -------------------
+ *         -------------------          |                 |
+ *                                      -------------------
+ *                                      |                 |
+ *                                      -------------------
+ *  ※セクションテーブルサイズ = セクションテーブルインデックス数 * セクションテーブルエントリサイズ
+ *  ※ページテーブルサイズ = ページテーブルインデックス数 * ページテーブルエントリサイズ
+ *
+ *
+ * 実装検討
+ * 	・TOPより手前の部分はアーキテクチャー依存
+ * 	・セクションテーブルは1個なので静的に確保あるいは起動時に確保する(全領域を起動時点で確保しておく)
+ * 	・ページテーブルは複数個になり得るので、１つ毎に動的に確保する。
+ * 	・各テーブル生成にあたり以下の項目がアーキテクチャー依存と考える
+ * 	　- セクションテーブルインデックス/ページテーブルインデックスのビット数
+ * 	  - セクションテーブル/ページテーブルのベースアドレスアラインメント
+ * 	  - セクション/ページエントリの型(バイトサイズ)
+ * 	  - セクション/ページエントリの生成方法
+ */
 
-#define	SECT_SIZE				(0x100000u)	/* １セクションのサイズ (1MB) */
-#define	PAGE_SIZE				(0x1000u)	/* １ページのサイズ (4KB) */
-#define	SECT_TABLE_SIZE			(4096*4)	/* セクションテーブルのサイズ (4096エントリ) */
-#define	PAGE_TABLE_SIZE			(1024)		/* ページテーブルのサイズ (256エントリ/1KB) */
+#define	MAIR_CACHE_INDEX		(0uLL)
+#define	MAIR_DEVICE_INDEX		(1uLL)
+#define	MAIR_NOCACHE_INDEX		(2uLL)
+#define	MAIR_STRONGLY_INDEX		(3uLL)
+#define	MAIR_CACHE_VALUE		(0x4fu)
+#define	MAIR_DEVICE_VALUE		(0x04u)
+#define	MAIR_NOCACHE_VALUE		(0x44u)
+#define	MAIR_STRONGLY_VALUE		(0x00u)
+#define	MAIR_SET_VALUE			(\
+								(MAIR_CACHE_VALUE<<(MAIR_CACHE_INDEX*8)) | \
+								(MAIR_DEVICE_VALUE<<(MAIR_DEVICE_INDEX*8)) | \
+								(MAIR_NOCACHE_VALUE<<(MAIR_NOCACHE_INDEX*8)) | \
+								(MAIR_STRONGLY_VALUE<<(MAIR_STRONGLY_INDEX*8)) | \
+								0)
+
+#define	EATTR_XN				(0x3uLL<<53)
+#define	ETAAR_SHARE				(0x3uLL<<8)
+#define	EATTR_RONLY				(0x3uLL<<6)
+#define	EATTR_RW				(0x1uLL<<6)
+#define	EATTR_CACHE				(MAIR_CACHE_INDEX<<2) /* ref MAIR0:0 */
+#define	EATTR_DEVICE			(MAIR_DEVICE_INDEX<<2) /* ref MAIR0:1 */
+#define	EATTR_NOCACHE			(MAIR_NOCACHE_INDEX<<2) /* ref MAIR0:2 */
+#define	EATTR_STRONGLY			(MAIR_STRONGLY_INDEX<<2) /* ref MAIR0:3 */
+
+static const uint64_t	attr_conv_tbl[2][3] = {
+		[ATTRL_SECT][ATTR_TEXT] = 0x0000000000000001LL |EATTR_RONLY|ETAAR_SHARE|EATTR_CACHE,
+		[ATTRL_SECT][ATTR_DATA] = 0x0000000000000001LL |EATTR_XN|EATTR_RW|ETAAR_SHARE|EATTR_CACHE,
+		[ATTRL_SECT][ATTR_DEV]  = 0x0000000000000001LL |EATTR_XN|EATTR_RW|ETAAR_SHARE|EATTR_DEVICE,
+		[ATTRL_PAGE][ATTR_TEXT] = 0x0000000000000003LL |EATTR_RONLY|ETAAR_SHARE|EATTR_CACHE,
+		[ATTRL_PAGE][ATTR_DATA] = 0x0000000000000003LL |EATTR_XN|EATTR_RW|ETAAR_SHARE|EATTR_CACHE,
+		[ATTRL_PAGE][ATTR_DEV]  = 0x0000000000000003LL |EATTR_XN|EATTR_RW|ETAAR_SHARE|EATTR_DEVICE,
+};
+
+/* アーキテクチャー依存部 */
+#define	TOP_INDEX_BITS					(2)
+#define	MAKE_SECT_TABLE_ENTRY			MAKE_PAGE_TABLE_ENTRY
+
+typedef	uint64_t						SectEntry_t;
+typedef	uint64_t						PageEntry_t;
+#define	SECT_TABLE_ALIGN				(0x1000u)
+#define	PAGE_TABLE_ALIGN				(0x1000u)
+/* テーブルエントリ生成マクロ  */
+#define	MAKE_PAGE_TABLE_ENTRY(addr)		((SectEntry_t)addr | 0x03)		/* ページテーブルを指すエントリ */
+#define	MAKE_SECT_ENTRY(addr,attr)		((SectEntry_t)(addr) | (attr_conv_tbl[ATTRL_SECT][attr]))	/* セクションを指すエントリ */
+#define	MAKE_PAGE_ENTRY(addr,attr)		((PageEntry_t)(addr) | (attr_conv_tbl[ATTRL_PAGE][attr]))	/* ページを指すエントリ */
+
+static uint64_t			top_tbl[(0x1u<<TOP_INDEX_BITS)] __attribute__((aligned(32)));
+/*****************************/
+
+
+/* アーキテクチャー非依存部 */
+#define	ADDR_INDEX_BITS					(32)
+#define	SECT_INDEX_BITS					(11)
+#define	PAGE_INDEX_BITS					(9)
+#define	SECT_AREA_SIZE					(0x01u << (ADDR_INDEX_BITS-SECT_INDEX_BITS))
+#define	PAGE_AREA_SIZE					(0x01u << (ADDR_INDEX_BITS-SECT_INDEX_BITS-PAGE_INDEX_BITS))
+#define	SECT_TABLE_SIZE					(SECT_INDEX_BITS * sizeof(SectEntry_t))
+#define	PAGE_TABLE_SIZE					(PAGE_INDEX_BITS * sizeof(PageEntry_t))
 
 /* アドレスからセクションテーブル/ページテーブルのエントリインデックスを取得 */
-#define	ADDR2SECT(addr)			(((uint32_t)(addr)) >> 20)
-#define	ADDR2PAGE(addr)			((((uint32_t)(addr)) >> 12) & 0xff)
+#define	ADDR2SECTINDEX(addr)			(((PtrInt_t)(addr)) >> (ADDR_INDEX_BITS-SECT_INDEX_BITS))
+#define	ADDR2PAGEINDEX(addr)			((((PtrInt_t)(addr)) >> (ADDR_INDEX_BITS-SECT_INDEX_BITS-PAGE_INDEX_BITS)) & (((PtrInt_t)1u << PAGE_INDEX_BITS) - 1))
 
-/* テーブルエントリ生成マクロ */
-#define	PAGE_TABLE_ENTRY(addr)	((uint32_t)addr | 0x01)		/* ページテーブルを指すエントリ */
-#define	SECT_ENTRY(addr,attr)	((uint32_t)(addr) | (attr))	/* セクションを指すエントリ */
-#define	PAGE_ENTRY(addr,attr)	((uint32_t)(addr) | (attr))	/* ページを指すエントリ */
+static SectEntry_t*		section_tbl;
+/*****************************/
 
-/* ページ属性を抽象化レベルから実際レベルに変換するテーブル */
-#define	S_AP(v)					((((v)&0x4)<<13)|(((v)&0x3)<<10))	/* 2-0 -> 15:11:10 */
-#define	S_TEX(v)				((((v)&0x1C)<<10)|(((v)&0x3)<<2))	/* 4-0 -> 14:13:12 3:2(C/B) */
-#define	P_AP(v)					((((v)&0x4)<<7)|(((v)&0x3)<<4))		/* 2-0 -> 9:5:4 */
-#define	P_TEX(v)				((((v)&0x1C)<<4)|(((v)&0x3)<<2))	/* 4-0 -> 8:7:6 3:2(C/B) */
-
-#define	AP_TEXT					(0x3)
-#define	AP_DATA					(0x3)
-#define	AP_DEV					(0x3)
-#define	TEX_TEXT				(0x07)
-#define	TEX_DATA				(0x07)
-#define	TEX_DEV					(0x01)
-
-static const uint32_t	attr_conv_tbl[][2] = {
-	[ATTR_TEXT][ATTRL_SECT] = 0x00000002|S_AP(AP_TEXT)|S_TEX(TEX_TEXT)|SHARE_SECT,
-	[ATTR_TEXT][ATTRL_PAGE] = 0x00000002|P_AP(AP_TEXT)|P_TEX(TEX_TEXT)|SHARE_PAGE,
-	[ATTR_DATA][ATTRL_SECT] = 0x00000012|S_AP(AP_DATA)|S_TEX(TEX_DATA)|SHARE_SECT,
-	[ATTR_DATA][ATTRL_PAGE] = 0x00000003|P_AP(AP_DATA)|P_TEX(TEX_DATA)|SHARE_PAGE,
-	[ATTR_DEV][ATTRL_SECT]  = 0x00000012|S_AP(AP_DEV)|S_TEX(TEX_DEV)|SHARE_SECT,
-	[ATTR_DEV][ATTRL_PAGE]  = 0x00000003|P_AP(AP_DEV)|P_TEX(TEX_DEV)|SHARE_PAGE,
-};
-/* section table */
-
-/* first-level PageTable */
-static uint64_t		first_page_tbl[FIRST_TBL_NUM] __attribute__((aligned(32)));
-static uint64_t*	second_page_tbl;
-
-
-static bool mmgr_is_section(uint32_t entry)
+/* セクションテーブルの割り当て */
+static SectEntry_t* secttbl_alloc(void)
 {
-	bool ret = false;
-	if ( (entry & 0x00000003) == 0x00000001 ) {
-		ret = true;
-	}
-	return ret;
+	/* 16Kバイトアラインメント */
+	SectEntry_t* tbl = (SectEntry_t*)st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_ALIGN);
+	memset(tbl, 0, SECT_TABLE_SIZE);
+	return tbl;
 }
 
-/* secondテーブルの割り当て */
-/*  全secondテーブルを割り当てる */
-static uint64_t* second_tbl_alloc(void)
+/* ページテーブルの割り当て */
+static PageEntry_t* pagetbl_alloc(void)
 {
-	/* 4Kバイトアラインメント */
-	void* tbl = st_malloc_align(SECOND_TABLE_SIZE * FIRST_TBL_NUM, SECOND_TABLE_SIZE);
-	memset(tbl, 0, SECOND_TABLE_SIZE * FIRST_TBL_NUM);
-	return (uint64_t*)tbl;
-}
-
-/* thirdテーブルの割り当て */
-static uint64_t* third_tbl_alloc(void)
-{
-	/* 4Kバイトアラインメント */
-	void* tbl = st_malloc_align(THIRD_TABLE_SIZE, THIRD_TABLE_SIZE);
+	/* 1Kバイトアラインメント */
+	PageEntry_t* tbl = (PageEntry_t*)st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_ALIGN);
 	memset(tbl, 0, PAGE_TABLE_SIZE);
-	return (uint64_t*)tbl;
+	return tbl;
 }
 
 static void mmgr_mmu_init(void)
 {
 	/* MMU関連レジスタ初期化 */
-	DACR_set(0xffffffff);
-	TTBCR_set(0x00000000);
-	TTBR0_set((uint32_t)section_tbl);
-	TTBR1_set(0);
+	MAIR0_set(MAIR_SET_VALUE);
+	MAIR1_set(0);
+	TTBCR_set(0x80000000);
+	TTBRX0_set((uint64_t)top_tbl);
+	TTBRX1_set(0);
 
 	/* いったん命令キャッシュをdisable */
 	uint32_t ctrl = SCTLR_get();
@@ -125,12 +184,11 @@ static void mmgr_mmu_init(void)
 
 void arch_ptbl_init(void)
 {
-	/* second page table領域を確保 */
-	uint64_t* ptbl = second_tbl_alloc();
+	section_tbl = secttbl_alloc();
 
-	/* firstテーブル初期化 */
-	for ( int ix = 0; ix < FIRST_TBL_NUM; ix++ ) {
-		first_page_tbl[ix] = FIRST_ENTRY(&ptbl[SECOND_TABLE_NUM * ix]);
+	/* firstテーブル初期化(ここは未だアーキテクチャー依存) */
+	for ( int ix = 0; ix < (0x1u<<TOP_INDEX_BITS); ix++ ) {
+		top_tbl[ix] = MAKE_SECT_TABLE_ENTRY(&section_tbl[(0x1u<<SECT_INDEX_BITS-TOP_INDEX_BITS) * ix]);
 	}
 }
 
@@ -141,37 +199,37 @@ void arch_ptbl_enable(void)
 
 void mmgr_add_entry(void* addr, MemSize_t size, uint32_t attr)
 {
-	uint32_t st_addr = (uint32_t)PRE_ALIGN_BY(addr, PAGE_SIZE);
-	size = ((uint32_t)addr + size) - st_addr;
-	size = POST_ALIGN_BY(size, PAGE_SIZE);
+	PtrInt_t st_addr = (PtrInt_t)PRE_ALIGN_BY(addr, PAGE_AREA_SIZE);
+	size = ((PtrInt_t)addr + size) - st_addr;
+	size = POST_ALIGN_BY(size, PAGE_AREA_SIZE);
 	while ( 0 < size ) {
 		/* アドレスが1MBアライン/sectionが割り当てられていない/残りサイズ1MB以上ならsection割り当て */
-		if ( ((st_addr & (SECT_SIZE-1)) == 0) && (section_tbl[ADDR2SECT(st_addr)] == 0) && (SECT_SIZE <= size) ) {
-			section_tbl[ADDR2SECT(st_addr)] = SECT_ENTRY(st_addr, attr_conv_tbl[attr][ATTRL_SECT]);
-			st_addr += SECT_SIZE;
-			size -= SECT_SIZE;
+		if ( ((st_addr & (SECT_AREA_SIZE-1)) == 0) && (section_tbl[ADDR2SECTINDEX(st_addr)] == 0) && (SECT_AREA_SIZE <= size) ) {
+			section_tbl[ADDR2SECTINDEX(st_addr)] = MAKE_SECT_ENTRY(st_addr, attr);
+			st_addr += SECT_AREA_SIZE;
+			size -= SECT_AREA_SIZE;
 		}
 		else {
 			/* ページエントリ割り当て */
-			uint32_t* page_tbl;
-			if ( section_tbl[ADDR2SECT(st_addr)] == 0 ) {
-				page_tbl = tbl_alloc();
-				section_tbl[ADDR2SECT(st_addr)] = PAGE_TABLE_ENTRY(page_tbl);
+			PageEntry_t* page_tbl;
+			if ( section_tbl[ADDR2SECTINDEX(st_addr)] == 0 ) {
+				page_tbl = pagetbl_alloc();
+				section_tbl[ADDR2SECTINDEX(st_addr)] = MAKE_PAGE_TABLE_ENTRY(page_tbl);
 			}
 			else {
-				page_tbl = section_tbl[ADDR2SECT(st_addr)] & ~(PAGE_TABLE_SIZE-1);
+				page_tbl = section_tbl[ADDR2SECTINDEX(st_addr)] & ~(PAGE_TABLE_SIZE-1);
 			}
 			/* ページエントリ設定 */
-			if ( page_tbl[ADDR2PAGE(st_addr)] != 0 ) {
-				tprintf("Warnning: multiple define addr=%08X ptbl=%08X index=%d\n", st_addr, page_tbl, ADDR2PAGE(st_addr));
+			if ( page_tbl[ADDR2PAGEINDEX(st_addr)] != 0 ) {
+				tprintf("Warnning: multiple define addr=%08X ptbl=%08X index=%d\n", st_addr, page_tbl, ADDR2PAGEINDEX(st_addr));
 			}
-			page_tbl[ADDR2PAGE(st_addr)] = PAGE_ENTRY(st_addr, attr_conv_tbl[attr][ATTRL_PAGE]);
-			st_addr += PAGE_SIZE;
-			if ( size <= PAGE_SIZE ) {
+			page_tbl[ADDR2PAGEINDEX(st_addr)] = MAKE_PAGE_ENTRY(st_addr, attr);
+			st_addr += PAGE_AREA_SIZE;
+			if ( size <= PAGE_AREA_SIZE ) {
 				size = 0;
 			}
 			else {
-				size -= PAGE_SIZE;
+				size -= PAGE_AREA_SIZE;
 			}
 		}
 	}
