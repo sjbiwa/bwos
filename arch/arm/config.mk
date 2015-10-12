@@ -24,13 +24,20 @@ RM = rm
 
 A_SRCS += boot.S dispatch.S handler.S arch_api.S
 C_SRCS += arch.c memmgr.c api_table.c api_caller.c api_callee.c idle.c
-C_SRCS += arch_timer.c arch_ptbl_lpae.c
+C_SRCS += arch_timer.c
+#C_SRCS += arch_ptbl.c
+C_SRCS += arch_ptbl_lpae.c
 
 LDSCRIPT = $(ARCHDIR)/link.lds
 
 #DEFS = -DCYGWIN
 
-DEFS += -DUSE_SMP=1 -DCPU_NUM=$(SMP_CPU_NUM)
+DEFS += -DCPU_NUM=$(SMP_CPU_NUM)
+ifneq ($(SMP_CPU_NUM),1)
+DEFS += -DUSE_SMP=1
+else
+DEFS += -DUSE_SMP=0
+endif
 C_SRCS += arch_smp.c
 A_SRCS += spinlock.S
 
