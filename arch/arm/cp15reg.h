@@ -2,8 +2,8 @@
  * Copyright (C) 2015 sjbiwa All rights reserved.
  */
 
-#ifndef CP15REG_H_
-#define	CP15REG_H_
+#ifndef _CP15REG_H_
+#define	_CP15REG_H_
 
 #ifdef __ASM__
 #define MIDR_get(reg)     mrc p15,0,reg,c0,c0,0
