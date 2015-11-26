@@ -170,8 +170,8 @@ arch_irq_init(uint32_t cpuid)
 	iowrite32(GICC_CTLR, 0x00000000); // disable
 	/* Priority Register */
 	iowrite32(GICC_PMR, 0xff);
-	/* BinaryPoint Register */
-	iowrite32(GICC_BPR, 0x03);
+	/* BinaryPoint Register (value is highest subpriority bit) */
+	iowrite32(GICC_BPR, 0x00);
 
 	iowrite32(GICC_CTLR, 0x00000001); // enable
 }

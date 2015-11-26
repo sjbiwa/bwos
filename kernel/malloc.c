@@ -14,13 +14,13 @@
 
 #define	MB_ALIGN				(sizeof(PtrInt_t))	/* 空きブロック/使用中ブロックのアラインメント */
 
-/* アラインメント演算用マクロ */
-#define	PRE_ALIGN(x)			PRE_ALIGN_BY(x,MB_ALIGN)
-#define	POST_ALIGN(x)			POST_ALIGN_BY(x,MB_ALIGN)
+/* サイズアラインメント取得用マクロ */
+#define	SIZE_PRE_ALIGN(x)		SIZE_PRE_ALIGN_BY(x,MB_ALIGN)
+#define	SIZE_POST_ALIGN(x)		SIZE_POST_ALIGN_BY(x,MB_ALIGN)
 
-/* ポインタ演算用マクロ */
-#define	PRE_PTRALIGN(x)			PRE_ALIGN(x)	/* アドレスの直前（自身を含む)のアラインメントアドレス */
-#define	POST_PTRALIGN(x)		POST_ALIGN(x)	/* アドレスの直後（自身を含む)のアラインメントアドレス */
+/* ポインタアラインメント取得用マクロ */
+#define	PRE_PTRALIGN(x)			PRE_ALIGN_BY(x,MB_ALIGN)	/* アドレスの直前（自身を含む)のアラインメントアドレス */
+#define	POST_PTRALIGN(x)		POST_ALIGN_BY(x,MB_ALIGN)	/* アドレスの直後（自身を含む)のアラインメントアドレス */
 
 #define	MB_SIGNATURE			(0xA55Au)
 #define	MB_SPACE				(0x0001u)
@@ -150,7 +150,7 @@ void* sys_malloc_align_body(MemSize_t size, uint32_t align)
 
 	if ( size != 0 ) {
 		/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
-		size = POST_ALIGN(size + MB_USE_INFO_SIZE);
+		size = SIZE_POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 		/* 指定サイズ以上の空きブロックを探す */
 		MBSpaceProlog* mb_space = NULL;
@@ -213,7 +213,7 @@ void* sys_malloc_body(MemSize_t size)
 
 	if ( size != 0 ) {
 		/* 実際に必要となるメモリブロックサイズ (データ部+使用中ヘッダ) */
-		size = POST_ALIGN(size + MB_USE_INFO_SIZE);
+		size = SIZE_POST_ALIGN(size + MB_USE_INFO_SIZE);
 
 		/* 指定サイズ以上の空きブロックを探す */
 		MBSpaceProlog* mb_space = NULL;
