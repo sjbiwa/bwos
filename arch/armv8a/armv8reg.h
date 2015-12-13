@@ -742,10 +742,6 @@
 #define DAIFClr_seti(v)								__asm__ volatile ("MSR DAIFClr, #" #v:::"memory")
 #define SPSel_seti(v)								__asm__ volatile ("MSR SPSel, #" #v:::"memory")
 
-#define	__ISB()										__asm__ volatile ("ISB #0xf":::"memory")
-#define	__DMB()										__asm__ volatile ("DMB #0xf":::"memory")
-#define	__DSB()										__asm__ volatile ("DSB #0xf":::"memory")
-
 #endif
 
 #endif /* _ARMV8REG_H_ */

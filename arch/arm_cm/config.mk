@@ -23,7 +23,7 @@ OBJCOPY = $(TOOL_PREFIX)objcopy
 RM = rm
 
 A_SRCS += boot.S dispatch.S
-C_SRCS += arch.c idle.c
+C_SRCS += arch.c idle.c irq.c
 ifeq ($(TICK_TIMER),SYS_TICK)
 C_SRCS += arch_timer.c
 endif

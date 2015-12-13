@@ -5,8 +5,9 @@
 #ifndef _GICV3REG_H_
 #define	_GICV3REG_H_
 
+#ifndef __ASM__
 
-#include "target_conf.h" /* GIC base register define */
+#include "my_board.h" /* GIC base register define */
 
 #define	GIC_VLPI_BASE			(GIC_GICR_BASE+0x10000u)
 #define	GIC_SGI_BASE			(GIC_GICR_BASE+0x10000u)
@@ -84,60 +85,6 @@
 #define	GICC_IIDR				(GIC_GICC_BASE+0x00FCu)					/* RO IMPLEMENTATION DEFINED CPU Interface Identification Register */
 #define	GICC_DIR				(GIC_GICC_BASE+0x1000u)					/* WO - Deactivate Interrupt Register */
 
-#ifdef __ASM__
-
-#define ICC_AP0R0_EL1_get(v)					MRS v, S3_0_C12_C8_4		/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R0_EL1_set(v)					MSR S3_0_C12_C8_4, v    	/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R1_EL1_get(v)					MRS v, S3_0_C12_C8_5        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R1_EL1_set(v)					MSR S3_0_C12_C8_5, v        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R2_EL1_get(v)					MRS v, S3_0_C12_C8_6        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R2_EL1_set(v)					MSR S3_0_C12_C8_6, v        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R3_EL1_get(v)					MRS v, S3_0_C12_C8_7        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP0R3_EL1_set(v)					MSR S3_0_C12_C8_7, v        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
-#define ICC_AP1R0_EL1_get(v)					MRS v, S3_0_C12_C9_0        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R0_EL1_set(v)					MSR S3_0_C12_C9_0, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R1_EL1_get(v)					MRS v, S3_0_C12_C9_1        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R1_EL1_set(v)					MSR S3_0_C12_C9_1, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R2_EL1_get(v)					MRS v, S3_0_C12_C9_2        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R2_EL1_set(v)					MSR S3_0_C12_C9_2, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R3_EL1_get(v)					MRS v, S3_0_C12_C9_3        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_AP1R3_EL1_set(v)					MSR S3_0_C12_C9_3, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
-#define ICC_ASGI1R_EL1_set(v)					MSR S3_0_C12_C11_6, v       /* WO Interrupt Controller Alias Software Generated Interrupt Group 1 Register */
-#define ICC_BPR0_EL1_get(v)						MRS v, S3_0_C12_C8_3        /* RW Interrupt Controller Binary Point Register 0 */
-#define ICC_BPR0_EL1_set(v)						MSR S3_0_C12_C8_3, v        /* RW Interrupt Controller Binary Point Register 0 */
-#define ICC_BPR1_EL1_get(v)						MRS v, S3_0_C12_C8_3        /* RW Interrupt Controller Binary Point Register 1 */
-#define ICC_BPR1_EL1_set(v)						MSR S3_0_C12_C8_3, v        /* RW Interrupt Controller Binary Point Register 1 */
-#define ICC_CTLR_EL1_get(v)						MRS v, S3_0_C12_C12_4       /* RW Interrupt Controller Control Register (EL1) */
-#define ICC_CTLR_EL1_set(v)						MSR S3_0_C12_C12_4, v       /* RW Interrupt Controller Control Register (EL1) */
-#define ICC_CTLR_EL3_get(v)						MRS v, S3_6_C12_C12_4       /* RW Interrupt Controller Control Register (EL3) */
-#define ICC_CTLR_EL3_set(v)						MSR S3_6_C12_C12_4, v       /* RW Interrupt Controller Control Register (EL3) */
-#define ICC_DIR_EL1_set(v)						MSR S3_0_C12_C11_1, v       /* WO Interrupt Controller Deactivate Interrupt Register */
-#define ICC_EOIR0_EL1_set(v)					MSR S3_0_C12_C8_1, v        /* WO Interrupt Controller End Of Interrupt Register 0 */
-#define ICC_EOIR1_EL1_set(v)					MSR S3_0_C12_C12_1, v       /* WO Interrupt Controller End Of Interrupt Register 1 */
-#define ICC_HPPIR0_EL1_get(v)					MRS v, S3_0_C12_C8_2        /* RO Interrupt Controller Highest Priority Pending Interrupt Register 0 */
-#define ICC_HPPIR1_EL1_get(v)					MRS v, S3_0_C12_C12_2       /* RO Interrupt Controller Highest Priority Pending Interrupt Register 1 */
-#define ICC_IAR0_EL1_get(v)						MRS v, S3_0_C12_C8_0        /* RO Interrupt Controller Interrupt Acknowledge Register 0 */
-#define ICC_IAR1_EL1_get(v)						MRS v, S3_0_C12_C12_0       /* RO Interrupt Controller Interrupt Acknowledge Register 1 */
-#define ICC_IGRPEN0_EL1_get(v)					MRS v, S3_0_C12_C12_6       /* RW Interrupt Controller Interrupt Group 0 Enable register */
-#define ICC_IGRPEN0_EL1_set(v)					MSR S3_0_C12_C12_6, v       /* RW Interrupt Controller Interrupt Group 0 Enable register */
-#define ICC_IGRPEN1_EL1_get(v)					MRS v, S3_0_C12_C12_7       /* RW Interrupt Controller Interrupt Group 1 Enable register */
-#define ICC_IGRPEN1_EL1_set(v)					MSR S3_0_C12_C12_7, v       /* RW Interrupt Controller Interrupt Group 1 Enable register */
-#define ICC_IGRPEN1_EL3_get(v)					MRS v, S3_6_C12_C12_7       /* RW Interrupt Controller Interrupt Group 1 Enable register (EL3) */
-#define ICC_IGRPEN1_EL3_set(v)					MSR S3_6_C12_C12_7, v       /* RW Interrupt Controller Interrupt Group 1 Enable register (EL3) */
-#define ICC_PMR_EL1_get(v)						MRS v, S3_0_C4_C6_0         /* RW Interrupt Controller Interrupt Priority Mask Register */
-#define ICC_PMR_EL1_set(v)						MSR S3_0_C4_C6_0, v         /* RW Interrupt Controller Interrupt Priority Mask Register */
-#define ICC_RPR_EL1_get(v)						MRS v, S3_0_C12_C11_3       /* RO Interrupt Controller Running Priority Register */
-#define ICC_SGI0R_EL1_set(v)					MSR S3_0_C12_C11_7, v       /* WO Interrupt Controller Software Generated Interrupt Group 0 Register */
-#define ICC_SGI1R_EL1_set(v)					MSR S3_0_C12_C11_5, v       /* WO Interrupt Controller Software Generated Interrupt Group 1 Register */
-#define ICC_SRE_EL1_get(v)						MRS v, S3_0_C12_C12_5       /* RW Interrupt Controller System Register Enable register (EL1) */
-#define ICC_SRE_EL1_set(v)						MSR S3_0_C12_C12_5, v       /* RW Interrupt Controller System Register Enable register (EL1) */
-#define ICC_SRE_EL2_get(v)						MRS v, S3_4_C12_C9_5        /* RW Interrupt Controller System Register Enable register (EL2) */
-#define ICC_SRE_EL2_set(v)						MSR S3_4_C12_C9_5, v        /* RW Interrupt Controller System Register Enable register (EL2) */
-#define ICC_SRE_EL3_get(v)						MRS v, S3_6_C12_C12_5       /* RW Interrupt Controller System Register Enable register (EL3) */
-#define ICC_SRE_EL3_set(v)						MSR S3_6_C12_C12_5, v       /* RW Interrupt Controller System Register Enable register (EL3) */
-
-#else
-
 #define ICC_AP0R0_EL1_get()			({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_0_C12_C8_4":"=r"(_reg_)::"memory");_reg_;})		/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
 #define ICC_AP0R0_EL1_set(v)		__asm__ volatile ("MSR S3_0_C12_C8_4, %0"::"r"(v):"memory")										/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
 #define ICC_AP0R1_EL1_get()			({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_0_C12_C8_5":"=r"(_reg_)::"memory");_reg_;})		/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
@@ -188,6 +135,57 @@
 #define ICC_SRE_EL3_get()			({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_6_C12_C12_5":"=r"(_reg_)::"memory");_reg_;})		/* RW Interrupt Controller System Register Enable register (EL3) */
 #define ICC_SRE_EL3_set(v)			__asm__ volatile ("MSR S3_6_C12_C12_5, %0"::"r"(v):"memory")										/* RW Interrupt Controller System Register Enable register (EL3) */
 
+#else
+
+#define ICC_AP0R0_EL1_get(v)					MRS v, S3_0_C12_C8_4		/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R0_EL1_set(v)					MSR S3_0_C12_C8_4, v    	/* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R1_EL1_get(v)					MRS v, S3_0_C12_C8_5        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R1_EL1_set(v)					MSR S3_0_C12_C8_5, v        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R2_EL1_get(v)					MRS v, S3_0_C12_C8_6        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R2_EL1_set(v)					MSR S3_0_C12_C8_6, v        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R3_EL1_get(v)					MRS v, S3_0_C12_C8_7        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP0R3_EL1_set(v)					MSR S3_0_C12_C8_7, v        /* RW Interrupt Controller Active Priorities Group 0 Registers, n = 0 - 3 */
+#define ICC_AP1R0_EL1_get(v)					MRS v, S3_0_C12_C9_0        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R0_EL1_set(v)					MSR S3_0_C12_C9_0, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R1_EL1_get(v)					MRS v, S3_0_C12_C9_1        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R1_EL1_set(v)					MSR S3_0_C12_C9_1, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R2_EL1_get(v)					MRS v, S3_0_C12_C9_2        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R2_EL1_set(v)					MSR S3_0_C12_C9_2, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R3_EL1_get(v)					MRS v, S3_0_C12_C9_3        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_AP1R3_EL1_set(v)					MSR S3_0_C12_C9_3, v        /* RW Interrupt Controller Active Priorities Group 1 Registers, n = 0 - 3 */
+#define ICC_ASGI1R_EL1_set(v)					MSR S3_0_C12_C11_6, v       /* WO Interrupt Controller Alias Software Generated Interrupt Group 1 Register */
+#define ICC_BPR0_EL1_get(v)						MRS v, S3_0_C12_C8_3        /* RW Interrupt Controller Binary Point Register 0 */
+#define ICC_BPR0_EL1_set(v)						MSR S3_0_C12_C8_3, v        /* RW Interrupt Controller Binary Point Register 0 */
+#define ICC_BPR1_EL1_get(v)						MRS v, S3_0_C12_C8_3        /* RW Interrupt Controller Binary Point Register 1 */
+#define ICC_BPR1_EL1_set(v)						MSR S3_0_C12_C8_3, v        /* RW Interrupt Controller Binary Point Register 1 */
+#define ICC_CTLR_EL1_get(v)						MRS v, S3_0_C12_C12_4       /* RW Interrupt Controller Control Register (EL1) */
+#define ICC_CTLR_EL1_set(v)						MSR S3_0_C12_C12_4, v       /* RW Interrupt Controller Control Register (EL1) */
+#define ICC_CTLR_EL3_get(v)						MRS v, S3_6_C12_C12_4       /* RW Interrupt Controller Control Register (EL3) */
+#define ICC_CTLR_EL3_set(v)						MSR S3_6_C12_C12_4, v       /* RW Interrupt Controller Control Register (EL3) */
+#define ICC_DIR_EL1_set(v)						MSR S3_0_C12_C11_1, v       /* WO Interrupt Controller Deactivate Interrupt Register */
+#define ICC_EOIR0_EL1_set(v)					MSR S3_0_C12_C8_1, v        /* WO Interrupt Controller End Of Interrupt Register 0 */
+#define ICC_EOIR1_EL1_set(v)					MSR S3_0_C12_C12_1, v       /* WO Interrupt Controller End Of Interrupt Register 1 */
+#define ICC_HPPIR0_EL1_get(v)					MRS v, S3_0_C12_C8_2        /* RO Interrupt Controller Highest Priority Pending Interrupt Register 0 */
+#define ICC_HPPIR1_EL1_get(v)					MRS v, S3_0_C12_C12_2       /* RO Interrupt Controller Highest Priority Pending Interrupt Register 1 */
+#define ICC_IAR0_EL1_get(v)						MRS v, S3_0_C12_C8_0        /* RO Interrupt Controller Interrupt Acknowledge Register 0 */
+#define ICC_IAR1_EL1_get(v)						MRS v, S3_0_C12_C12_0       /* RO Interrupt Controller Interrupt Acknowledge Register 1 */
+#define ICC_IGRPEN0_EL1_get(v)					MRS v, S3_0_C12_C12_6       /* RW Interrupt Controller Interrupt Group 0 Enable register */
+#define ICC_IGRPEN0_EL1_set(v)					MSR S3_0_C12_C12_6, v       /* RW Interrupt Controller Interrupt Group 0 Enable register */
+#define ICC_IGRPEN1_EL1_get(v)					MRS v, S3_0_C12_C12_7       /* RW Interrupt Controller Interrupt Group 1 Enable register */
+#define ICC_IGRPEN1_EL1_set(v)					MSR S3_0_C12_C12_7, v       /* RW Interrupt Controller Interrupt Group 1 Enable register */
+#define ICC_IGRPEN1_EL3_get(v)					MRS v, S3_6_C12_C12_7       /* RW Interrupt Controller Interrupt Group 1 Enable register (EL3) */
+#define ICC_IGRPEN1_EL3_set(v)					MSR S3_6_C12_C12_7, v       /* RW Interrupt Controller Interrupt Group 1 Enable register (EL3) */
+#define ICC_PMR_EL1_get(v)						MRS v, S3_0_C4_C6_0         /* RW Interrupt Controller Interrupt Priority Mask Register */
+#define ICC_PMR_EL1_set(v)						MSR S3_0_C4_C6_0, v         /* RW Interrupt Controller Interrupt Priority Mask Register */
+#define ICC_RPR_EL1_get(v)						MRS v, S3_0_C12_C11_3       /* RO Interrupt Controller Running Priority Register */
+#define ICC_SGI0R_EL1_set(v)					MSR S3_0_C12_C11_7, v       /* WO Interrupt Controller Software Generated Interrupt Group 0 Register */
+#define ICC_SGI1R_EL1_set(v)					MSR S3_0_C12_C11_5, v       /* WO Interrupt Controller Software Generated Interrupt Group 1 Register */
+#define ICC_SRE_EL1_get(v)						MRS v, S3_0_C12_C12_5       /* RW Interrupt Controller System Register Enable register (EL1) */
+#define ICC_SRE_EL1_set(v)						MSR S3_0_C12_C12_5, v       /* RW Interrupt Controller System Register Enable register (EL1) */
+#define ICC_SRE_EL2_get(v)						MRS v, S3_4_C12_C9_5        /* RW Interrupt Controller System Register Enable register (EL2) */
+#define ICC_SRE_EL2_set(v)						MSR S3_4_C12_C9_5, v        /* RW Interrupt Controller System Register Enable register (EL2) */
+#define ICC_SRE_EL3_get(v)						MRS v, S3_6_C12_C12_5       /* RW Interrupt Controller System Register Enable register (EL3) */
+#define ICC_SRE_EL3_set(v)						MSR S3_6_C12_C12_5, v       /* RW Interrupt Controller System Register Enable register (EL3) */
 #endif
 
 #endif

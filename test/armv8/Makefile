@@ -27,12 +27,13 @@ OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
 DEFS += -DTEST_MODE
 DEFS += -DOS_VER="0.01"
 
-DEFS += -DTASK_MAX_NUM=100
-DEFS += -DFLAG_MAX_NUM=100
-DEFS += -DSEM_MAX_NUM=100
-DEFS += -DMUTEX_MAX_NUM=100
-DEFS += -DMSGQ_MAX_NUM=100
-DEFS += -DFIXMB_MAX_NUM=100
+DEFS += -DTASK_MAX_NUM=5
+DEFS += -DFLAG_MAX_NUM=3
+DEFS += -DSEM_MAX_NUM=3
+DEFS += -DMUTEX_MAX_NUM=3
+DEFS += -DMSGQ_MAX_NUM=0
+DEFS += -DFIXMB_MAX_NUM=0
+DEFS += -DTIMER_MAX_NUM=0
 
 C_SRCS += target.c
 
@@ -43,4 +44,3 @@ include $(KERNDIR)/config.mk
 include $(UTILDIR)/config.mk
 include $(DRVDIR)/config.mk
 include rule.mk
-# DO NOT DELETE
