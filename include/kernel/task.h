@@ -37,7 +37,7 @@ typedef	struct tagTaskStruct {
 	uint8_t		name[32];			/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
 	void		(*entry)(void);		/* Start Entry */
-#if !defined(NO_USE_SVC_STACK)
+#if !defined(NO_USE_SEPARATE_STACK)
 	void*		init_sp;			/* Initialize SP (SVC) */
 	MemSize_t	stack_size;			/* Stack Size (SVC) */
 #endif

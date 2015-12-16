@@ -24,8 +24,10 @@
 #define	irq_save()			({ uint32_t _reg; __asm__ volatile ("mrs %0, cpsr;cpsid i":"=r"(_reg)::"memory"); _reg;})
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) __asm__ volatile ("cpsie i":::"memory"); } while(0)
 
-#define	STACK_ALIGN			(8)
-#define	NORMAL_ALIGN		(8)
+#define	STACK_ALIGN							(8)
+#define	NORMAL_ALIGN						(8)
+#define	TASK_SVC_STACK_SIZE					(2048)
+#define	INITIAL_TASK_USR_STACK_SIZE			(1024)
 
 typedef	uint32_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint32_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */

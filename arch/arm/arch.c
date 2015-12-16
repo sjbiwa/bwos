@@ -36,7 +36,7 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 {
 	uint32_t*		ptr;
 	uint32_t*		usr_stack;
-#if !defined(NO_USE_SVC_STACK)
+#if !defined(NO_USE_SEPARATE_STACK)
 	/* SVC stack */
 	ptr = (uint32_t*)((PtrInt_t)(task->init_sp) + task->stack_size - TASK_FRAME_SIZE);
 	ptr = PRE_ALIGN_BY(ptr, STACK_ALIGN);
@@ -63,12 +63,44 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 
 void arch_init_task_create(TaskStruct* task)
 {
+	/* 初期タスクのスタック確保は sys_malloc系を使う */
+#if !defined(NO_USE_SEPARATE_STACK)
+	task->stack_size = TASK_SVC_STACK_SIZE;
+	task->init_sp = sys_malloc_align_body(task->stack_size, STACK_ALIGN);
+#endif
+	task->usr_init_sp = sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
+
+	/* ::init_spまたはusr_init_spがnullの時はシステムエラー */
+
 	arch_init_task(task, NULL);
 }
 
 int arch_task_create(TaskStruct* task, void* cre_param)
 {
 	int ret = RT_OK;
+
+	/* スタック領域の確保 */
+#if !defined(NO_USE_SEPARATE_STACK)
+	/* SVC_stack */
+	task->stack_size = TASK_SVC_STACK_SIZE;
+	/* stackをヒープから確保 */
+	task->init_sp = __sys_malloc_align(task->stack_size, STACK_ALIGN);
+	if ( !(task->init_sp) ) {
+		goto ERR_RET;
+	}
+#endif
+	/* USR stack */
+	if ( task->usr_init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
+		if ( !(task->usr_init_sp) ) {
+#if !defined(NO_USE_SEPARATE_STACK)
+			__sys_free(task->init_sp);
+#endif
+			goto ERR_RET;
+		}
+	}
+
 	arch_init_task(task, cre_param);
 
 	/* FPU(VFP)退避用領域の確保 */
@@ -81,6 +113,9 @@ int arch_task_create(TaskStruct* task, void* cre_param)
 		}
 	}
 	return ret;
+
+ERR_RET:
+	return RT_ERR;
 }
 
 void arch_task_active(TaskStruct* task, void* act_param)

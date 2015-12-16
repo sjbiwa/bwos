@@ -11,14 +11,6 @@
 
 #include "kernel.h"
 
-/* デフォルトスタックサイズ */
-#if !defined(TASK_SVC_STACK_SIZE)
-#define	TASK_SVC_STACK_SIZE					(2048)
-#endif
-#if !defined(INITIAL_TASK_USR_STACK_SIZE)
-#define	INITIAL_TASK_USR_STACK_SIZE			(1024)
-#endif
-
 CpuStruct			cpu_struct[CPU_NUM];
 
 static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
@@ -330,9 +322,10 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	}
 	task->task_attr = task_attr;
 	task->entry = entry;
-#if !defined(NO_USE_SVC_STACK)
+#if !defined(NO_USE_SEPARATE_STACK)
+	/* ダミー値の設定(不要？) */
 	task->init_sp = 0;
-	task->stack_size = TASK_SVC_STACK_SIZE; /* SVCスタックサイズ */
+	task->stack_size = 0;
 #endif
 	task->usr_init_sp = usr_init_sp;
 	task->usr_stack_size = usr_stack_size;
@@ -369,12 +362,6 @@ void task_init_task_create(void)
 						0,
 						INITIAL_TASK_USR_STACK_SIZE, /* USRスタックサイズ */
 						0);
-	/* STACK */
-#if !defined(NO_USE_SVC_STACK)
-	init_task_struct.init_sp = sys_malloc_align_body(init_task_struct.stack_size, 8);
-#endif
-	init_task_struct.usr_init_sp = sys_malloc_align_body(init_task_struct.usr_stack_size, 8);
-
 	arch_init_task_create(&init_task_struct);
 	init_task_struct.task_state = TASK_READY;
 	task_add_queue(&init_task_struct);
@@ -382,10 +369,6 @@ void task_init_task_create(void)
 
 int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 {
-#if !defined(NO_USE_SVC_STACK)
-	bool is_alloc_sp = false;
-#endif
-	bool is_alloc_usr_sp = false;
 	task_init_struct(task,
 					info->name,
 					info->task_attr,
@@ -393,26 +376,6 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 					info->usr_init_sp,
 					info->usr_stack_size,
 					info->priority);
-#if !defined(NO_USE_SVC_STACK)
-	/* SVC_stack */
-	if ( task->init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->init_sp = __sys_malloc_align(task->stack_size, STACK_ALIGN);
-		if ( !(task->init_sp) ) {
-			goto ERR_RET1;
-		}
-		is_alloc_sp = true;
-	}
-#endif
-	/* USR stack */
-	if ( task->usr_init_sp == 0 ) {
-		/* stackをヒープから確保 */
-		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
-		if ( !(task->usr_init_sp) ) {
-			goto ERR_RET2;
-		}
-		is_alloc_usr_sp = true;
-	}
 
 	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
@@ -422,9 +385,9 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 		}
 	}
 
-	/* ARCH depend create */
+	/* ARCH depend create (スタックはarch_xxxにて生成) */
 	if ( arch_task_create(task, info->cre_param) != RT_OK ) {
-		goto ERR_RET3;
+		goto ERR_RET;
 	}
 
 	if ( task->task_attr & TASK_ACT ) {
@@ -443,18 +406,10 @@ int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 	}
 	return RT_OK;
 
-ERR_RET3:
-	if ( is_alloc_usr_sp ) {
-		__sys_free(task->usr_init_sp);
+ERR_RET:
+	if ( task->tls ) {
+		__sys_free(task->tls);
 	}
-ERR_RET2:
-#if !defined(NO_USE_SVC_STACK)
-	if ( is_alloc_sp ) {
-		__sys_free(task->init_sp);
-	}
-#endif
-ERR_RET1:
-	__sys_free(task);
 	return RT_ERR;
 }
 
