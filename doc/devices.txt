@@ -1,0 +1,59 @@
+○ドライバ関連の目標
+
+・ある程度のドライバフレームワークを作る。まずは単純でよい。
+・対象ドライバは、
+  - UART
+  - SDカード
+  - VGA出力
+  - AUDIO出力
+  とする。とにかく絵と音を出したい。(デモできる)
+
+SDカードには FileSystemが必要だが、とりあえずはFreeのものを使うか？
+
+
+フレームワークに必要なもの
+・ドライバ(実際のコード)とデバイス(IOアドレス,割り込み番号など)は別に管理する。(Linux風)
+・デバイスへのクロックは get_clock(ID)を別に用意して、問い合わせるようにする。
+・Linuxのような、open/read/write/close/ioctl で統一できれば良いが、ちょっと敷居が高いか？
+　まずは、ドライバ毎に汎用性の高いAPIを定義する。
+
+UART
+  uart_drv_init()
+  uart_device_register()
+  uart_set_config()
+  sdmem_get_config()
+  uart_open()
+  uart_read()
+  uart_write()
+
+SDカード
+  sdmem_drv_init()
+  sdmem_device_register()
+  sdmem_set_config()
+  sdmem_get_config()
+  sdmem_open()
+  sdmem_read()   セクタリード
+  sdmem_write()  セクタライト
+
+VGA出力
+  video_drv_init()
+  video_device_register()
+  video_set_config()
+  video_get_config()
+
+AUDIO出力
+  audio_drv_init()
+  audio_device_register()
+  audio_set_config()
+  audio_get_config()
+  audio_read()
+  audio_write()
+
+・排他制御はどうするか？
+  各機能ごとにドライバタスクを用意する？ドライバサーバーを用意してメッセージで要求を出せば、排他できる。
+  xxx_drv_init()とxxx_device_register()はinit_tskタスクで行う？それともstartup?
+  xxx_drv_init()はstartupで行う。
+  xxx_device_register()は init_tskで行う。
+  ドライバタスクは必ずSYSモードで動かす。
+
+  ドライバタスクの実装は、ドライバ自体の上位レイヤで実装することとし、まずはドライバそのものを実装する。
