@@ -45,15 +45,29 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 
 void arch_init_task_create(TaskStruct* task)
 {
+	task->usr_init_sp = sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
+	/* ::init_spまたはusr_init_spがnullの時はシステムエラー */
+
 	arch_init_task(task, NULL);
 }
 
 int arch_task_create(TaskStruct* task, void* cre_param)
 {
 	int ret = RT_OK;
-	arch_init_task(task, cre_param);
 
+	/* USR stack */
+	if ( task->usr_init_sp == 0 ) {
+		/* stackをヒープから確保 */
+		task->usr_init_sp = __sys_malloc_align(task->usr_stack_size, STACK_ALIGN);
+		if ( !(task->usr_init_sp) ) {
+			goto ERR_RET;
+		}
+	}
+	arch_init_task(task, cre_param);
 	return ret;
+
+ERR_RET:
+	return RT_ERR;
 }
 
 void arch_task_active(TaskStruct* task, void* act_param)

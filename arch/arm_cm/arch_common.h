@@ -29,8 +29,9 @@
 #define	fpscr_set(reg)		do { __asm__ volatile ("VMSR FPSCR, %0"::"r"(reg):"memory"); } while (0)
 #define	fpscr_get()			({ uint32_t ret; __asm__ volatile ("VMRS %0, FPSCR:"=r"(ret)"::"memory"); ret;})
 
-#define	STACK_ALIGN			(8)
-#define	NORMAL_ALIGN		(8)
+#define	STACK_ALIGN					(8)
+#define	NORMAL_ALIGN				(8)
+#define	INITIAL_TASK_USR_STACK_SIZE	(1024)
 
 typedef	uint32_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint32_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */
