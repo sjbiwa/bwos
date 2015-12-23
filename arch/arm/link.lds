@@ -28,24 +28,19 @@ SECTIONS
 		*(.data .data.* .gnu.linkonce.d.*)
 		SORT(CONSTRUCTORS)
 		*(.data1)
+	    . = ALIGN(4);
 		__data_end = .;
 	}
-	_edata = .;
-	PROVIDE (edata = .);
 
-	__bss_start = .;
-	__bss_start__ = .;
-	.bss            :
+	.bss ALIGN(4) :
 	{
+		__bss_start = .;
 		*(.dynbss)
 		*(.bss .bss.* .gnu.linkonce.b.*)
 		*(COMMON)
-		. = ALIGN(. != 0 ? 32 / 8 : 1);
+		__bss_end = . ;
+		. = ALIGN(4);
 	}
-	__bss_end = . ;
-	__bss_end__ = . ;
-	. = ALIGN(32 / 8);
-	. = ALIGN(32 / 8);
 
 	.stack ALIGN(0x1000) :
 	{

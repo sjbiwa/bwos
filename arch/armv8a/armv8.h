@@ -3,14 +3,14 @@
  */
 
 /*
- * arm.h
+ * armv8.h
  *
  *  Created on: 2015/12/13
  *      Author: biwa
  */
 
-#ifndef ARM_H_
-#define ARM_H_
+#ifndef ARMV8_H_
+#define ARMV8_H_
 
 /* DAIF register */
 #define	FLAG_D			(0x1u<<9)
@@ -72,7 +72,7 @@
 
 /* コアID取得 */
 #if USE_SMP==1
-#define	CPUID_get()		(MPIDR_get() & 0xff)
+#define	CPUID_get()		(MPIDR_EL1_get() & 0xff)
 #else
 #define	CPUID_get()		(0)
 #endif
@@ -81,11 +81,11 @@
 
 /* コアID取得 */
 #if USE_SMP==1
-#define	CPUID_get(reg)		MPIDR_get(reg);and reg, #0xff
+#define	CPUID_get(reg)		MPIDR_EL1_get(reg);and reg, #0xff
 #else
 #define	CPUID_get(reg)		mov reg, #0
 #endif
 
 #endif
 
-#endif /* ARM_H_ */
+#endif /* ARMV8_H_ */

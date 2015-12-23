@@ -3,20 +3,20 @@
  */
 
 /*
- * arch_common.h
+ * archv8_common.h
  *
  *  Created on: 2015/12/13
  *      Author: biwa
  */
 
-#ifndef ARCH_COMMON_H_
-#define ARCH_COMMON_H_
+#ifndef ARCHV8_COMMON_H_
+#define ARCHV8_COMMON_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include "my_board.h"
-#include "arm.h"
+#include "armv8.h"
 #include "armv8reg.h"
 
 #define	irq_enable()		DAIFClr_seti(0x4)
@@ -35,4 +35,4 @@ extern bool arch_can_dispatch(void);
 extern TimeSpec get_tick_count(void);
 extern void update_first_timeout(TimeSpec tmout);
 
-#endif /* ARCH_COMMON_H_ */
+#endif /* ARCHV8_COMMON_H_ */

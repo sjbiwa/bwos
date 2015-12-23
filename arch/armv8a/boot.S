@@ -1,31 +1,37 @@
+/*
+ * Copyright (C) 2015 sjbiwa All rights reserved.
+ */
+#include "armv8.h"
 #include "armv8reg.h"
 #include "gicv3reg.h"
 
-	.section .startup
-	.align	2
-	.global	_startup
-	.type	_startup, %function
-_startup:
-	/* check core number */
-	MPIDR_EL1_get(x0)
-	and		x0, x0, #0x0f
-	cmp		x0, xzr
-	bne		end_loop
+#define	STACK_INIT(exc_level,sp_base,cpuid)		ldr	x0, =(sp_base); \
+												sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
+												msr SP_##cpu_mode, x0
 
+	.section .vector
+	.align	2
+	.global	_start
+	.type	_start, %function
+_start:
 	/* disable interrupt */
 	DAIFSet_seti(0xf)
-
 	/* SP is ELx */
 	SPSel_seti(1)
+	/* get core number */
+	CPUID_get(x2)
 
-	/* initialize stack */
-	adr		x0, stack_el3_base
-	mov		sp, x0
+#if defined(BOOT_FROM_EL3)
 
+	/* initialize EL3 stack */
+	STACK_INIT(EL3,stack_el3_base,x2)
+
+	/* EL2/EL3 vector */
 	adr		x0, _exc_vector
 	VBAR_EL3_set(x0)
 	VBAR_EL2_set(x0)
 
+	/* SCR_EL3 / HCR_EL2 */
 	ldr		x0, =0x00000400
 	SCR_EL3_set(x0)
 	ldr		x0, =0x80000000
@@ -36,6 +42,10 @@ _startup:
 	/* timer */
 	ldr		x0, =24000000
 	CNTFRQ_EL0_set(x0)
+
+	/* CORE==0のみの処理 */
+	cmp		x0, #0
+	bne		end_gic_setup
 
 	/* init GIC */
 	mov		x0, #0x0000000f
@@ -57,6 +67,7 @@ _startup:
 	mov		x0, #0x3
 	ICC_IGRPEN1_EL3_get(x0)
 	/**/
+end_gic_setup:
 
 	adr		x0, entry_el1
 	ELR_EL3_set(x0)
@@ -64,18 +75,16 @@ _startup:
 	SPSR_EL3_set(x0)
 	/* goto EL1 entry_el1 */
 	eret
+#endif
 
 /***************************************/
 /* EL1での起動エントリ                 */
 /***************************************/
 entry_el1:
-	/* disable interrupt */
-	DAIFSet_seti(0xf)
-	/* SP is ELx */
-	SPSel_seti(1)
-	/* EL1 stack */
-	adr		x0, stack_base
-	mov		sp, x0
+	/* DAIF disable / SPsel==1 / X2 is CORE-ID */
+	/* initialize EL1 stack */
+	STACK_INIT(EL1,stack_el1_base,x2)
+
 	/* exception vector base */
 	adr		x0, _exc_vector
 	VBAR_EL1_set(x0)
@@ -83,28 +92,74 @@ entry_el1:
 	ldr		x0, =0x00300000
 	CPACR_EL1_set(x0)
 
-	/* BSS clear */
-	ldr		x1, =__bss_start
-	ldr		x2, =__bss_end
-bss_cp:
-	cmp		x1, x2
-	bhs		end_bss
-	str		xzr, [x1], #8
-	b		bss_cp
+	/* CORE==0のみの処理 */
+	cmp		x0, #0
+	//bne		_bss_done
+	bne		_loop_
 
-end_bss:
-	bl		main
-end_loop:
+	/* Copy from idata to data */
+	ldr		x0, =__idata_start
+	ldr		x1, =__data_start
+	ldr		x2, =__data_end
+	cmp		x0, x1
+	beq		_data_done
+_data_loop:
+	ldr		x3, [x0], #8
+	str		x3, [x1], #8
+	cmp		x1, x2
+	blo		_data_loop
+_data_done:
+
+	/* bss clear */
+	ldr		x0, =__bss_start
+	ldr		x1, =__bss_end
+	mov		x2, #0
+_bss_loop:
+	cmp		x0, x1
+	bhs		_bss_done
+	str		x2, [x0], #8
+	b		_bss_loop
+_bss_done:
+
+	bl		startup
+
+_loop_:
 	wfe
-	b		end_loop
+	b		_loop_
+
 
 .macro VECTOR_ENTRY func
 	.align	7
+	stp		 x0,  x1, [sp, #-16]!
+	stp		 x2,  x3, [sp, #-16]!
+	stp		 x4,  x5, [sp, #-16]!
+	stp		 x6,  x7, [sp, #-16]!
+	stp		 x8,  x9, [sp, #-16]!
+	stp		x10, x11, [sp, #-16]!
+	stp		x12, x13, [sp, #-16]!
+	stp		x14, x15, [sp, #-16]!
+	stp		x16, x17, [sp, #-16]!
+	stp		x18, x30, [sp, #-16]!
+	bl		\func
+	ldp		x18, x30, [sp], #16
+	ldp		x16, x17, [sp], #16
+	ldp		x14, x15, [sp], #16
+	ldp		x12, x13, [sp], #16
+	ldp		x10, x11, [sp], #16
+	ldp		 x8,  x9, [sp], #16
+	ldp		 x6,  x7, [sp], #16
+	ldp		 x4,  x5, [sp], #16
+	ldp		 x2,  x3, [sp], #16
+	ldp		 x0,  x1, [sp], #16
+	eret
+.endm
+
+.macro VECTOR_ENTRY_F func
+	.align	7
 	b		\func
 .endm
-	.section .vector
-	.global	_exc_vector
-	.type	_exc_vector, %function
+
+	.section .text
 _exc_vector:
 	.align	11
 	/**/
@@ -129,66 +184,22 @@ _exc_vector:
 	VECTOR_ENTRY	serr_handler
 
 irq_handler:
-	stp		 x0,  x1, [sp, #-16]!
-	stp		 x2,  x3, [sp, #-16]!
-	stp		 x4,  x5, [sp, #-16]!
-	stp		 x6,  x7, [sp, #-16]!
-	stp		 x8,  x9, [sp, #-16]!
-	stp		x10, x11, [sp, #-16]!
-	stp		x12, x13, [sp, #-16]!
-	stp		x14, x15, [sp, #-16]!
-	stp		x16, x17, [sp, #-16]!
-	stp		x18, x30, [sp, #-16]!
-
 	bl		c_irq_handler
-
-	ldp		x18, x30, [sp], #16
-	ldp		x16, x17, [sp], #16
-	ldp		x14, x15, [sp], #16
-	ldp		x12, x13, [sp], #16
-	ldp		x10, x11, [sp], #16
-	ldp		 x8,  x9, [sp], #16
-	ldp		 x6,  x7, [sp], #16
-	ldp		 x4,  x5, [sp], #16
-	ldp		 x2,  x3, [sp], #16
-	ldp		 x0,  x1, [sp], #16
-	eret
+	ret
 
 sync_handler:
 fiq_handler:
 serr_handler:
 exc_handler:
-	stp		 x0,  x1, [sp, #-16]!
-	stp		 x2,  x3, [sp, #-16]!
-	stp		 x4,  x5, [sp, #-16]!
-	stp		 x6,  x7, [sp, #-16]!
-	stp		 x8,  x9, [sp, #-16]!
-	stp		x10, x11, [sp, #-16]!
-	stp		x12, x13, [sp, #-16]!
-	stp		x14, x15, [sp, #-16]!
-	stp		x16, x17, [sp, #-16]!
-	stp		x18, x30, [sp, #-16]!
-
 	bl		c_exc_handler
-
-	ldp		x18, x30, [sp], #16
-	ldp		x16, x17, [sp], #16
-	ldp		x14, x15, [sp], #16
-	ldp		x12, x13, [sp], #16
-	ldp		x10, x11, [sp], #16
-	ldp		 x8,  x9, [sp], #16
-	ldp		 x6,  x7, [sp], #16
-	ldp		 x4,  x5, [sp], #16
-	ldp		 x2,  x3, [sp], #16
-	ldp		 x0,  x1, [sp], #16
-	eret
+	ret
 
 	.section .stack
-	.balign 16
-stack_bt:
-	.space	65536
-stack_base:
-	.balign 16
-stack_el3_bt:
-	.space	65536
+
+	.balign	16
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
+stack_el1_base:
+
+	.balign	16
+	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_el3_base:
