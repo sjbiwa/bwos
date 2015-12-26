@@ -25,8 +25,8 @@
 #define	irq_save()			({ uint32_t _reg; _reg = DAIF_get(); DAIFSet_seti(0x4); _reg;})
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) DAIFClr_seti(0x4); } while(0)
 
-#define	STACK_ALIGN			(8)
-#define	NORMAL_ALIGN		(8)
+#define	STACK_ALIGN			(16)
+#define	NORMAL_ALIGN		(16)
 
 typedef	uint64_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint64_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */

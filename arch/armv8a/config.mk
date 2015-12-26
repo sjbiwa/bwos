@@ -18,8 +18,8 @@ LD = $(TOOL_PREFIX)gcc
 OBJCOPY = $(TOOL_PREFIX)objcopy
 RM = rm
 
-A_SRCS += boot.S
-C_SRCS += gicv3.c
+A_SRCS += boot.S handler.S arch_api.S
+C_SRCS += api_table.c arch.c idle.c gicv3.c
 
 LDSCRIPT = $(ARCHDIR)/link.lds
 
