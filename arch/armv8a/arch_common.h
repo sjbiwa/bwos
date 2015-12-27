@@ -27,6 +27,8 @@
 
 #define	STACK_ALIGN			(16)
 #define	NORMAL_ALIGN		(16)
+#define	TASK_SVC_STACK_SIZE					(2048)
+#define	INITIAL_TASK_USR_STACK_SIZE			(1024)
 
 typedef	uint64_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint64_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */

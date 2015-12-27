@@ -5,8 +5,7 @@
 /*
 **
 */
-#include "arm.h"
-#include "cp15reg.h"
+#include "armv8.h"
 #include "api_no.h"
 
 /* OSAPI定義用マクロ */

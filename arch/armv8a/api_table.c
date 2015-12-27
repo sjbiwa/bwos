@@ -10,7 +10,6 @@
  */
 #include "kernel.h"
 #include "api_no.h"
-#include "api_caller_callee.h"
 
 void* svc_entry_table[] = {
 		[TASK_CREATE_APINO] =				(void*)__task_create,

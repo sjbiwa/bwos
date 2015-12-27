@@ -5,6 +5,12 @@
 #include "armv8reg.h"
 #include "gicv3reg.h"
 
+#define	STACK_INIT(exc_level,sp_base,cpuid)		ldr	x0, =(sp_base); \
+												sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
+												msr SP_##exc_level, x0
+#define	IRQLEVEL_inc(a)
+#define	IRQLEVEL_dec(a)
+
 .macro IRQ_VECTOR_ENTRY func
 	.align	7
 	stp		x18, x30, [sp, #-16]!
@@ -49,25 +55,25 @@
 _exc_vector:
 	.align	11
 	/**/
-	VECTOR_ENTRY		sync_handler
+	VECTOR_ENTRY_F		sync_handler
 	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY		fiq_handler
-	VECTOR_ENTRY		serr_handler
+	VECTOR_ENTRY_F		fiq_handler
+	VECTOR_ENTRY_F		serr_handler
 	/**/
-	VECTOR_ENTRY		sync_handler
+	VECTOR_ENTRY_F		sync_handler
 	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY		fiq_handler
-	VECTOR_ENTRY		serr_handler
+	VECTOR_ENTRY_F		fiq_handler
+	VECTOR_ENTRY_F		serr_handler
 	/**/
-	VECTOR_ENTRY		sync_handler
+	VECTOR_ENTRY_F		sync_handler
 	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY		fiq_handler
-	VECTOR_ENTRY		serr_handler
+	VECTOR_ENTRY_F		fiq_handler
+	VECTOR_ENTRY_F		serr_handler
 	/**/
-	VECTOR_ENTRY		sync_handler
+	VECTOR_ENTRY_F		sync_handler
 	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY		fiq_handler
-	VECTOR_ENTRY		serr_handler
+	VECTOR_ENTRY_F		fiq_handler
+	VECTOR_ENTRY_F		serr_handler
 
 irq_handler:
 	/* IRQネスト値更新 */
@@ -78,13 +84,13 @@ irq_handler:
 enter_from_task:
 	CPACR_EL1_get(x0)
 	CPACR_EL1_set(xzr)
-	sub		sp, #16
+	sub		sp, sp, #16
 	str		x0, [sp, #0]
 	mov		x0, sp
 	CPUID_get(x2)
 	/* IRQスタックに切り替え/SYSTEMスタック保存 */
 	STACK_INIT(EL1,stack_irq_base,x2)
-	sub		sp, #16
+	sub		sp, sp, #16
 	str		x0, [sp, #0]
 enter_from_handler:
 enter_op_done:
@@ -96,7 +102,8 @@ enter_op_done:
 	cmp		w0, #0
 	bne		ret_to_handler
 ret_to_task:
-	ldr		sp, [sp, #0]
+	ldr		x0, [sp, #0]
+	mov		sp, x0
 
 	/* 遅延ディスパッチチェック */
 

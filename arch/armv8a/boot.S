@@ -7,7 +7,7 @@
 
 #define	STACK_INIT(exc_level,sp_base,cpuid)		ldr	x0, =(sp_base); \
 												sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
-												msr SP_##cpu_mode, x0
+												msr SP_##exc_level, x0
 
 	.section .vector
 	.align	2

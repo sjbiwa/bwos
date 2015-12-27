@@ -18,6 +18,9 @@
 #define	FLAG_I			(0x1u<<7)
 #define	FLAG_F			(0x1u<<6)
 
+#define	MODE_SYS		(0x05u)
+#define	MODE_USR		(0x00u)
+
 /* スタックサイズ */
 #define	EXCEPTION_STACK_SIZE_SHIFT		10
 #define	IDLE_TASK_STACK_SIZE_SHIFT		10
@@ -41,13 +44,13 @@
 #define	TASK_FRAME_LR		(37)		/* タスク情報退避エリアのLR */
 
 /* TaskStruct上の位置(TaskStructの構造に依存) */
-#define	SAVE_SP				()		/* タスク構造体内にあるsave_spのオフセット */
-#define	ARCH_TLS			()	/* ARCH固有のタスク情報(今はVFPレジスタ退避用アドレス)の位置 */
-#define	SAVE_VFP			()	/* 上と同じ */
+#define	SAVE_SP				(16)		/* タスク構造体内にあるsave_spのオフセット */
+#define	ARCH_TLS			(24)		/* ARCH固有のタスク情報(今はVFPレジスタ退避用アドレス)の位置 */
+#define	SAVE_VFP			(24)		/* 上と同じ */
 /* CpuStruct上の位置(TaskStructの構造に依存) */
-#define	CPUSTRUCT_CTASK		()		/* _ctaskのオフセット */
-#define	CPUSTRUCT_NTASK		()		/* _ntaskのオフセット */
-#define	CPUSTRUCT_LOCK		()		/* spinlockのオフセット */
+#define	CPUSTRUCT_CTASK		(0)			/* _ctaskのオフセット */
+#define	CPUSTRUCT_NTASK		(8)			/* _ntaskのオフセット */
+#define	CPUSTRUCT_LOCK		(16)		/* spinlockのオフセット */
 
 #ifndef __ASM__
 
@@ -63,17 +66,12 @@
 #define	order_barrier()		__dmb()
 #define	optimize_barrier()	__asm__ volatile ("":::"memory")
 
-/* VFPレジスタアクセス */
-#define FPSCR_get()     ({uint32_t _reg_;__asm__ volatile ("vmrs %0,FPSCR":"=r"(_reg_)::"memory");_reg_;})
-#define FPSCR_set(reg)  do {__asm__ volatile ("vmsr FPSCR,%0"::"r"(reg):"memory");} while (0)
-#define FPEXC_get()     ({uint32_t _reg_;__asm__ volatile ("vmrs %0,FPEXC":"=r"(_reg_)::"memory");_reg_;})
-#define FPEXC_set(reg)  do {__asm__ volatile ("vmsr FPEXC,%0"::"r"(reg):"memory");} while (0)
 
 /* コアID取得 */
 #if USE_SMP==1
-#define	CPUID_get()		(MPIDR_EL1_get() & 0xff)
+#define	CPUID_get()			(MPIDR_EL1_get() & 0xff)
 #else
-#define	CPUID_get()		(0)
+#define	CPUID_get()			(0)
 #endif
 
 #else /* __ASM__ */
