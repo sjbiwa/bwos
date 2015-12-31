@@ -5,9 +5,10 @@
 #include "armv8reg.h"
 #include "gicv3reg.h"
 
-#define	STACK_INIT(exc_level,sp_base,cpuid)		ldr	x0, =(sp_base); \
-												sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
-												msr SP_##exc_level, x0
+#define	STACK_INIT(sp_base,cpuid)		ldr	x0, =(sp_base); \
+										sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
+										mov sp, x0
+#define	LED_ON(v)						ldr x8, =0x1C010008; mov w9, ##v; str w9, [x8]
 
 	.section .vector
 	.align	2
@@ -22,9 +23,8 @@ _start:
 	CPUID_get(x2)
 
 #if defined(BOOT_FROM_EL3)
-
 	/* initialize EL3 stack */
-	STACK_INIT(EL3,stack_el3_base,x2)
+	STACK_INIT(stack_el3_base,x2)
 
 	/* EL2/EL3 vector */
 	adr		x0, _exc_vector
@@ -44,7 +44,7 @@ _start:
 	CNTFRQ_EL0_set(x0)
 
 	/* CORE==0のみの処理 */
-	cmp		x0, #0
+	cmp		x2, #0
 	bne		end_gic_setup
 
 	/* init GIC */
@@ -59,8 +59,6 @@ _start:
 	ICC_SRE_EL2_set(x0)
 	SCR_EL3_set(x1)
 	isb
-	mov		x0, #0x00000007
-	ICC_SRE_EL1_set(x0)
 
 	mov		x0, #0x0
 	ICC_CTLR_EL3_set(x0)
@@ -83,7 +81,7 @@ end_gic_setup:
 entry_el1:
 	/* DAIF disable / SPsel==1 / X2 is CORE-ID */
 	/* initialize EL1 stack */
-	STACK_INIT(EL1,stack_el1_base,x2)
+	STACK_INIT(stack_el1_base,x2)
 
 	/* exception vector base */
 	adr		x0, _exc_vector
@@ -93,7 +91,7 @@ entry_el1:
 	CPACR_EL1_set(x0)
 
 	/* CORE==0のみの処理 */
-	cmp		x0, #0
+	cmp		x2, #0
 	//bne		_bss_done
 	bne		_loop_
 

@@ -149,6 +149,7 @@ void arch_system_preinit(uint32_t cpuid)
 		for (int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
 			cpu_struct_pointer[cpuid] = &cpu_struct[cpuid];
 		}
+		debug_print_init();
 	}
 
 	/* 割り込みコントローラ初期化 */
@@ -160,6 +161,7 @@ void arch_register_st_memory()
 	/* 起動時メモリ登録 */
 	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
 }
+
 arch_register_normal_memory(void)
 {
 }
@@ -203,5 +205,11 @@ void raise(void)
 	tprintf("0 divided\n");
 	/* ０番地にアクセスして例外を発生させる */
 	uint32_t value = *((volatile uint32_t*)0);
+	for (;;);
+}
+
+void c_exc_handler(void)
+{
+	tprintf("exception\n");
 	for (;;);
 }

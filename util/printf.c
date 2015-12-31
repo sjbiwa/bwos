@@ -248,7 +248,6 @@ static int printf_mutex;
 void lprintf_init(void)
 {
 	printf_mutex = mutex_create();
-	debug_print_init();
 }
 
 int tprintf(char* fmt, ...)

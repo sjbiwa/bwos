@@ -64,3 +64,9 @@ void debug_print_init(void)
 	iowrite32(UART_BASE+UARTLCR_H, 0x70);
 	iowrite32(UART_BASE+UARTCR, 0x301);
 }
+
+void led_on(uint32_t led)
+{
+	iowrite32(SYSTEM_BASE+0x0008,  led);
+}
+

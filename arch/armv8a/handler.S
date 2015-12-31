@@ -5,13 +5,13 @@
 #include "armv8reg.h"
 #include "gicv3reg.h"
 
-#define	STACK_INIT(exc_level,sp_base,cpuid)		ldr	x0, =(sp_base); \
-												sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
-												msr SP_##exc_level, x0
+#define	STACK_INIT(sp_base,cpuid)		ldr	x0, =(sp_base); \
+										sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
+										mov sp, x0
 #define	IRQLEVEL_inc(a)
 #define	IRQLEVEL_dec(a)
 
-.macro IRQ_VECTOR_ENTRY func
+.macro VECTOR_ENTRY func
 	.align	7
 	stp		x18, x30, [sp, #-16]!
 	stp		x16, x17, [sp, #-16]!
@@ -23,16 +23,16 @@
 	stp		 x4,  x5, [sp, #-16]!
 	stp		 x2,  x3, [sp, #-16]!
 	stp		 x0,  x1, [sp, #-16]!
-	ELR_EL1_get(x0)
-	SPSR_EL1_get(x1)
-	stp		 x0,  x1, [sp, #-16]!
+	ELR_EL1_get(x8)
+	SPSR_EL1_get(x9)
+	stp		 x8,  x9, [sp, #-16]!
 	b		\func
 .endm
 
 .macro	VECTOR_RETURN
-	ldp		 x0,  x1, [sp], #16
-	ELR_EL1_set(x0)
-	SPSR_EL1_set(x1)
+	ldp		 x8,  x9, [sp], #16
+	ELR_EL1_set(x8)
+	SPSR_EL1_set(x9)
 	ldp		 x0,  x1, [sp], #16
 	ldp		 x2,  x3, [sp], #16
 	ldp		 x4,  x5, [sp], #16
@@ -52,32 +52,41 @@
 .endm
 
 	.section .text
+	.global	_exc_vector
+	.type	_exc_vector, %function
 _exc_vector:
 	.align	11
-	/**/
-	VECTOR_ENTRY_F		sync_handler
-	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY_F		fiq_handler
-	VECTOR_ENTRY_F		serr_handler
-	/**/
-	VECTOR_ENTRY_F		sync_handler
-	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY_F		fiq_handler
-	VECTOR_ENTRY_F		serr_handler
-	/**/
-	VECTOR_ENTRY_F		sync_handler
-	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY_F		fiq_handler
-	VECTOR_ENTRY_F		serr_handler
-	/**/
-	VECTOR_ENTRY_F		sync_handler
-	IRQ_VECTOR_ENTRY	irq_handler
-	VECTOR_ENTRY_F		fiq_handler
-	VECTOR_ENTRY_F		serr_handler
+	/* from EL1 with SP_EL0 (invalid) */
+	VECTOR_ENTRY_F		invalid_handler
+	VECTOR_ENTRY_F		invalid_handler
+	VECTOR_ENTRY_F		invalid_handler
+	VECTOR_ENTRY_F		invalid_handler
+	/* from EL1 with SP_EL1 */
+	VECTOR_ENTRY		el1_sync_handler
+	VECTOR_ENTRY		el1_irq_handler
+	VECTOR_ENTRY		el1_fiq_handler
+	VECTOR_ENTRY		el1_serr_handler
+	/* from EL0 */
+	VECTOR_ENTRY		el0_sync_handler
+	VECTOR_ENTRY		el0_irq_handler
+	VECTOR_ENTRY		el0_fiq_handler
+	VECTOR_ENTRY		el0_serr_handler
+	/* from AArch32 (invalid) */
+	VECTOR_ENTRY_F		invalid_handler
+	VECTOR_ENTRY_F		invalid_handler
+	VECTOR_ENTRY_F		invalid_handler
+	VECTOR_ENTRY_F		invalid_handler
 
-irq_handler:
+el0_irq_handler:
+el1_irq_handler:
 	/* IRQネスト値更新 */
-	IRQLEVEL_inc(w0)
+	CPUID_get(x0)
+	ldr		x1, =_irq_level
+	add		x1, x1, x0, LSL #3
+	ldr		w0, [x1]
+	add		w0, w0, #1
+	str		w0, [x1]
+	/* ネスト値==1(first-in)? */
 	cmp		w0, #1
 	bne		enter_from_handler
 
@@ -89,39 +98,72 @@ enter_from_task:
 	mov		x0, sp
 	CPUID_get(x2)
 	/* IRQスタックに切り替え/SYSTEMスタック保存 */
-	STACK_INIT(EL1,stack_irq_base,x2)
+	STACK_INIT(stack_irq_base,x2)
 	sub		sp, sp, #16
 	str		x0, [sp, #0]
 enter_from_handler:
 enter_op_done:
 
-	bl		c_irq_handler
+	bl		c_handler
 
 	/* IRQネスト値更新 */
-	IRQLEVEL_dec(w0)
+	CPUID_get(x0)
+	ldr		x1, =_irq_level
+	add		x1, x1, x0, LSL #3
+	ldr		w0, [x1]
+	sub		w0, w0, #1
+	str		w0, [x1]
+
+	/* ネスト値==0(return to task)? */
 	cmp		w0, #0
 	bne		ret_to_handler
 ret_to_task:
 	ldr		x0, [sp, #0]
 	mov		sp, x0
-
-	/* 遅延ディスパッチチェック */
-
-	/* IF 要dispatch? */
-	beq		delayed_dispatch
+	b		_dispatch_irq
 
 ret_to_handler:
+	b		_nodispatch_irq
+
+
+el0_sync_handler:
+el1_sync_handler:
+	ESR_EL1_get(x8)
+	and		w9, w8, #0xFC000000
+	lsl		w9, w9, #26
+	cmp		w9, #0x25
+	bne		invalid_handler /* check SVC? */
+svc_handler:
+	/* X0-X7までは引数なので使用しないこと */
+	/* x8:ESR_EL1 */
+
+	/* 呼び出し時のDAIFを継承する */
+	SPSR_EL1_get(x9)
+	lsr		w9, w9, #6
+	and		w9, w9, #0xf
+	DAIF_set(x9)
+
+	/* ベクタエントリ取得 */
+	and		x9, x8, #0xffff
+	lsl		x9, x9, #3
+	ldr		x10, =svc_entry_table
+	ldr		x10, [x10, x9]
+	blr		x10
+
+	/* X0をスタック上のX0に格納 */
+	str		x0, [sp, #4*8]
+
 	VECTOR_RETURN
 
-delayed_dispatch:
-	/* 遅延ディスパッチ処理 */
 
-sync_handler:
-fiq_handler:
-serr_handler:
-exc_handler:
+el0_fiq_handler:
+el0_serr_handler:
+el1_fiq_handler:
+el1_serr_handler:
+invalid_handler:
 	bl		c_exc_handler
 	ret
+
 
 	.section .stack
 

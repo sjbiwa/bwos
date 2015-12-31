@@ -14,14 +14,6 @@
 
 static volatile uint8_t cpu_boot_sync_flag[CPU_NUM];
 
-static volatile uint32_t value;
-static void wait_loop()
-{
-	for (int ix=0; ix < 100000; ix++) {
-		value = ioread32(0x01C25C00+0x1a4);
-	}
-}
-
 static void boot_each_core(uint32_t cpuid)
 {
 	schedule(&cpu_struct[cpuid]);

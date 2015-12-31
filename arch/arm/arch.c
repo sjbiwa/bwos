@@ -135,6 +135,7 @@ void arch_system_preinit(uint32_t cpuid)
 		for (int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
 			cpu_struct_pointer[cpuid] = &cpu_struct[cpuid];
 		}
+		debug_print_init();
 	}
 
 	tprintf("CPU= = %d\n", CPUID_get());
