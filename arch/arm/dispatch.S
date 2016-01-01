@@ -112,6 +112,7 @@ _restore_context:
 	ldr		r5, [r4, #CPUSTRUCT_NTASK] 	/* r0 <- ntask */
 	str		r5, [r4, #CPUSTRUCT_CTASK]	/* r0 -> ctask */
 #if USE_SMP==1
+	add		r0, r4, #CPUSTRUCT_LOCK
 	bl		spin_unlock
 #endif
 	mov		lr, r5

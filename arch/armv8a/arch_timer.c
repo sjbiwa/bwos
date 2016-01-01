@@ -36,7 +36,6 @@ TimeSpec get_tick_count(void)
 /* 最短のタイムアウト時間通知 */
 void update_first_timeout(TimeSpec tmout)
 {
-	/* tmoutをそのまま設定してみる */
 	CNTP_CVAL_EL0_set(conv_time_to_reg(tmout));
 }
 
@@ -44,7 +43,6 @@ void arch_timer_init(uint32_t cpuid)
 {
 	/* timer init */
 	CNTP_CTL_EL0_set(0x00000000);
-	CNTP_TVAL_EL0_set(CNTFRQ_VALUE);
 	/* 64bit最大値を設定してタイムアウト割り込みが発生しないようにする */
 	CNTP_CVAL_EL0_set(0xffffffffffffffffLL);
 	CNTP_CTL_EL0_set(0x00000001);

@@ -127,6 +127,12 @@ _loop_:
 
 	.section .stack
 
+	.globl	stack_idle
+
+	.balign 16
+	.space	IDLE_TASK_STACK_SIZE * CPU_NUM
+stack_idle:
+
 	.balign	16
 	.space	EXCEPTION_STACK_SIZE * CPU_NUM
 stack_el1_base:

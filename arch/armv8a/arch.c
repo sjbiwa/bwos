@@ -81,6 +81,7 @@ void arch_init_task_create(TaskStruct* task)
 	}
 	task->init_sp = sys_malloc_align_body(task->stack_size, STACK_ALIGN);
 
+	tprintf("SP:%08X USP:%08X\n", (uint32_t)task->init_sp, (uint32_t)task->usr_init_sp);
 	arch_init_task(task, NULL);
 }
 
@@ -212,4 +213,41 @@ void c_exc_handler(void)
 {
 	tprintf("exception\n");
 	for (;;);
+}
+
+#define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
+#define	lword(v)		((uint32_t)(v))
+
+/*
+**  0: X19-X29/X29
+** 12:ELR/SPSR
+** 14:X0-X18/X30 33
+*/
+void general_exception_handler(uint64_t* ptr)
+{
+	tprintf("general exception\n");
+	tprintf(" X0:%08X%08X  X1:%08X%08X  X2:%08X%08X\n", hword(ptr[14]),lword(ptr[14]), hword(ptr[15]),lword(ptr[15]), hword(ptr[16]),lword(ptr[16]));
+	tprintf(" X3:%08X%08X  X4:%08X%08X  X5:%08X%08X\n", hword(ptr[17]),lword(ptr[17]), hword(ptr[18]),lword(ptr[18]), hword(ptr[19]),lword(ptr[19]));
+	tprintf(" X6:%08X%08X  X7:%08X%08X  X8:%08X%08X\n", hword(ptr[20]),lword(ptr[20]), hword(ptr[21]),lword(ptr[21]), hword(ptr[22]),lword(ptr[22]));
+	tprintf(" X9:%08X%08X X10:%08X%08X X11:%08X%08X\n", hword(ptr[23]),lword(ptr[23]), hword(ptr[24]),lword(ptr[24]), hword(ptr[25]),lword(ptr[25]));
+	tprintf("X12:%08X%08X X13:%08X%08X X14:%08X%08X\n", hword(ptr[26]),lword(ptr[26]), hword(ptr[27]),lword(ptr[27]), hword(ptr[28]),lword(ptr[28]));
+	tprintf("X15:%08X%08X X16:%08X%08X X17:%08X%08X\n", hword(ptr[29]),lword(ptr[29]), hword(ptr[30]),lword(ptr[30]), hword(ptr[31]),lword(ptr[31]));
+	tprintf("X18:%08X%08X X19:%08X%08X X20:%08X%08X\n", hword(ptr[32]),lword(ptr[32]), hword(ptr[0]),lword(ptr[0]), hword(ptr[1]),lword(ptr[1]));
+	tprintf("X21:%08X%08X X22:%08X%08X X23:%08X%08X\n", hword(ptr[2]),lword(ptr[2]), hword(ptr[3]),lword(ptr[3]), hword(ptr[4]),lword(ptr[4]));
+	tprintf("X24:%08X%08X X25:%08X%08X X26:%08X%08X\n", hword(ptr[5]),lword(ptr[5]), hword(ptr[6]),lword(ptr[6]), hword(ptr[7]),lword(ptr[7]));
+	tprintf("X27:%08X%08X X28:%08X%08X X29:%08X%08X\n", hword(ptr[8]),lword(ptr[8]), hword(ptr[9]),lword(ptr[9]), hword(ptr[10]),lword(ptr[10]));
+	tprintf("X30:%08X%08X\n", hword(ptr[33]),lword(ptr[33]));
+	tprintf("----------------------------------------\n");
+	uint64_t far = FAR_EL1_get();
+	tprintf("ELR:%08X%08X SPSR:%08X  FAR:%08X%08X\n", hword(ptr[12]),lword(ptr[12]), lword(ptr[13]), hword(far),lword(far));
+	for (;;);
+}
+
+test_print(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
+{
+	tprintf("%08X\n", a);
+	tprintf("%08X\n", b);
+	tprintf("%08X\n", c);
+	tprintf("%08X\n", d);
+	tprintf("%08X\n", e);
 }

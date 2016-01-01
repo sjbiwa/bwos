@@ -8,8 +8,9 @@
 #define	STACK_INIT(sp_base,cpuid)		ldr	x0, =(sp_base); \
 										sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
 										mov sp, x0
-#define	IRQLEVEL_inc(a)
-#define	IRQLEVEL_dec(a)
+
+#define	LED_ON(v)						ldr x8, =0x1C010008; mov w9, ##v; str w9, [x8]
+
 
 .macro VECTOR_ENTRY func
 	.align	7
@@ -120,6 +121,11 @@ enter_op_done:
 ret_to_task:
 	ldr		x0, [sp, #0]
 	mov		sp, x0
+	/* CPACRをとりあえず復帰 */
+	ldr		x1, [sp, #0]
+	CPACR_EL1_set(x1)
+	add		sp, sp, #16
+
 	b		_dispatch_irq
 
 ret_to_handler:
@@ -130,9 +136,9 @@ el0_sync_handler:
 el1_sync_handler:
 	ESR_EL1_get(x8)
 	and		w9, w8, #0xFC000000
-	lsl		w9, w9, #26
-	cmp		w9, #0x25
-	bne		invalid_handler /* check SVC? */
+	lsr		w9, w9, #26
+	cmp		w9, #0x15	 /* check SVC? */
+	bne		general_sync_handler
 svc_handler:
 	/* X0-X7までは引数なので使用しないこと */
 	/* x8:ESR_EL1 */
@@ -148,13 +154,24 @@ svc_handler:
 	lsl		x9, x9, #3
 	ldr		x10, =svc_entry_table
 	ldr		x10, [x10, x9]
+
 	blr		x10
 
 	/* X0をスタック上のX0に格納 */
-	str		x0, [sp, #4*8]
+	str		x0, [sp, #2*8]
 
 	VECTOR_RETURN
 
+
+general_sync_handler:
+	stp		x29, x29, [sp, #-16]!
+	stp		x27, x28, [sp, #-16]!
+	stp		x25, x26, [sp, #-16]!
+	stp		x23, x24, [sp, #-16]!
+	stp		x21, x22, [sp, #-16]!
+	stp		x19, x20, [sp, #-16]!
+	mov		x0, sp
+	bl		general_exception_handler
 
 el0_fiq_handler:
 el0_serr_handler:
@@ -166,10 +183,6 @@ invalid_handler:
 
 
 	.section .stack
-
-	.balign	16
-	.space	EXCEPTION_STACK_SIZE * CPU_NUM
-stack_el1_base:
 
 	.balign	16
 	.space	IRQ_STACK_SIZE * CPU_NUM

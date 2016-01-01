@@ -31,17 +31,17 @@
 
 
 /* タスクスタック上の位置(スタックに退避する情報に依存) */
-#define	TASK_FRAME_SIZE		(8*38)		/* タスク情報退避エリアのサイズ(スタック上) */
-#define	TASK_FRAME_CPACR	(14)		/* タスク情報退避エリアのCPACR位置 */
-#define	TASK_FRAME_X0		(18)		/* タスク情報退避エリアのX0 */
-#define	TASK_FRAME_X1		(19)		/* タスク情報退避エリアのX1 */
-#define	TASK_FRAME_X2		(20)		/* タスク情報退避エリアのX2 */
-#define	TASK_FRAME_X3		(21)		/* タスク情報退避エリアのX3 */
-#define	TASK_FRAME_PC		(16)		/* タスク情報退避エリアのPC位置 */
-#define	TASK_FRAME_PSR		(17)		/* タスク情報退避エリアのSPSR位置 */
-#define	TASK_FRAME_STUB		(2)			/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
+#define	TASK_FRAME_SIZE		(8*36)		/* タスク情報退避エリアのサイズ(スタック上) */
+#define	TASK_FRAME_CPACR	(13)		/* タスク情報退避エリアのCPACR位置 */
+#define	TASK_FRAME_X0		(16)		/* タスク情報退避エリアのX0 */
+#define	TASK_FRAME_X1		(17)		/* タスク情報退避エリアのX1 */
+#define	TASK_FRAME_X2		(18)		/* タスク情報退避エリアのX2 */
+#define	TASK_FRAME_X3		(19)		/* タスク情報退避エリアのX3 */
+#define	TASK_FRAME_PC		(14)		/* タスク情報退避エリアのPC位置 */
+#define	TASK_FRAME_PSR		(15)		/* タスク情報退避エリアのSPSR位置 */
+#define	TASK_FRAME_STUB		(11)		/* タスク情報退避エリアの割り込みハンドラスタブ位置 */
 #define	TASK_FRAME_SP_EL0	(12)		/* タスク情報退避エリアのSP_EL0 */
-#define	TASK_FRAME_LR		(37)		/* タスク情報退避エリアのLR */
+#define	TASK_FRAME_LR		(35)		/* タスク情報退避エリアのLR */
 
 /* TaskStruct上の位置(TaskStructの構造に依存) */
 #define	SAVE_SP				(16)		/* タスク構造体内にあるsave_spのオフセット */
