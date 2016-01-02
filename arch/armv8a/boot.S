@@ -86,8 +86,8 @@ entry_el1:
 	/* exception vector base */
 	adr		x0, _exc_vector
 	VBAR_EL1_set(x0)
-	/* FPU/SIMD enable */
-	ldr		x0, =0x00300000
+	/* FPU/SIMD disable */
+	ldr		x0, =0x00000000
 	CPACR_EL1_set(x0)
 
 	/* CORE==0のみの処理 */

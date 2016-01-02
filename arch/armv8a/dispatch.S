@@ -64,10 +64,36 @@ _save_and_restore:
 	stp		x21, x22, [sp, #-16]!
 	stp		x19, x20, [sp, #-16]!
 
+	/* CPACR check */
+	mov		w8, #0x00300000
+	and		w9, w9, w8
+	cmp		w8, w9
+	bne		no_vfp_save
 	/*******************/
 	/* FPUレジスタ退避 */
 	/*******************/
+	ldr		x1, [x0, #SAVE_VFP]
+	stp		 q0,  q1, [x1], #32
+	stp		 q2,  q3, [x1], #32
+	stp		 q4,  q5, [x1], #32
+	stp		 q6,  q7, [x1], #32
+	stp		 q8,  q9, [x1], #32
+	stp		q10, q11, [x1], #32
+	stp		q12, q13, [x1], #32
+	stp		q14, q15, [x1], #32
+	stp		q16, q17, [x1], #32
+	stp		q18, q19, [x1], #32
+	stp		q20, q21, [x1], #32
+	stp		q22, q23, [x1], #32
+	stp		q24, q25, [x1], #32
+	stp		q26, q27, [x1], #32
+	stp		q28, q29, [x1], #32
+	stp		q30, q31, [x1], #32
+	FPCR_get(x8)
+	FPSR_get(x9)
+	stp		x8, x9, [x1]
 
+no_vfp_save:
 	mov		x1, sp
 	str		x1, [x0,#SAVE_SP]
 
@@ -107,9 +133,36 @@ _restore_context:
 	SP_EL0_set(x8)
 	CPACR_EL1_set(x9)
 
+	/* CPACR check */
+	mov		w8, #0x00300000
+	and		w9, w9, w8
+	cmp		w8, w9
+	bne		no_vfp_restore
 	/*******************/
 	/* FPUレジスタ復帰 */
 	/*******************/
+	ldr		x1, [x0, #SAVE_VFP]
+	ldp		 q0,  q1, [x1], #32
+	ldp		 q2,  q3, [x1], #32
+	ldp		 q4,  q5, [x1], #32
+	ldp		 q6,  q7, [x1], #32
+	ldp		 q8,  q9, [x1], #32
+	ldp		q10, q11, [x1], #32
+	ldp		q12, q13, [x1], #32
+	ldp		q14, q15, [x1], #32
+	ldp		q16, q17, [x1], #32
+	ldp		q18, q19, [x1], #32
+	ldp		q20, q21, [x1], #32
+	ldp		q22, q23, [x1], #32
+	ldp		q24, q25, [x1], #32
+	ldp		q26, q27, [x1], #32
+	ldp		q28, q29, [x1], #32
+	ldp		q30, q31, [x1], #32
+	ldp		x8, x9, [x1]
+	FPCR_set(x8)
+	FPSR_set(x9)
+
+no_vfp_restore:
 
 	ret
 

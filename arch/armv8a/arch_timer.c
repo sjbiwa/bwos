@@ -7,6 +7,8 @@
 #include "gicv3reg.h"
 
 /* TickLess専用 */
+#define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
+#define	lword(v)		((uint32_t)(v))
 
 static inline uint64_t conv_time_to_reg(TimeSpec time)
 {

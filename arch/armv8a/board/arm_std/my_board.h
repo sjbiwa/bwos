@@ -28,8 +28,8 @@
 #define	CACHE_LINE_SIZE		(64)
 
 #define	CPU_CLOCK			(1000000000)	/* CPUクロック */
-#define	CNTFRQ_VALUE		(5000000000)	/* GenericTimerのクロック */
-#define	TIME_UNIT_VALUE		(5000)			/* 1TIME-UNITのクロック数 */
+#define	CNTFRQ_VALUE		(12000000)		/* GenericTimerのクロック */
+#define	TIME_UNIT_VALUE		(0x800)			/* 1TIME-UNITのクロック数 */
 
 /*** Tick管理パラメータ ***/
 typedef	uint64_t			TimeSpec;		/* OS内部での時間単位 */

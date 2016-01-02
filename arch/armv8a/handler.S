@@ -96,12 +96,12 @@ enter_from_task:
 	CPACR_EL1_set(xzr)
 	sub		sp, sp, #16
 	str		x0, [sp, #0]
-	mov		x0, sp
+	mov		x8, sp
 	CPUID_get(x2)
 	/* IRQスタックに切り替え/SYSTEMスタック保存 */
 	STACK_INIT(stack_irq_base,x2)
 	sub		sp, sp, #16
-	str		x0, [sp, #0]
+	str		x8, [sp, #0]
 enter_from_handler:
 enter_op_done:
 

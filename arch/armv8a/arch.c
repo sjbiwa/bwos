@@ -63,6 +63,32 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 	ptr[TASK_FRAME_X1] = 0;
 	ptr[TASK_FRAME_X2] = 0;
 	ptr[TASK_FRAME_X3] = 0;
+	ptr[TASK_FRAME_X4] = 4;
+	ptr[TASK_FRAME_X5] = 5;
+	ptr[TASK_FRAME_X6] = 6;
+	ptr[TASK_FRAME_X7] = 7;
+	ptr[TASK_FRAME_X8] = 8;
+	ptr[TASK_FRAME_X9] = 9;
+	ptr[TASK_FRAME_X10] = 10;
+	ptr[TASK_FRAME_X11] = 11;
+	ptr[TASK_FRAME_X12] = 12;
+	ptr[TASK_FRAME_X13] = 13;
+	ptr[TASK_FRAME_X14] = 14;
+	ptr[TASK_FRAME_X15] = 15;
+	ptr[TASK_FRAME_X16] = 16;
+	ptr[TASK_FRAME_X17] = 17;
+	ptr[TASK_FRAME_X18] = 18;
+	ptr[TASK_FRAME_X19] = 19;
+	ptr[TASK_FRAME_X20] = 20;
+	ptr[TASK_FRAME_X21] = 21;
+	ptr[TASK_FRAME_X22] = 22;
+	ptr[TASK_FRAME_X23] = 23;
+	ptr[TASK_FRAME_X24] = 24;
+	ptr[TASK_FRAME_X25] = 25;
+	ptr[TASK_FRAME_X26] = 26;
+	ptr[TASK_FRAME_X27] = 27;
+	ptr[TASK_FRAME_X28] = 28;
+	ptr[TASK_FRAME_X29] = 29;
 }
 
 void arch_init_task_create(TaskStruct* task)
@@ -81,7 +107,6 @@ void arch_init_task_create(TaskStruct* task)
 	}
 	task->init_sp = sys_malloc_align_body(task->stack_size, STACK_ALIGN);
 
-	tprintf("SP:%08X USP:%08X\n", (uint32_t)task->init_sp, (uint32_t)task->usr_init_sp);
 	arch_init_task(task, NULL);
 }
 
@@ -90,9 +115,10 @@ int arch_task_create(TaskStruct* task, void* cre_param)
 	int ret = RT_OK;
 
 	/* スタック領域の確保 */
+	task->stack_size = TASK_SVC_STACK_SIZE;
 	if ( task->task_attr & TASK_SYS ) {
 		/* SYSタスク */
-		task->stack_size = task->usr_stack_size + TASK_SVC_STACK_SIZE;
+		task->stack_size += task->usr_stack_size;
 		task->usr_init_sp = 0;
 	}
 	else {
@@ -120,6 +146,7 @@ int arch_task_create(TaskStruct* task, void* cre_param)
 		if ( !(task->arch_tls) ) {
 			ret = RT_ERR;
 		}
+		memset(task->arch_tls, 0, (32*2+2)*8);
 	}
 	return ret;
 
@@ -238,8 +265,9 @@ void general_exception_handler(uint64_t* ptr)
 	tprintf("X27:%08X%08X X28:%08X%08X X29:%08X%08X\n", hword(ptr[8]),lword(ptr[8]), hword(ptr[9]),lword(ptr[9]), hword(ptr[10]),lword(ptr[10]));
 	tprintf("X30:%08X%08X\n", hword(ptr[33]),lword(ptr[33]));
 	tprintf("----------------------------------------\n");
+	uint64_t esr = ESR_EL1_get();
 	uint64_t far = FAR_EL1_get();
-	tprintf("ELR:%08X%08X SPSR:%08X  FAR:%08X%08X\n", hword(ptr[12]),lword(ptr[12]), lword(ptr[13]), hword(far),lword(far));
+	tprintf("ELR:%08X%08X SPSR:%08X  ESR:%08X FAR:%08X%08X\n", hword(ptr[12]),lword(ptr[12]), lword(ptr[13]), lword(esr), hword(far),lword(far));
 	for (;;);
 }
 
@@ -250,4 +278,5 @@ test_print(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
 	tprintf("%08X\n", c);
 	tprintf("%08X\n", d);
 	tprintf("%08X\n", e);
+	for (;;);
 }

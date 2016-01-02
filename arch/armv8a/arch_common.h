@@ -19,8 +19,8 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
-#define	irq_enable()		DAIFClr_seti(0x4)
-#define	irq_disable()		DAIFSet_seti(0x4)
+#define	irq_enable()		DAIFClr_seti(0x2)
+#define	irq_disable()		DAIFSet_seti(0x2)
 
 #define	irq_save()			({ uint32_t _reg; _reg = DAIF_get(); DAIFSet_seti(0x4); _reg;})
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) DAIFClr_seti(0x4); } while(0)
