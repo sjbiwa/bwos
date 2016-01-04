@@ -7,13 +7,29 @@ static int		task_struct[16];
 
 static uint32_t	counter[16];
 
+void timer_handler(void* param)
+{
+	task_wakeup(task_struct[0]);
+}
+
 void task1(uint32_t arg0, uint32_t arg1)
 {
+	TimerInfo info;
+	int timer = timer_create();
+	info.cyclic = SEC(10);
+	info.tmout = SEC(1);
+	info.kind = TIMER_CYCLIC;
+	info.param = 0;
+	info.handler = timer_handler;
+
+	timer_set(timer, &info);
+	timer_enable(timer, true);
+
 	double a = 1.0f;
 	for (int i=0;;i++) {
 		lprintf("task1:%d:%d\n", arg0, (int)a);
 		a += 1.0f;
-		task_tsleep(SEC(1));
+		task_sleep();
 		counter[arg0]++;
 	}
 }
@@ -35,7 +51,7 @@ void task3(uint32_t arg0, uint32_t arg1)
 	for (int i=0;;i++) {
 		lprintf("task3:%d:%d\n", arg0, (int)a);
 		a += 3.0f;
-		task_tsleep(SEC(1));
+		task_tsleep(SEC(2));
 		counter[arg0]++;
 	}
 }
@@ -44,7 +60,7 @@ void task4(uint32_t arg0, uint32_t arg1)
 {
 	for (int i=0;;i++) {
 		lprintf("task4:%d:%d\n", arg0, i);
-		task_tsleep(MSEC(8));
+		task_tsleep(SEC(3));
 		counter[arg0]++;
 	}
 }
@@ -61,17 +77,17 @@ void print_task(uint32_t arg0, uint32_t arg1)
 {
 	for (;;) {
 		lprintf("%d:%d:%d:%d\n", counter[0], counter[1], counter[2], counter[3]);
-		task_tsleep(SEC(10));
+		task_tsleep(SEC(5));
 		get_ptr();
 	}
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 256, 0, 5, (void*)0},
-		{"TASK2", TASK_ACT|TASK_SYS|TASK_FPU, task2, 0, 256, 0, 6, (void*)1},
-		{"TASK3", TASK_ACT|TASK_SYS|TASK_FPU, task3, 0, 256, 0, 5, (void*)2},
-//		{"TASK4", TASK_ACT|TASK_SYS, task4, 0, 256, 0, 6, (void*)3},
-//		{"PRINTER", TASK_ACT|TASK_SYS, print_task, 0, 256, 0, 6, (void*)0},
+		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 256, 0, 5, (void*)0},
+		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 256, 0, 6, (void*)1},
+		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 256, 0, 5, (void*)2},
+		{"TASK4", TASK_ACT, task4, 0, 256, 0, 6, (void*)3},
+		{"PRINTER", TASK_ACT|TASK_SYS, print_task, 0, 256, 0, 6, (void*)0},
 };
 
 void main_task(void)

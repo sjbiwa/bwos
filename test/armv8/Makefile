@@ -40,7 +40,7 @@ C_SRCS += target.c
 all: $(TARGET)
 
 run:
-	Foundation_Platform --visualization --cores=1 --gicv3 --image=$(TARGET_ELF)
+	Foundation_Platform --visualization --use-real-time --cores=1 --gicv3 --image=$(TARGET_ELF)
 
 include $(ARCHDIR)/config.mk
 include $(KERNDIR)/config.mk
