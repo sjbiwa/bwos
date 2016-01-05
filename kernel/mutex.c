@@ -182,20 +182,32 @@ OSAPISTUB int __mutex_create(void)
 
 OSAPISTUB int __mutex_unlock(int id)
 {
+	int ret = RT_ERR;
 	MutexStruct* mutex = mutexid2object(id);
-	return _kernel_mutex_unlock(mutex);
+	if ( mutex ) {
+		ret = _kernel_mutex_unlock(mutex);
+	}
+	return ret;
 }
 
 OSAPISTUB int __mutex_lock(int id)
 {
+	int ret = RT_ERR;
 	MutexStruct* mutex = mutexid2object(id);
-	return _kernel_mutex_lock(mutex);
+	if ( mutex ) {
+		ret = _kernel_mutex_lock(mutex);
+	}
+	return ret;
 }
 
 OSAPISTUB int __mutex_tlock(int id, TimeOut tmout)
 {
+	int ret = RT_ERR;
 	MutexStruct* mutex = mutexid2object(id);
-	return _kernel_mutex_tlock(mutex, tmout);
+	if ( mutex ) {
+	ret = _kernel_mutex_tlock(mutex, tmout);
+	}
+	return ret;
 }
 
 #else

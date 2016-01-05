@@ -390,26 +390,42 @@ OSAPI int __msgq_create(uint32_t length)
 
 OSAPI int __msgq_send(int id, void* ptr, uint32_t length)
 {
+	int ret = RT_ERR;
 	MsgqStruct* msgq = msgqid2object(id);
-	return _kernel_msgq_send(msgq, ptr, length);
+	if ( msgq ) {
+		ret = _kernel_msgq_send(msgq, ptr, length);
+	}
+	return ret;
 }
 
 OSAPI int __msgq_tsend(int id, void* ptr, uint32_t length, TimeOut tmout)
 {
+	int ret = RT_ERR;
 	MsgqStruct* msgq = msgqid2object(id);
-	return _kernel_msgq_tsend(msgq, ptr, length, tmout);
+	if ( msgq ) {
+		ret = _kernel_msgq_tsend(msgq, ptr, length, tmout);
+	}
+	return ret;
 }
 
 OSAPI int __msgq_recv(int id, void* ptr, uint32_t length)
 {
+	int ret = RT_ERR;
 	MsgqStruct* msgq = msgqid2object(id);
-	return _kernel_msgq_recv(msgq, ptr, length);
+	if ( msgq ) {
+		ret = _kernel_msgq_recv(msgq, ptr, length);
+	}
+	return ret;
 }
 
 OSAPI int __msgq_trecv(int id, void* ptr, uint32_t length, TimeOut tmout)
 {
+	int ret = RT_ERR;
 	MsgqStruct* msgq = msgqid2object(id);
-	return _kernel_msgq_trecv(msgq, ptr, length, tmout);
+	if ( msgq ) {
+		ret = _kernel_msgq_trecv(msgq, ptr, length, tmout);
+	}
+	return ret;
 }
 
 #else

@@ -221,22 +221,20 @@ void task_tick(void)
 			break;
 		}
 
-		/* 休止タスクを起床させるためのコールバック関数呼び出し */
-		/* コールバック関数呼び出し前にcpu_spinunlockするので */
-		/* 呼び出し中にリソース取得などで起床する場合がある */
-		/* なので、呼び出し側でcpu_spinlockした場合は以下の２つの状態が有り得る */
-		/*  1. state:TASK_WAIT  リソース/timeout_listには繋がれたまま */
-		/*  2. state:TASK_READY リソース/timeout_listから開放された状態 */
-		/*  コールバック関数内では 状態をチェック後link処理を行う必要がある */
-		/* ※なお、対象タスクはTASK_READYとなっても、この処理と同じコアでのみ */
-		/*   動作するので、割り込み禁止状態である限り対象タスクが実行されることは無い */
+		/*---------------------------------------------------------------------------------*/
+		/* 休止タスクを起床させるためのコールバック関数呼び出し 						   */
+		/*---------------------------------------------------------------------------------*/
+		/* wait_func内で wait_object_spinlock -> cpu_spinlock の順序でロック取得を行うため */
+		/* ここでcpu_spinunlockする                                                        */
+		/*---------------------------------------------------------------------------------*/
+		/* task->wait_funcとtask->wait_objはtask自身の実行中にのみ設定される               */
+		/* 本関数はtaskが所属するCPUでの割り込みハンドラコンテキストなので、関数実行中は   */
+		/* task->wait_funcとtask->wait_objは変更されることは無い                           */
+		/*---------------------------------------------------------------------------------*/
 		if ( task->wait_func != 0 ) {
-			void* wait_obj = task->wait_obj; /* spinunlock後にtaskが起床されてもwait_objにアクセスできるようにする目的 */
 			cpu_spinunlock(cpu);
-			(task->wait_func)(task, wait_obj);
+			(task->wait_func)(task, task->wait_obj);
 			cpu_spinlock(cpu);
-			task->wait_func = NULL;
-			task->wait_obj = NULL;
 		}
 		else {
 			/* タスク休止中の場合はwakeup処理 */
@@ -565,8 +563,12 @@ OSAPISTUB int __task_create(TaskCreateInfo* info)
 
 OSAPISTUB int __task_active(int id, void* act_param)
 {
+	int ret = RT_ERR;
 	TaskStruct* task = taskid2object(id);
-	return _kernel_task_active(task, act_param);
+	if ( task ) {
+		ret = _kernel_task_active(task, act_param);
+	}
+	return ret;
 }
 
 OSAPISTUB int __task_sleep(void)
@@ -576,8 +578,12 @@ OSAPISTUB int __task_sleep(void)
 
 OSAPISTUB int __task_wakeup(int id)
 {
+	int ret = RT_ERR;
 	TaskStruct* task = taskid2object(id);
-	return _kernel_task_wakeup(task);
+	if ( task ) {
+		ret = _kernel_task_wakeup(task);
+	}
+	return ret;
 }
 
 OSAPISTUB int __task_tsleep(TimeOut tm)
@@ -592,6 +598,10 @@ OSAPISTUB int __task_dormant(void)
 
 OSAPISTUB int __task_get_tls(int id, void** ptr)
 {
+	int ret = RT_ERR;
 	TaskStruct* task = taskid2object(id);
-	return _kernel_task_get_tls(task, ptr);
+	if ( task ) {
+		ret = _kernel_task_get_tls(task, ptr);
+	}
+	return ret;
 }

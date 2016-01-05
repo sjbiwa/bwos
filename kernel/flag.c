@@ -218,27 +218,42 @@ OSAPISTUB int __flag_create(void)
 
 OSAPISTUB int __flag_set(int id, uint32_t pattern)
 {
+	int ret = RT_ERR;
 	FlagStruct* flag = flagid2object(id);
-	return _kernel_flag_set(flag, pattern);
+	if ( flag ) {
+		ret = _kernel_flag_set(flag, pattern);
+	}
+	return ret;
 }
 
 OSAPISTUB int __flag_wait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
 {
+	int ret = RT_ERR;
 	FlagStruct* flag = flagid2object(id);
-	return _kernel_flag_wait(flag, pattern, wait_mode, ret_pattern);
+	if ( flag ) {
+		ret = _kernel_flag_wait(flag, pattern, wait_mode, ret_pattern);
+	}
+	return ret;
 }
 
 OSAPISTUB int __flag_twait(int id, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
 {
+	int ret = RT_ERR;
 	FlagStruct* flag = flagid2object(id);
-	return _kernel_flag_twait(flag, pattern, wait_mode, ret_pattern, tmout);
-
+	if ( flag ) {
+		ret = _kernel_flag_twait(flag, pattern, wait_mode, ret_pattern, tmout);
+	}
+	return ret;
 }
 
 OSAPISTUB int __flag_clear(int id, uint32_t pattern)
 {
+	int ret = RT_ERR;
 	FlagStruct* flag = flagid2object(id);
-	return _kernel_flag_clear(flag, pattern);
+	if ( flag ) {
+		ret = _kernel_flag_clear(flag, pattern);
+	}
+	return ret;
 }
 
 #else

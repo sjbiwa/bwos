@@ -295,20 +295,32 @@ OSAPISTUB int __fixmb_create(uint32_t mb_size, uint32_t length)
 
 OSAPISTUB int __fixmb_request(int id, void** ptr)
 {
+	int ret = RT_ERR;
 	FixmbStruct* fixmb = fixmbid2object(id);
-	return _kernel_fixmb_request(fixmb, ptr);
+	if ( fixmb ) {
+		ret = _kernel_fixmb_request(fixmb, ptr);
+	}
+	return ret;
 }
 
 OSAPISTUB int __fixmb_trequest(int id, void** ptr, TimeOut tmout)
 {
+	int ret = RT_ERR;
 	FixmbStruct* fixmb = fixmbid2object(id);
-	return _kernel_fixmb_trequest(fixmb, ptr, tmout);
+	if ( fixmb ) {
+		ret = _kernel_fixmb_trequest(fixmb, ptr, tmout);
+	}
+	return ret;
 }
 
 OSAPISTUB int __fixmb_release(int id, void* ptr)
 {
+	int ret = RT_ERR;
 	FixmbStruct* fixmb = fixmbid2object(id);
-	return _kernel_fixmb_release(fixmb, ptr);
+	if ( fixmb ) {
+		ret = _kernel_fixmb_release(fixmb, ptr);
+	}
+	return ret;
 }
 
 #else

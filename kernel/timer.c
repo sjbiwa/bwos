@@ -84,39 +84,6 @@ static int _kernel_timer_enable(TimerStruct* timer, bool enable)
 	return RT_OK;
 }
 
-
-OSAPISTUB int __timer_create(void)
-{
-	int ret = RT_ERR;
-	int timer_id = alloc_timer_id();
-	if ( 0 <= timer_id ) {
-		TimerStruct* timer = timerid2buffer(timer_id);
-		ret = _kernel_timer_create(timer);
-		if ( ret == RT_OK ) {
-			order_barrier();
-			timer->id_initialized = true;
-			order_barrier();
-			ret = timer_id;
-		}
-		else {
-			free_timer_struct(timer_id);
-		}
-	}
-	return ret;
-}
-
-OSAPISTUB int __timer_set(int id, TimerInfo* info)
-{
-	TimerStruct* timer = timerid2object(id);
-	return _kernel_timer_set(timer, info);
-}
-
-OSAPISTUB int __timer_enable(int id, bool enable)
-{
-	TimerStruct* timer = timerid2object(id);
-	return _kernel_timer_enable(timer, enable);
-}
-
 /* タイマモジュールにタイマexpireを通知 */
 void _timer_notify_tick(TimeSpec tick_count)
 {
@@ -146,6 +113,46 @@ TimeSpec _timer_get_next_timeout(void)
 	if ( !link_is_empty(timer_list) ) {
 		TimerStruct* timer = containerof(timer_list->next, TimerStruct, link);
 		ret = timer->timeout;
+	}
+	return ret;
+}
+
+OSAPISTUB int __timer_create(void)
+{
+	int ret = RT_ERR;
+	int timer_id = alloc_timer_id();
+	if ( 0 <= timer_id ) {
+		TimerStruct* timer = timerid2buffer(timer_id);
+		ret = _kernel_timer_create(timer);
+		if ( ret == RT_OK ) {
+			order_barrier();
+			timer->id_initialized = true;
+			order_barrier();
+			ret = timer_id;
+		}
+		else {
+			free_timer_struct(timer_id);
+		}
+	}
+	return ret;
+}
+
+OSAPISTUB int __timer_set(int id, TimerInfo* info)
+{
+	int ret = RT_ERR;
+	TimerStruct* timer = timerid2object(id);
+	if ( timer ) {
+		ret = _kernel_timer_set(timer, info);
+	}
+	return ret;
+}
+
+OSAPISTUB int __timer_enable(int id, bool enable)
+{
+	int ret = RT_ERR;
+	TimerStruct* timer = timerid2object(id);
+	if ( timer ) {
+		ret = _kernel_timer_enable(timer, enable);
 	}
 	return ret;
 }

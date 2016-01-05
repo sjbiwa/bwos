@@ -218,20 +218,32 @@ OSAPISTUB int __sem_create(uint32_t max)
 
 OSAPISTUB int __sem_request(int id, uint32_t num)
 {
+	int ret = RT_ERR;
 	SemStruct* sem = semid2object(id);
-	return _kernel_sem_request(sem, num);
+	if ( sem ) {
+		ret = _kernel_sem_request(sem, num);
+	}
+	return ret;
 }
 
 OSAPISTUB int __sem_trequest(int id, uint32_t num, TimeOut tmout)
 {
+	int ret = RT_ERR;
 	SemStruct* sem = semid2object(id);
-	return _kernel_sem_trequest(sem, num, tmout);
+	if ( sem ) {
+		ret = _kernel_sem_trequest(sem, num, tmout);
+	}
+	return ret;
 }
 
 OSAPISTUB int __sem_release(int id, uint32_t num)
 {
+	int ret = RT_ERR;
 	SemStruct* sem = semid2object(id);
-	return _kernel_sem_release(sem, num);
+	if ( sem ) {
+		ret = _kernel_sem_release(sem, num);
+	}
+	return ret;
 }
 
 #else
