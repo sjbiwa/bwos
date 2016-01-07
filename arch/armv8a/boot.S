@@ -39,6 +39,11 @@ _start:
 	CPTR_EL3_set(xzr)
 	CPTR_EL2_set(xzr)
 
+	/* ACTLR */
+	ldr		x0, =0x73
+	ACTLR_EL3_set(x0)
+	ACTLR_EL2_set(x0)
+
 	/* timer */
 	ldr		x0, =24000000
 	CNTFRQ_EL0_set(x0)
@@ -89,6 +94,19 @@ entry_el1:
 	/* FPU/SIMD disable */
 	ldr		x0, =0x00000000
 	CPACR_EL1_set(x0)
+
+#if USE_SMP == 1
+	/* SMP on */
+	ldr		x0, =0x00000400 /* SMP enable */
+	CPUECTLR_EL1_set(x0)
+#endif
+
+	/* MMU,d-cache off / i-cache on */
+	ldr		x0, =0x00C50838
+	SCTLR_EL1_get(x0)
+	IC_IALLU_set()
+	ldr		x0, =0x00C51838
+	SCTLR_EL1_get(x0) /* i-cache on */
 
 	/* CORE==0のみの処理 */
 	cmp		x2, #0

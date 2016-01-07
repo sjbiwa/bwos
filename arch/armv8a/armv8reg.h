@@ -239,8 +239,8 @@
 #define DC_ISW_set(v)                               DC ISW, v
 #define DC_IVAC_set(v)                              DC IVAC, v
 #define DC_ZVA_set(v)                               DC ZVA, v
-#define IC_IALLU_set(v)                             IC IALLU, v
-#define IC_IALLUIS_set(v)                           IC IALLUIS, v
+#define IC_IALLU_set()                              IC IALLU
+#define IC_IALLUIS_set()                            IC IALLUIS
 #define AT_S12E0R_set(v)                            AT S12E0R, v
 #define AT_S12E0W_set(v)                            AT S12E0W, v
 #define AT_S12E1R_set(v)                            AT S12E1R, v
@@ -371,6 +371,21 @@
 #define DAIFSet_seti(v)								MSR DAIFSet, #(v)
 #define DAIFClr_seti(v)								MSR DAIFClr, #(v)
 #define SPSel_seti(v)								MSR SPSel, #(v)
+/* cortexA53 implementation defined */
+#define L2CTLR_EL1_get(v)							MRS v, S3_1_C11_C0_2
+#define L2CTLR_EL1_set(v)							MSR S3_1_C11_C0_2, v
+#define L2ECTLR_EL1_get(v)							MRS v, S3_1_C11_C0_3
+#define L2ECTLR_EL1_set(v)							MSR S3_1_C11_C0_3, v
+#define L2ACTLR_EL1_get(v)							MRS v, S3_1_C15_C0_0
+#define L2ACTLR_EL1_set(v)							MSR S3_1_C15_C0_0, v
+#define CPUACTLR_EL1_get(v)							MRS v, S3_1_C15_C2_0
+#define CPUACTLR_EL1_set(v)							MSR S3_1_C15_C2_0, v
+#define CPUECTLR_EL1_get(v)							MRS v, S3_1_C15_C2_1
+#define CPUECTLR_EL1_set(v)							MSR S3_1_C15_C2_1, v
+#define CPUMERRSR_EL1_get(v)						MRS v, S3_1_c15_c2_2
+#define CPUMERRSR_EL1_set(v)						MSR S3_1_c15_c2_2, v
+#define L2MERRSR_EL1_get(v)							MRS v, S3_1_C15_C2_3
+#define L2MERRSR_EL1_set(v)							MSR S3_1_C15_C2_3, v
 
 #else
 #include <stdint.h>
@@ -609,8 +624,8 @@
 #define DC_ISW_set(v)                               __asm__ volatile ("DC ISW, %0"::"r"(v):"memory")
 #define DC_IVAC_set(v)                              __asm__ volatile ("DC IVAC, %0"::"r"(v):"memory")
 #define DC_ZVA_set(v)                               __asm__ volatile ("DC ZVA, %0"::"r"(v):"memory")
-#define IC_IALLU_set(v)                             __asm__ volatile ("IC IALLU, %0"::"r"(v):"memory")
-#define IC_IALLUIS_set(v)                           __asm__ volatile ("IC IALLUIS, %0"::"r"(v):"memory")
+#define IC_IALLU_set()                              __asm__ volatile ("IC IALLU"::"r"(v):"memory")
+#define IC_IALLUIS_set()                            __asm__ volatile ("IC IALLUIS"::"r"(v):"memory")
 #define AT_S12E0R_set(v)                            __asm__ volatile ("AT S12E0R, %0"::"r"(v):"memory")
 #define AT_S12E0W_set(v)                            __asm__ volatile ("AT S12E0W, %0"::"r"(v):"memory")
 #define AT_S12E1R_set(v)                            __asm__ volatile ("AT S12E1R, %0"::"r"(v):"memory")
@@ -741,6 +756,21 @@
 #define DAIFSet_seti(v)								__asm__ volatile ("MSR DAIFSet, #" #v:::"memory")
 #define DAIFClr_seti(v)								__asm__ volatile ("MSR DAIFClr, #" #v:::"memory")
 #define SPSel_seti(v)								__asm__ volatile ("MSR SPSel, #" #v:::"memory")
+/* cortexA53 implementation defined */
+#define L2CTLR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C11_C0_2":"=r"(_reg_)::"memory");_reg_;})
+#define L2CTLR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C11_C0_2, %0"::"r"(v):"memory")
+#define L2ECTLR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C11_C0_3":"=r"(_reg_)::"memory");_reg_;})
+#define L2ECTLR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C11_C0_3, %0"::"r"(v):"memory")
+#define L2ACTLR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C15_C0_0":"=r"(_reg_)::"memory");_reg_;})
+#define L2ACTLR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C15_C0_0, %0"::"r"(v):"memory")
+#define CPUACTLR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C15_C2_0":"=r"(_reg_)::"memory");_reg_;})
+#define CPUACTLR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C15_C2_0, %0"::"r"(v):"memory")
+#define CPUECTLR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C15_C2_1":"=r"(_reg_)::"memory");_reg_;})
+#define CPUECTLR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C15_C2_1, %0"::"r"(v):"memory")
+#define CPUMERRSR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_c15_c2_2":"=r"(_reg_)::"memory");_reg_;})
+#define CPUMERRSR_EL1_set(v)						__asm__ volatile ("MSR S3_1_c15_c2_2, %0"::"r"(v):"memory")
+#define L2MERRSR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C15_C2_3":"=r"(_reg_)::"memory");_reg_;})
+#define L2MERRSR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C15_C2_3, %0"::"r"(v):"memory")
 
 #endif
 

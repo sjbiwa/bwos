@@ -1,11 +1,13 @@
 #
 #
 #
+KBUILD_CFLAGS = $(CFLAGS) -mgeneral-regs-only
 .c.o:
-	$(CC) -c $(CFLAGS) $(INC) $(DEFS) $<
+	$(CC) -c $(KBUILD_CFLAGS) $(INC) $(DEFS) $<
 
 .S.o:
 	$(AS) -c $(AFLAGS) $(INC) $(DEFS) $<
+
 
 $(TARGET_BIN): $(OBJS)
 	$(LD) $(LDFLAGS) -o $(TARGET_ELF) $(OBJS) $(LDLIBS)
