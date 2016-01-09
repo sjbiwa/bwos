@@ -14,8 +14,6 @@
 #include "kernel.h"
 #include "bwos.h"
 
-#define	UART_BASE			0x001C090000
-
 #define	UARTDR				(0x000)				/* Data Register */
 #define	UARTRSR				(0x004)				/* Receive Status Register */
 #define	UARTECR				(0x004)				/* Error Clear Register */

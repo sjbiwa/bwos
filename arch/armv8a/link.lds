@@ -20,7 +20,7 @@ SECTIONS
 		__text_end = . ;
 	}
 
-	.data ALIGN(0x1000) :
+	.data ALIGN(0x10000) :
 	{
 		__data_start = . ;
 		__idata_start = . ;
@@ -42,14 +42,14 @@ SECTIONS
 		. = ALIGN(32 / 8);
 	}
 
-	.stack ALIGN(0x1000) :
+	.stack ALIGN(0x10000) :
 	{
 		*(.stack)
 	}
 	__end__ = . ;
 	_end = .; PROVIDE (end = .);
 
-	. = ALIGN(0x1000);
+	. = ALIGN(0x10000);
 
 	__heap_start = .;
 

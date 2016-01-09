@@ -28,6 +28,7 @@ void task1(uint32_t arg0, uint32_t arg1)
 	double a = 1.0f;
 	for (int i=0;;i++) {
 		lprintf("task1:%d:%d\n", arg0, (int)a);
+		lprintf("SCTLR:%08X\n", (uint32_t)SCTLR_EL1_get());
 		a += 1.0f;
 		task_sleep();
 		counter[arg0]++;
@@ -83,7 +84,7 @@ void print_task(uint32_t arg0, uint32_t arg1)
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 256, 0, 5, (void*)0},
+		{"TASK1", TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 256, 0, 5, (void*)0},
 		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 256, 0, 6, (void*)1},
 		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 256, 0, 5, (void*)2},
 		{"TASK4", TASK_ACT, task4, 0, 256, 0, 6, (void*)3},

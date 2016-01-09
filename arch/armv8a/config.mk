@@ -19,7 +19,7 @@ OBJCOPY = $(TOOL_PREFIX)objcopy
 RM = rm
 
 A_SRCS += boot.S handler.S arch_api.S dispatch.S
-C_SRCS += api_table.c arch.c idle.c gicv3.c arch_timer.c
+C_SRCS += api_table.c arch.c idle.c gicv3.c arch_timer.c memmgr.c arch_ptbl.c
 
 LDSCRIPT = $(ARCHDIR)/link.lds
 

@@ -15,6 +15,7 @@
 #include "my_board.h"
 #include "armv8reg.h"
 #include "gicv3reg.h"
+#include "memmgr.h"
 
 extern void	_entry_stub(void);
 extern char __heap_start;
@@ -219,6 +220,9 @@ void arch_system_preinit(uint32_t cpuid)
 			}
 		}
 	}
+
+	/* ページテーブル作成 */
+	mmgr_init(cpuid);
 
 	/* 割り込みコントローラ初期化 */
 	arch_irq_init(cpuid);

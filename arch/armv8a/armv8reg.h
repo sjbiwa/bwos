@@ -253,6 +253,12 @@
 #define AT_S1E2W_set(v)                             AT S1E2W, v
 #define AT_S1E3R_set(v)                             AT S1E3R, v
 #define AT_S1E3W_set(v)                             AT S1E3W, v
+#define	TLBI_ALLE1_set()							TLBI ALLE1
+#define	TLBI_ALLE1IS_set()							TLBI ALLE1IS
+#define	TLBI_ALLE2_set()							TLBI ALLE2
+#define	TLBI_ALLE2IS_set()							TLBI ALLE2IS
+#define	TLBI_ALLE3_set()							TLBI ALLE3
+#define	TLBI_ALLE3IS_set()							TLBI ALLE3IS
 #define TLBI_ASIDE1_set(v)                          TLBI ASIDE1, v
 #define TLBI_ASIDE1IS_set(v)                        TLBI ASIDE1IS, v
 #define TLBI_IPAS2E1_set(v)                         TLBI IPAS2E1, v
@@ -275,6 +281,10 @@
 #define TLBI_VALE2IS_set(v)                         TLBI VALE2IS, v
 #define TLBI_VALE3_set(v)                           TLBI VALE3, v
 #define TLBI_VALE3IS_set(v)                         TLBI VALE3IS, v
+#define	TLBI_VMALLE1_set()							TLBI VMALLE1
+#define	TLBI_VMALLE1IS_set()						TLBI VMALLE1IS
+#define	TLBI_VMALLS12E1_set()						TLBI VMALLS12E1
+#define	TLBI_VMALLS12E1IS_set()						TLBI VMALLS12E1IS
 #define ACTLR_EL1_get(v)                            MRS v,ACTLR_EL1
 #define ACTLR_EL1_set(v)                            MSR ACTLR_EL1,v
 #define ACTLR_EL2_get(v)                            MRS v,ACTLR_EL2
@@ -624,8 +634,8 @@
 #define DC_ISW_set(v)                               __asm__ volatile ("DC ISW, %0"::"r"(v):"memory")
 #define DC_IVAC_set(v)                              __asm__ volatile ("DC IVAC, %0"::"r"(v):"memory")
 #define DC_ZVA_set(v)                               __asm__ volatile ("DC ZVA, %0"::"r"(v):"memory")
-#define IC_IALLU_set()                              __asm__ volatile ("IC IALLU"::"r"(v):"memory")
-#define IC_IALLUIS_set()                            __asm__ volatile ("IC IALLUIS"::"r"(v):"memory")
+#define IC_IALLU_set()                              __asm__ volatile ("IC IALLU":::"memory")
+#define IC_IALLUIS_set()                            __asm__ volatile ("IC IALLUIS":::"memory")
 #define AT_S12E0R_set(v)                            __asm__ volatile ("AT S12E0R, %0"::"r"(v):"memory")
 #define AT_S12E0W_set(v)                            __asm__ volatile ("AT S12E0W, %0"::"r"(v):"memory")
 #define AT_S12E1R_set(v)                            __asm__ volatile ("AT S12E1R, %0"::"r"(v):"memory")
@@ -638,6 +648,12 @@
 #define AT_S1E2W_set(v)                             __asm__ volatile ("AT S1E2W, %0"::"r"(v):"memory")
 #define AT_S1E3R_set(v)                             __asm__ volatile ("AT S1E3R, %0"::"r"(v):"memory")
 #define AT_S1E3W_set(v)                             __asm__ volatile ("AT S1E3W, %0"::"r"(v):"memory")
+#define	TLBI_ALLE1_set()							__asm__ volatile ("TLBI ALLE1":::"memory")
+#define	TLBI_ALLE1IS_set()							__asm__ volatile ("TLBI ALLE1IS":::"memory")
+#define	TLBI_ALLE2_set()							__asm__ volatile ("TLBI ALLE2":::"memory")
+#define	TLBI_ALLE2IS_set()							__asm__ volatile ("TLBI ALLE2IS":::"memory")
+#define	TLBI_ALLE3_set()							__asm__ volatile ("TLBI ALLE3":::"memory")
+#define	TLBI_ALLE3IS_set()							__asm__ volatile ("TLBI ALLE3IS":::"memory")
 #define TLBI_ASIDE1_set(v)                          __asm__ volatile ("TLBI ASIDE1, %0"::"r"(v):"memory")
 #define TLBI_ASIDE1IS_set(v)                        __asm__ volatile ("TLBI ASIDE1IS, %0"::"r"(v):"memory")
 #define TLBI_IPAS2E1_set(v)                         __asm__ volatile ("TLBI IPAS2E1, %0"::"r"(v):"memory")
@@ -660,6 +676,10 @@
 #define TLBI_VALE2IS_set(v)                         __asm__ volatile ("TLBI VALE2IS, %0"::"r"(v):"memory")
 #define TLBI_VALE3_set(v)                           __asm__ volatile ("TLBI VALE3, %0"::"r"(v):"memory")
 #define TLBI_VALE3IS_set(v)                         __asm__ volatile ("TLBI VALE3IS, %0"::"r"(v):"memory")
+#define	TLBI_VMALLE1_set()							__asm__ volatile ("TLBI VMALLE1":::"memory")
+#define	TLBI_VMALLE1IS_set()						__asm__ volatile ("TLBI VMALLE1IS":::"memory")
+#define	TLBI_VMALLS12E1_set()						__asm__ volatile ("TLBI VMALLS12E1":::"memory")
+#define	TLBI_VMALLS12E1IS_set()						__asm__ volatile ("TLBI VMALLS12E1IS":::"memory")
 #define ACTLR_EL1_get()                             ({uint64_t _reg_;__asm__ volatile ("MRS %0, ACTLR_EL1":"=r"(_reg_)::"memory");_reg_;})
 #define ACTLR_EL1_set(v)                            __asm__ volatile ("MSR ACTLR_EL1, %0"::"r"(v):"memory")
 #define ACTLR_EL2_get()                             ({uint64_t _reg_;__asm__ volatile ("MRS %0, ACTLR_EL2":"=r"(_reg_)::"memory");_reg_;})
