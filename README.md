@@ -1,6 +1,6 @@
 ====
 ARMアーキテクチャー向けマルチタスクOSです。
-ARMv7-A / ARMv7-M / ARMv8-A がターゲットです。(ARMv8-Aは未着手)
+ARMv7-A / ARMv7-M / ARMv8-A がターゲットです。
 
 フルスクラッチでOSを作ろう、というところが出発点です。
 (※でもprintf.cだけは拝借しました。)
@@ -9,10 +9,11 @@ ARMv7-A / ARMv7-M / ARMv8-A がターゲットです。(ARMv8-Aは未着手)
 Firefly RK3288 (Cortex-A17 x 4)
 CUBIETRUCK (cortex-A7 x 2)
 LPC4330-Xplorer Board (Cortex-M4F + Cortex-M0)
+FVP v8 Foundation Platform (ARMv8-A)
 
 ビルド環境：
 cygwin
-linaro ARM-GCC (arm-linux-gnueabihf-gcc v4.9)
+linaro ARM-GCC (arm-linux-gnueabihf-gcc v4.9 / aarch64-none-elf-gcc 4.9.3)
 
 デバッグ環境： (リリース内容には含まれていません)
 CUBIETRUCK
@@ -40,3 +41,6 @@ uVision + JTAG-ICE
 ２．loadb 1000 実行
 ３．kermitにてbwos.binをダウンロード
 ４．go 1000 実行
+
+○FVP v8 Foundation Platform
+make run で実行
