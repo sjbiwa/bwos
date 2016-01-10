@@ -226,6 +226,15 @@ void arch_system_preinit(uint32_t cpuid)
 
 	/* 割り込みコントローラ初期化 */
 	arch_irq_init(cpuid);
+
+	/* コア間割り込みハンドラ登録 */
+	if ( cpuid == MASTER_CPU_ID ) {
+		__irq_add_handler(0, smp0_handler, NULL);
+		__irq_add_handler(1, smp0_handler, NULL);
+	}
+	__irq_set_enable(0, IRQ_ENABLE, CPU_SELF);
+	__irq_set_enable(1, IRQ_ENABLE, CPU_SELF);
+
 }
 
 void arch_register_st_memory()
@@ -258,10 +267,15 @@ extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 
 void ipi_request_dispatch(uint32_t other_cpu_list)
 {
+	__dsb();
+	ICC_SGI1R_EL1_set(other_cpu_list);
 }
 
 void ipi_request_dispatch_one(CpuStruct* cpu)
 {
+	uint32_t cpuid = cpu->cpuid;
+	__dsb();
+	ICC_SGI1R_EL1_set(0x01u<<cpuid);
 }
 
 void init_task_arch_depend(void)

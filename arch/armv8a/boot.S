@@ -48,10 +48,6 @@ _start:
 	ldr		x0, =24000000
 	CNTFRQ_EL0_set(x0)
 
-	/* CORE==0のみの処理 */
-	cmp		x2, #0
-	bne		end_gic_setup
-
 	/* init GIC */
 	mov		x0, #0x0000000f
 	ICC_SRE_EL3_set(x0)
@@ -69,8 +65,7 @@ _start:
 	ICC_CTLR_EL3_set(x0)
 	mov		x0, #0x3
 	ICC_IGRPEN1_EL3_get(x0)
-	/**/
-end_gic_setup:
+	/* init GIC end */
 
 	adr		x0, entry_el1
 	ELR_EL3_set(x0)
@@ -108,10 +103,9 @@ entry_el1:
 	ldr		x0, =0x00C51838
 	SCTLR_EL1_get(x0) /* i-cache on */
 
-	/* CORE==0のみの処理 */
-	cmp		x2, #0
-	//bne		_bss_done
-	bne		_loop_
+	/* CORE==MASTER_CPU_ID のみの処理 */
+	cmp		x2, #MASTER_CPU_ID
+	bne		_bss_done
 
 	/* Copy from idata to data */
 	ldr		x0, =__idata_start
@@ -138,10 +132,6 @@ _bss_loop:
 _bss_done:
 
 	bl		startup
-
-_loop_:
-	wfe
-	b		_loop_
 
 	.section .stack
 

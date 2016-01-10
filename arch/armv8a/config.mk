@@ -25,8 +25,16 @@ LDSCRIPT = $(ARCHDIR)/link.lds
 
 #DEFS = -DCYGWIN
 
-DEFS += -DUSE_SMP=0 -DCPU_NUM=1 -DMASTER_CPU_ID=0
-DEFS += -DUSE_TICKLESS
+DEFS += -DCPU_NUM=$(SMP_CPU_NUM)
+ifneq ($(SMP_CPU_NUM),1)
+DEFS += -DUSE_SMP=1
+else
+DEFS += -DUSE_SMP=0
+endif
+C_SRCS += arch_smp.c
+A_SRCS += spinlock.S
+
+DEFS += -DMASTER_CPU_ID=0 -DUSE_TICKLESS
 
 CPUFLAGS = -mcpu=$(CPU)
 
@@ -36,6 +44,3 @@ AFLAGS  += $(CFLAGS) -D__ASM__
 LDFLAGS += $(CPUFLAGS) -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none
 LDLIBS   = -lgcc
-
-printf.o: printf.c
-	$(CC) -c -mgeneral-regs-only $(CFLAGS) $(INC) $(DEFS) $<

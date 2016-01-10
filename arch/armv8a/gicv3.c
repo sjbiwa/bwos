@@ -57,14 +57,14 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 	if ( 32 <= irqno ) {
 		if ( setting == IRQ_ENABLE ) {
 			order_barrier(); /* 割り込み許可前後のメモリオーダー確定 */
-	#if 0
+#if 0
 			/* Set Target Register */
 			uint32_t cpuid = CPU_GET(irq_attr);
 			if ( cpuid == CPU_GET(CPU_SELF) ) {
 				cpuid = CPUID_get();
 			}
 			iowrite8(GICD_ITARGETSR+irqno, 0x01u<<cpuid);
-	#endif
+#endif
 			iowrite32(GICD_ISENABLER+off*4, 0x01<<bit);
 		}
 		else {
