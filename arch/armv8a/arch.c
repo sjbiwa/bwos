@@ -170,23 +170,28 @@ void arch_task_active(TaskStruct* task, void* act_param)
 static void
 smp0_handler(uint32_t irqno, void* info)
 {
+	tprintf("smp0 handler:%d\n", CPUID_get());
+	if ( CPUID_get() == 1 ) {
+		tprintf("C:%08X N:%08X\n", cpu_struct[CPUID_get()].ctask, cpu_struct[CPUID_get()].ntask);
+	}
 }
 
 void arch_system_preinit(uint32_t cpuid)
 {
 	if ( cpuid == MASTER_CPU_ID ) {
-		for (int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
-			cpu_struct_pointer[cpuid] = &cpu_struct[cpuid];
+		for (int cid=0; cid < CPU_NUM; cid++ ) {
+			cpu_struct_pointer[cid] = &cpu_struct[cid];
 		}
 		debug_print_init();
 	}
-
-	tprintf("CPU= = %d\n", CPUID_get());
+	tprintf("MPIDR = %08X%08X\n", hword(MPIDR_EL1_get()), lword(MPIDR_EL1_get()));
+	tprintf("CPU = %d\n", cpuid);
 	tprintf("SCTLR = %08X\n", (uint32_t)SCTLR_EL1_get());
 	tprintf("ACTLR = %08X\n", (uint32_t)ACTLR_EL1_get());
 	tprintf("ID_PFR0 = %08X\n", (uint32_t)ID_PFR0_EL1_get());
 	tprintf("ID_PFR1 = %08X\n", (uint32_t)ID_PFR1_EL1_get());
 	tprintf("ID_DFR0 = %08X\n", (uint32_t)ID_DFR0_EL1_get());
+
 	/* PROC_ID / ASID を初期化 */
 	CONTEXTIDR_EL1_set(0);
 
@@ -275,6 +280,7 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 {
 	uint32_t cpuid = cpu->cpuid;
 	__dsb();
+	tprintf("IPI:%d -> %d\n", CPUID_get(), cpuid);
 	ICC_SGI1R_EL1_set(0x01u<<cpuid);
 }
 
@@ -300,9 +306,6 @@ void c_exc_handler(void)
 	for (;;);
 }
 
-#define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
-#define	lword(v)		((uint32_t)(v))
-
 /*
 **  0: X19-X29/X29
 ** 12:ELR/SPSR
@@ -310,7 +313,7 @@ void c_exc_handler(void)
 */
 void general_exception_handler(uint64_t* ptr)
 {
-	tprintf("general exception\n");
+	tprintf("general exception:CPU=%d\n", CPUID_get());
 	tprintf(" X0:%08X%08X  X1:%08X%08X  X2:%08X%08X\n", hword(ptr[14]),lword(ptr[14]), hword(ptr[15]),lword(ptr[15]), hword(ptr[16]),lword(ptr[16]));
 	tprintf(" X3:%08X%08X  X4:%08X%08X  X5:%08X%08X\n", hword(ptr[17]),lword(ptr[17]), hword(ptr[18]),lword(ptr[18]), hword(ptr[19]),lword(ptr[19]));
 	tprintf(" X6:%08X%08X  X7:%08X%08X  X8:%08X%08X\n", hword(ptr[20]),lword(ptr[20]), hword(ptr[21]),lword(ptr[21]), hword(ptr[22]),lword(ptr[22]));

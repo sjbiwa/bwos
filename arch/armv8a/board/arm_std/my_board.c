@@ -9,7 +9,7 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
-#if SMP == 1
+#if USE_SMP == 1
 volatile uint32_t smp_boot_flag = 1;
 
 void smp_boot_slave_cpu(void)

@@ -9,7 +9,7 @@
 	.global	_sstart
 	.type	_sstart, %function
 _sstart:
-#if SMP == 1
+#if USE_SMP == 1
 	/* disable interrupt */
 	DAIFSet_seti(0xf)
 	/* SP is ELx */
@@ -24,10 +24,10 @@ _sstart:
 	ldr		x0, =smp_boot_flag
 _slave_wait:
 	wfe
-	ldr		w0, [x0]
-	cmp		w0, wzr
+	ldr		w1, [x0]
+	cmp		w1, wzr
 	bne		_slave_wait
-
 _cpu_start:
 #endif
-	bl		_start
+	ldr		x0, =_start
+	blr		x0

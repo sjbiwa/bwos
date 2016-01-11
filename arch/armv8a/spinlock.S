@@ -12,6 +12,8 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
+#define	USE_WFE_SEV
+
 /****************************************/
 /*  void spin_init(SpinLockObj* ptr)    */
 /****************************************/
@@ -20,7 +22,7 @@
 spin_init:
 	MOV		w1, #0
 	STR		w1, [X0]
-	DSB
+	DSB		SY
 	RET
 
 /****************************************/
@@ -31,15 +33,19 @@ spin_init:
 spin_lock:
 	MOV		w1, #1
 Loop:
-	LDREX	w2, [x0]
+	LDXR	w2, [x0]
 	CMP		w2, #0
-	WFENE
-	STREXEQ	w2, w1, [x0]
-	CMPEQ	w2, #0
+	BNE		wait_event
+	STXR	w2, w1, [x0]
+	CMP		w2, #0
 	BNE		Loop
-	DMB
+	DMB		SY
 	RET
-
+wait_event:
+#if defined(USE_WFE_SEV)
+	WFE
+#endif
+	B		Loop
 
 /****************************************/
 /*  void spin_unlock(SpinLockObj* ptr)  */
@@ -47,11 +53,13 @@ Loop:
 	.type   spin_lock, %function
 	.globl	spin_unlock
 spin_unlock:
-	MOV w1, #0
-	DMB
-	STR w1, [x0]
-	DSB
+	MOV		w1, #0
+	DMB		SY
+	STR		w1, [x0]
+	DSB		SY
+#if defined(USE_WFE_SEV)
 	SEV
+#endif
 	RET
 
 /****************************************/
@@ -62,11 +70,16 @@ spin_unlock:
 	.globl	spin_trylock
 spin_trylock:
 	MOV		w1, #1
-	LDREX	w2, [x0]
+	LDXR	w2, [x0]
 	CMP		w2, #0
-	STREXEQ	w2, w1, [x0]
-	CMPEQ	w2, #0
-	MOVEQ	w0, #1
-	MOVNE	w0, #0
-	DMB
+	BNE		fail_ret
+	STXR	w2, w1, [x0]
+	CMP		w2, #0
+	BNE		fail_ret
+	MOV		x0, #1
+	B		spin_trylock_ret
+fail_ret:
+	MOV		x0, #0
+spin_trylock_ret:
+	DMB		SY
 	RET

@@ -473,7 +473,7 @@ int _kernel_task_wakeup(TaskStruct* task)
 		ret = RT_OK;
 	}
 
-	cpu_spinlock(cpu);
+	cpu_spinunlock(cpu);
 
 	if ( req_dispatch ) {
 		request_dispatch_all(cpu);

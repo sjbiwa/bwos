@@ -7,8 +7,6 @@
 #include "gicv3reg.h"
 
 /* TickLess専用 */
-#define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
-#define	lword(v)		((uint32_t)(v))
 
 static inline uint64_t conv_time_to_reg(TimeSpec time)
 {
@@ -27,11 +25,20 @@ static void timer_handler(uint32_t irqno, void* info)
 
 	/* OSのタイムアウト処理呼び出し */
 	task_tick();
+
+	uint64_t t = CNTPCT_EL0_get();
+	if ( t == 0xffffffffffffffffuLL ) {
+		debug_print("COUNTER is over\n");
+		for (;;) {
+			__wfe();
+		}
+	}
 }
 
 /* TICKカウンタの取得 */
 TimeSpec get_tick_count(void)
 {
+	__isb();
 	return conv_reg_to_time(CNTPCT_EL0_get());
 }
 

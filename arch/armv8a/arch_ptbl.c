@@ -15,9 +15,6 @@
 #include "my_board.h"
 #include "memmgr.h"
 
-#define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
-#define	lword(v)		((uint32_t)(v))
-
 /*****************************************************************************/
 /*
  * ページテーブルの抽象化

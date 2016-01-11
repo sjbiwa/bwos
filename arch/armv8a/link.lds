@@ -8,6 +8,7 @@ SECTIONS
 	.text :
 	{
 		__text_start = . ;
+		*(.svector)
 		*(.vector)
 		*(.text.unlikely .text.*_unlikely)
 		*(.text.exit .text.exit.*)

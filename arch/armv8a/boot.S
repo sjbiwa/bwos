@@ -90,9 +90,9 @@ entry_el1:
 	ldr		x0, =0x00000000
 	CPACR_EL1_set(x0)
 
-#if USE_SMP == 1
+#if 0 /*USE_SMP == 1*/
 	/* SMP on */
-	ldr		x0, =0x00000400 /* SMP enable */
+	ldr		x0, =0x00000040 /* SMP enable */
 	CPUECTLR_EL1_set(x0)
 #endif
 

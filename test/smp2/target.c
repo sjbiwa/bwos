@@ -38,7 +38,7 @@ void task1(uint32_t arg0, uint32_t arg1)
 	lprintf("task1:%d:%d\n", arg0, (int)a);
 	for (int i=0;;i++) {
 		lprintf("task1:%d:%d\n", arg0, (int)a);
-		lprintf("SCTLR:%08X\n", (uint32_t)SCTLR_EL1_get());
+		//lprintf("SCTLR:%08X\n", (uint32_t)SCTLR_get());
 		a += 1.0f;
 		task_tsleep(MSEC(5));
 		counter[arg0]++;

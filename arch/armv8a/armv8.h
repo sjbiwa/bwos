@@ -22,8 +22,8 @@
 #define	MODE_USR		(0x00u)
 
 /* スタックサイズ */
-#define	EXCEPTION_STACK_SIZE_SHIFT		10
-#define	IDLE_TASK_STACK_SIZE_SHIFT		10
+#define	EXCEPTION_STACK_SIZE_SHIFT		16
+#define	IDLE_TASK_STACK_SIZE_SHIFT		16
 #define	IRQ_STACK_SIZE_SHIFT			16
 #define	EXCEPTION_STACK_SIZE			(1<<EXCEPTION_STACK_SIZE_SHIFT)
 #define	IDLE_TASK_STACK_SIZE			(1<<IDLE_TASK_STACK_SIZE_SHIFT)
@@ -100,11 +100,14 @@
 #define	CPUID_get()			(0)
 #endif
 
+#define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
+#define	lword(v)		((uint32_t)(v))
+
 #else /* __ASM__ */
 
 /* コアID取得 */
 #if USE_SMP==1
-#define	CPUID_get(reg)		MPIDR_EL1_get(reg);and reg, #0xff
+#define	CPUID_get(reg)		MPIDR_EL1_get(reg);and reg, reg, #0xff
 #else
 #define	CPUID_get(reg)		mov reg, #0
 #endif

@@ -10,13 +10,15 @@
  */
 #include "kernel.h"
 #include "armv8.h"
+#include "armv8reg.h"
+#include "gicv3reg.h"
 
 /*
  * 	idle_task
  * 	  call in DISABLE_IRQ
  */
-void
-idle_task(void)
+static uint32_t counter = 1;
+void idle_task(void)
 {
 	for (;;) {
 		irq_disable();
