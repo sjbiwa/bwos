@@ -19,7 +19,12 @@ OBJCOPY = $(TOOL_PREFIX)objcopy
 RM = rm
 
 A_SRCS += boot.S handler.S arch_api.S dispatch.S
-C_SRCS += api_table.c arch.c idle.c gicv3.c arch_timer.c memmgr.c arch_ptbl.c
+C_SRCS += api_table.c arch.c idle.c arch_timer.c memmgr.c arch_ptbl.c
+ifeq ($(USE_GICV2),1)
+C_SRCS += gicv2.c
+else
+C_SRCS += gicv3.c
+endif
 
 LDSCRIPT = $(ARCHDIR)/link.lds
 
@@ -39,7 +44,7 @@ DEFS += -DMASTER_CPU_ID=0 -DUSE_TICKLESS
 CPUFLAGS = -mcpu=$(CPU)
 
 CFLAGS  += -std=gnu11 $(CPUFLAGS) $(DEFS)
-CFLAGS  += -g -gdwarf-3 -O2 -fno-builtin
+CFLAGS  += -g -gdwarf-3 -O0 -fno-builtin
 AFLAGS  += $(CFLAGS) -D__ASM__
 LDFLAGS += $(CPUFLAGS) -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none

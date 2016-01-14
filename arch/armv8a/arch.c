@@ -170,10 +170,7 @@ void arch_task_active(TaskStruct* task, void* act_param)
 static void
 smp0_handler(uint32_t irqno, void* info)
 {
-	tprintf("smp0 handler:%d\n", CPUID_get());
-	if ( CPUID_get() == 1 ) {
-		tprintf("C:%08X N:%08X\n", cpu_struct[CPUID_get()].ctask, cpu_struct[CPUID_get()].ntask);
-	}
+	tprintf("smp handler:%d\n", CPUID_get());
 }
 
 void arch_system_preinit(uint32_t cpuid)
@@ -270,20 +267,6 @@ extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	return ret;
 }
 
-void ipi_request_dispatch(uint32_t other_cpu_list)
-{
-	__dsb();
-	ICC_SGI1R_EL1_set(other_cpu_list);
-}
-
-void ipi_request_dispatch_one(CpuStruct* cpu)
-{
-	uint32_t cpuid = cpu->cpuid;
-	__dsb();
-	tprintf("IPI:%d -> %d\n", CPUID_get(), cpuid);
-	ICC_SGI1R_EL1_set(0x01u<<cpuid);
-}
-
 void init_task_arch_depend(void)
 {
 extern void init_task_board_depend(void);
@@ -313,7 +296,7 @@ void c_exc_handler(void)
 */
 void general_exception_handler(uint64_t* ptr)
 {
-	tprintf("general exception:CPU=%d\n", CPUID_get());
+	tprintf("general exception:CPU=%d:EL=%08X\n", CPUID_get(), CurrentEL_get());
 	tprintf(" X0:%08X%08X  X1:%08X%08X  X2:%08X%08X\n", hword(ptr[14]),lword(ptr[14]), hword(ptr[15]),lword(ptr[15]), hword(ptr[16]),lword(ptr[16]));
 	tprintf(" X3:%08X%08X  X4:%08X%08X  X5:%08X%08X\n", hword(ptr[17]),lword(ptr[17]), hword(ptr[18]),lword(ptr[18]), hword(ptr[19]),lword(ptr[19]));
 	tprintf(" X6:%08X%08X  X7:%08X%08X  X8:%08X%08X\n", hword(ptr[20]),lword(ptr[20]), hword(ptr[21]),lword(ptr[21]), hword(ptr[22]),lword(ptr[22]));
@@ -329,6 +312,12 @@ void general_exception_handler(uint64_t* ptr)
 	uint64_t esr = ESR_EL1_get();
 	uint64_t far = FAR_EL1_get();
 	tprintf("ELR:%08X%08X SPSR:%08X  ESR:%08X FAR:%08X%08X\n", hword(ptr[12]),lword(ptr[12]), lword(ptr[13]), lword(esr), hword(far),lword(far));
+
+	tprintf("\n\n");
+	for (int ix=0; ix < CPU_NUM; ix++ ) {
+		tprintf("[%d]:C:%08X N:%08X\n", ix, cpu_struct[ix].ctask, cpu_struct[ix].ntask);
+	}
+	tprintf("\n\n");
 	for (;;);
 }
 

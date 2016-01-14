@@ -17,7 +17,6 @@
  * 	idle_task
  * 	  call in DISABLE_IRQ
  */
-static uint32_t counter = 1;
 void idle_task(void)
 {
 	for (;;) {

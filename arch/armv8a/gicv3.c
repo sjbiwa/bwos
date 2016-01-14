@@ -175,6 +175,7 @@ void arch_irq_init(uint32_t cpuid)
 
 	iowrite32(GICR_WAKER, ioread32(GICR_WAKER) & ~(0x01<<1));
 	while (ioread32(GICR_WAKER) & (0x01<<2));
+	tprintf("GICR WAKEUP\n");
 
 	iowrite32(GICR_CTLR, 0x00000000);
 	gicr_wait_rwp();
@@ -196,9 +197,27 @@ void arch_irq_init(uint32_t cpuid)
 	/*	GIC CPU interface setting (All Core)		*/
 	/************************************************/
 	ICC_SRE_EL1_set(0x00000007);
+	__isb(); /* XXX: ISBを入れないと次のICC_CTLR_EL1へのアクセスがアボートする */
 	ICC_CTLR_EL1_set(0x00000000);
 	ICC_BPR0_EL1_set(0);
 	ICC_BPR1_EL1_set(0);
 	ICC_PMR_EL1_set(0xff);
 	ICC_IGRPEN1_EL1_set(0x00000001);
+}
+
+void ipi_request_dispatch(uint32_t other_cpu_list)
+{
+	__dsb();
+	ICC_SGI1R_EL1_set(other_cpu_list);
+	__isb();
+	__dsb();
+}
+
+void ipi_request_dispatch_one(CpuStruct* cpu)
+{
+	uint32_t cpuid = cpu->cpuid;
+	__dsb();
+	ICC_SGI1R_EL1_set(0x01u<<cpuid);
+	__isb();
+	__dsb();
 }

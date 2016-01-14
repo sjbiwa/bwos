@@ -40,18 +40,21 @@ void task1(uint32_t arg0, uint32_t arg1)
 		lprintf("task1:%d:%d\n", arg0, (int)a);
 		lprintf("SCTLR:%08X\n", (uint32_t)SCTLR_EL1_get());
 		a += 1.0f;
-		task_tsleep(MSEC(5));
+		task_tsleep(SEC(3));
 		counter[arg0]++;
 	}
 }
 
 void task2(uint32_t arg0, uint32_t arg1)
 {
+	debug_print("task2 start\n");
+	for (;;);
 	double a = 1.0f;
 	for (int i=0;;i++) {
 		lprintf("task2:%d:%d\n", arg0, (int)a);
 		a += 2.0f;
-		task_tsleep(MSEC(1));
+		task_sleep();
+		task_tsleep(SEC(5));
 		counter[arg0]++;
 	}
 }
@@ -62,7 +65,7 @@ void task3(uint32_t arg0, uint32_t arg1)
 	for (int i=0;;i++) {
 		lprintf("task3:%d:%d\n", arg0, (int)a);
 		a += 3.0f;
-		task_tsleep(MSEC(1));
+		task_tsleep(MSEC(300));
 		counter[arg0]++;
 	}
 }
@@ -71,7 +74,7 @@ void task4(uint32_t arg0, uint32_t arg1)
 {
 	for (int i=0;;i++) {
 		lprintf("task4:%d:%d\n", arg0, i);
-		task_tsleep(MSEC(3));
+		task_tsleep(MSEC(200));
 		counter[arg0]++;
 	}
 }
@@ -88,17 +91,17 @@ void print_task(uint32_t arg0, uint32_t arg1)
 {
 	for (;;) {
 		lprintf("%d:%d:%d:%d\n", counter[0], counter[1], counter[2], counter[3]);
-		task_tsleep(SEC(5));
+		task_tsleep(MSEC(100));
 		get_ptr();
 	}
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", CPU_CORE0|TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 256, 0, 5, (void*)0},
-		{"TASK2", CPU_CORE0|TASK_ACT|TASK_FPU, task2, 0, 256, 0, 6, (void*)1},
-		{"TASK3", CPU_CORE0|TASK_ACT|TASK_FPU, task3, 0, 256, 0, 5, (void*)2},
-		{"TASK4", CPU_CORE0|TASK_ACT, task4, 0, 256, 0, 6, (void*)3},
-		{"PRINTER", CPU_CORE0|TASK_ACT|TASK_SYS, print_task, 0, 256, 0, 6, (void*)0},
+//		{"TASK1", CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 4096, 0, 5, (void*)0},
+		{"TASK2", CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task2, 0, 4096, 0, 6, (void*)1},
+//		{"TASK3", CPU_CORE1|TASK_ACT|TASK_FPU, task3, 0, 256, 0, 5, (void*)2},
+//		{"TASK4", CPU_CORE1|TASK_ACT, task4, 0, 256, 0, 6, (void*)3},
+//		{"PRINTER", CPU_CORE0|TASK_ACT|TASK_SYS, print_task, 0, 256, 0, 6, (void*)0},
 };
 
 void main_task(void)

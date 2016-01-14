@@ -40,6 +40,12 @@ C_SRCS +=
 # FPUを使うコード
 FPU_C_SRCS += target.c
 
+ifeq ($(USE_GICV2),1)
+GICOPT = --no-gicv3
+else
+GICOPT = --gicv3
+endif
+
 all: $(TARGET)
 
 # 最終的にはFPUの有無によるコンパイルオプション変更を実装すべき
@@ -48,7 +54,8 @@ target.o: target.c
 	$(CC) -c $(CFLAGS) $(INC) $(DEFS) $<
 
 run:
-	Foundation_Platform --visualization --use-real-time --cores=$(SMP_CPU_NUM) --gicv3 --image=$(TARGET_ELF)
+	Foundation_Platform --visualization --cores=$(SMP_CPU_NUM) $(GICOPT) --image=$(TARGET_ELF)
+#	Foundation_Platform --visualization --use-real-time --cores=$(SMP_CPU_NUM) --gicv3 --image=$(TARGET_ELF)
 
 include $(ARCHDIR)/config.mk
 include $(KERNDIR)/config.mk

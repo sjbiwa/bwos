@@ -12,7 +12,7 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
-#define	USE_WFE_SEV
+//#define	USE_WFE_SEV
 
 /****************************************/
 /*  void spin_init(SpinLockObj* ptr)    */
@@ -53,6 +53,9 @@ wait_event:
 	.type   spin_lock, %function
 	.globl	spin_unlock
 spin_unlock:
+	LDR		w1, [x0]
+	CMP		w1, #1
+	BNE		err_unlock
 	MOV		w1, #0
 	DMB		SY
 	STR		w1, [x0]
@@ -61,6 +64,10 @@ spin_unlock:
 	SEV
 #endif
 	RET
+err_unlock:
+	ldr		x8, =0x0000000000000001
+	ldr		x8, [x8]
+	b		err_unlock
 
 /****************************************/
 /*  int spin_trylock(SpinLockObj* ptr)  */
