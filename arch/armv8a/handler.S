@@ -83,7 +83,7 @@ el1_irq_handler:
 	/* IRQネスト値更新 */
 	CPUID_get(x0)
 	ldr		x1, =_irq_level
-	add		x1, x1, x0, LSL #3
+	add		x1, x1, x0, LSL #2
 	ldr		w0, [x1]
 	add		w0, w0, #1
 	str		w0, [x1]
@@ -110,7 +110,7 @@ enter_op_done:
 	/* IRQネスト値更新 */
 	CPUID_get(x0)
 	ldr		x1, =_irq_level
-	add		x1, x1, x0, LSL #3
+	add		x1, x1, x0, LSL #2
 	ldr		w0, [x1]
 	sub		w0, w0, #1
 	str		w0, [x1]

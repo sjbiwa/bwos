@@ -12,8 +12,6 @@
 #include "armv8reg.h"
 #include "gicv2reg.h"
 
-uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
-
 static struct {
 	IRQ_HANDLER		handler;
 	void*			info;
@@ -180,16 +178,12 @@ arch_irq_init(uint32_t cpuid)
 void ipi_request_dispatch(uint32_t other_cpu_list)
 {
 	__dsb();
-	//tprintf("ipi_request_dispatch:%08X\n", other_cpu_list);
 	iowrite32(GICD_SGIR, other_cpu_list << 16);
-	//tprintf("ipi_request_dispatch done\n");
 }
 
 void ipi_request_dispatch_one(CpuStruct* cpu)
 {
 	uint32_t cpuid = cpu->cpuid;
 	__dsb();
-	//tprintf("ipi_request_dispatch_one:%08X\n", cpuid);
 	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
-	//tprintf("ipi_request_dispatch_one done\n");
 }

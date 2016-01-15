@@ -5,5 +5,5 @@ ARCH = armv8a
 CPU  = cortex-a53
 BOARD = arm_std
 APPLICATION = application
-SMP_CPU_NUM=2
+SMP_CPU_NUM=4
 USE_GICV2=1

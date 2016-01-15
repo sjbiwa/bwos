@@ -40,7 +40,7 @@ void task1(uint32_t arg0, uint32_t arg1)
 		lprintf("task1:%d:%d\n", arg0, (int)a);
 		lprintf("SCTLR:%08X\n", (uint32_t)SCTLR_EL1_get());
 		a += 1.0f;
-		task_tsleep(SEC(3));
+		task_tsleep(MSEC(50));
 		counter[arg0]++;
 	}
 }
@@ -48,13 +48,11 @@ void task1(uint32_t arg0, uint32_t arg1)
 void task2(uint32_t arg0, uint32_t arg1)
 {
 	debug_print("task2 start\n");
-	for (;;);
 	double a = 1.0f;
 	for (int i=0;;i++) {
 		lprintf("task2:%d:%d\n", arg0, (int)a);
 		a += 2.0f;
-		task_sleep();
-		task_tsleep(SEC(5));
+		task_tsleep(MSEC(100));
 		counter[arg0]++;
 	}
 }
@@ -65,7 +63,7 @@ void task3(uint32_t arg0, uint32_t arg1)
 	for (int i=0;;i++) {
 		lprintf("task3:%d:%d\n", arg0, (int)a);
 		a += 3.0f;
-		task_tsleep(MSEC(300));
+		task_tsleep(MSEC(150));
 		counter[arg0]++;
 	}
 }
@@ -91,17 +89,25 @@ void print_task(uint32_t arg0, uint32_t arg1)
 {
 	for (;;) {
 		lprintf("%d:%d:%d:%d\n", counter[0], counter[1], counter[2], counter[3]);
-		task_tsleep(MSEC(100));
+		task_tsleep(MSEC(400));
 		get_ptr();
 	}
 }
 
 TaskCreateInfo	task_info[] = {
-//		{"TASK1", CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 4096, 0, 5, (void*)0},
-		{"TASK2", CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task2, 0, 4096, 0, 6, (void*)1},
-//		{"TASK3", CPU_CORE1|TASK_ACT|TASK_FPU, task3, 0, 256, 0, 5, (void*)2},
-//		{"TASK4", CPU_CORE1|TASK_ACT, task4, 0, 256, 0, 6, (void*)3},
-//		{"PRINTER", CPU_CORE0|TASK_ACT|TASK_SYS, print_task, 0, 256, 0, 6, (void*)0},
+		{"TASK1",   CPU_CORE0|TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 4096, 0, 5, (void*)1},
+		{"TASK2",   CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task2, 0, 4096, 0, 6, (void*)2},
+		{"TASK3",   CPU_CORE2|TASK_ACT|TASK_SYS|TASK_FPU, task3, 0, 4096, 0, 5, (void*)3},
+		{"TASK4",   CPU_CORE3|TASK_ACT|TASK_SYS|TASK_FPU, task4, 0, 4096, 0, 6, (void*)4},
+		{"TASK5",   CPU_CORE0|TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 4096, 0, 5, (void*)5},
+		{"TASK6",   CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task2, 0, 4096, 0, 6, (void*)6},
+		{"TASK7",   CPU_CORE2|TASK_ACT|TASK_SYS|TASK_FPU, task3, 0, 4096, 0, 5, (void*)7},
+		{"TASK8",   CPU_CORE3|TASK_ACT|TASK_SYS|TASK_FPU, task4, 0, 4096, 0, 6, (void*)8},
+		{"TASK9",   CPU_CORE0|TASK_ACT|TASK_SYS|TASK_FPU, task1, 0, 4096, 0, 5, (void*)9},
+		{"TASK10",  CPU_CORE1|TASK_ACT|TASK_SYS|TASK_FPU, task2, 0, 4096, 0, 6, (void*)10},
+		{"TASK11",  CPU_CORE2|TASK_ACT|TASK_SYS|TASK_FPU, task3, 0, 4096, 0, 5, (void*)11},
+		{"TASK12",  CPU_CORE3|TASK_ACT|TASK_SYS|TASK_FPU, task4, 0, 4096, 0, 6, (void*)12},
+		{"PRINTER", CPU_CORE0|TASK_ACT|TASK_SYS|TASK_FPU, print_task, 0, 4096, 0, 6, (void*)0},
 };
 
 void main_task(void)

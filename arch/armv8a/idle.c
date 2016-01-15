@@ -21,7 +21,7 @@ void idle_task(void)
 {
 	for (;;) {
 		irq_disable();
-		__wfi();
+		//__wfi();
 		irq_enable();
 	}
 }

@@ -12,7 +12,7 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
-//#define	USE_WFE_SEV
+#define	USE_WFE_SEV
 
 /****************************************/
 /*  void spin_init(SpinLockObj* ptr)    */

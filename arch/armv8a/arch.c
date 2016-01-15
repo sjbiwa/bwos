@@ -22,6 +22,8 @@ extern char __heap_start;
 
 CpuStruct* cpu_struct_pointer[CPU_NUM]; /* 各コアが自身のcpu_structを取り出すためのもの */
 
+uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
+
 
 /* 最初に1になるビットを左側から探す */
 static inline int32_t bit_srch_l(uint32_t val)
@@ -170,7 +172,7 @@ void arch_task_active(TaskStruct* task, void* act_param)
 static void
 smp0_handler(uint32_t irqno, void* info)
 {
-	tprintf("smp handler:%d\n", CPUID_get());
+	//tprintf("smp handler:%d\n", CPUID_get());
 }
 
 void arch_system_preinit(uint32_t cpuid)
