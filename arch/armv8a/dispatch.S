@@ -10,15 +10,11 @@
 	.text
 	.balign 4
 
-	.global _dispatch_sub
-	.type   _dispatch_sub, %function
+	.global _switch_to
+	.type   _switch_to, %function
 
-/*
-**  _dispatch_sub
-*/
-_dispatch_sub:
 /**
-** _dispatch_sub
+** _switch_to
 **    X0:      ctask  (dispatch from)
 **    X1:      ntask  (dispatch to)
 **    X2:      aff_info (==0: dispatch !=0: affinity_info)
@@ -36,13 +32,8 @@ _dispatch_sub:
 **          |  CPACR    |
 **          -------------
 **
-**		import _ctask	(current task)
-**		import _ntask	(next task)
 */
-	.global _dispatch_sub
-	.type   _dispatch_sub, %function
-
-_dispatch_sub:
+_switch_to:
 	/* ※ 関数として呼ばれるエントリなので X0-X7は破壊されても良い */
 
 	/* check _ctask	*/
@@ -110,9 +101,7 @@ _restore_context:
 	CPUID_get(x3)
 	sub		x2, x2, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, x2
-1:
-	bl		do_set_affinity
-	b		1b
+	b		do_set_affinity
 
 no_affinity:
 #endif
@@ -226,8 +215,7 @@ _dispatch_irq:
 	/* save current task context */
 	ldr		x30, =_entry_stub
 	mov		x2, #0
-	b		_dispatch_sub
-
+	b		_switch_to
 
 _nodispatch_irq:
 	b		_entry_stub

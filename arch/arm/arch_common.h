@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include "my_board.h"
 #include "arm.h"
+#include "cp15reg.h"
 
 #define	irq_enable()		__asm__ volatile ("cpsie i":::"memory")
 #define	irq_disable()		__asm__ volatile ("cpsid i":::"memory")

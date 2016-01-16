@@ -20,8 +20,6 @@
 extern void	_entry_stub(void);
 extern char __heap_start;
 
-CpuStruct* cpu_struct_pointer[CPU_NUM]; /* 各コアが自身のcpu_structを取り出すためのもの */
-
 uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 
 
@@ -178,9 +176,6 @@ smp0_handler(uint32_t irqno, void* info)
 void arch_system_preinit(uint32_t cpuid)
 {
 	if ( cpuid == MASTER_CPU_ID ) {
-		for (int cid=0; cid < CPU_NUM; cid++ ) {
-			cpu_struct_pointer[cid] = &cpu_struct[cid];
-		}
 		debug_print_init();
 	}
 	tprintf("MPIDR = %08X%08X\n", hword(MPIDR_EL1_get()), lword(MPIDR_EL1_get()));
@@ -269,23 +264,18 @@ extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	return ret;
 }
 
-void init_task_arch_depend(void)
-{
-extern void init_task_board_depend(void);
-	init_task_board_depend();
-}
-
 void _dispatch(void)
 {
 	TaskStruct* ctask = cpu_struct[CPUID_get()].ctask;
 	TaskStruct* ntask = cpu_struct[CPUID_get()].ntask;
 	cpu_struct[CPUID_get()].ctask = ntask;
-	_dispatch_sub(ctask, ntask, 0);
+	_switch_to(ctask, ntask, 0);
 }
 
-CpuStruct* get_cpu_struct(void)
+void init_task_arch_depend(void)
 {
-	return &cpu_struct[CPUID_get()];
+extern void init_task_board_depend(void);
+	init_task_board_depend();
 }
 
 /* ０除算呼び出し */

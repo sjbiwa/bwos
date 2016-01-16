@@ -44,6 +44,10 @@ DEF_OSAPI task_tsleep, TASK_TSLEEP_APINO
 DEF_OSAPI task_dormant, TASK_DORMANT_APINO
 /* OSAPI void* task_get_tls(int id); */
 DEF_OSAPI task_get_tls, TASK_GET_TLS_APINO
+#if USE_SMP == 1
+/* OSAPI int task_set_affinity(uint32_t aff) */
+DEF_OSAPI task_set_affinity, TASK_SET_AFFINITY_APINO
+#endif
 
 
 /* フラグ関連API */

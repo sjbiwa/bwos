@@ -51,5 +51,8 @@
 #define	TIMER_CREATE_APINO					36
 #define	TIMER_SET_APINO						37
 #define	TIMER_ENABLE_APINO					38
+#if USE_SMP == 1
+#define	TASK_SET_AFFINITY_APINO				39
+#endif
 
 #endif /* API_NO_H_ */

@@ -85,6 +85,11 @@ extern void task_add_timeout(TaskStruct* task, TimeOut tm);
 extern bool schedule(CpuStruct* cpu);
 extern uint32_t schedule_any(uint32_t wakeup_cpu_list);
 extern void self_request_dispatch(void);
+extern void _dispatch(void);
+#if USE_SMP==1
+extern void _switch_to(TaskStruct* ctask, TaskStruct* ntask, void* affinfo);
+#endif
+extern CpuStruct* get_cpu_struct(void);
 
 static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task, void* wait_obj))
 {

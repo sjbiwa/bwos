@@ -233,6 +233,14 @@ extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	return ret;
 }
 
+void _dispatch(void)
+{
+	TaskStruct* ctask = cpu_struct[CPUID_get()].ctask;
+	TaskStruct* ntask = cpu_struct[CPUID_get()].ntask;
+	cpu_struct[CPUID_get()].ctask = ntask;
+	_switch_to(ctask, ntask, 0);
+}
+
 void ipi_request_dispatch(uint32_t other_cpu_list)
 {
 	__dsb();

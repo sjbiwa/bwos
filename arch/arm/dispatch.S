@@ -17,7 +17,10 @@
 	.balign 4
 
 /**
-** _dispatch
+** _switch_to
+**    R0:      ctask  (dispatch from)
+**    R1:      ntask  (dispatch to)
+**    R2:      aff_info (==0: dispatch !=0: affinity_info)
 **    LR: return address
 **    SVCモード/割り込み禁止で呼び出すこと
 **
@@ -55,72 +58,68 @@
 **		import _ctask	(current task)
 **		import _ntask	(next task)
 */
-	.global _dispatch
-	.type   _dispatch, %function
+	.global _switch_to
+	.type   _switch_to, %function
 
-_dispatch:
+_switch_to:
 	/* ※ 関数として呼ばれるエントリなので R0/R1/R2/R3/R12は破壊されても良い */
 	push	{lr}
 
 	/* check _ctask	*/
-	ldr		lr, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		lr, [lr, r0, LSL #2]		/* lr <- cpu_struct */
-	ldr		lr, [lr, #CPUSTRUCT_CTASK] /* lr <- ctask */
-	cmp		lr, #0
+	cmp		r0, #0
 
 	/* IF _ctask not available ignore save_context */
 	beq		_restore_context
 
 _save_and_restore:
-	/* save _ctask state (LR is _ctask) */
+	/* save _ctask state (R0 is _ctask) */
 	push	{r0,r4-r11}
 	/* save FPEXC */
-	vmrs	r1, FPEXC
-	push	{r1}
+	vmrs	r3, FPEXC
+	push	{r3}
 	/*********************************/
 	/* if FPEXC.EN==1 save VFP !!!!! */
 	/*********************************/
-	tst		r1, #0x40000000
+	tst		r3, #0x40000000
 	beq		_no_save_vfp
-	ldr		r1, [lr, #SAVE_VFP]
-	vstmia	r1!, {d0-d15}
-	vstmia	r1!, {d16-d31}
-	vmrs	r0, FPSCR
-	str		r0, [r1]
+	ldr		r3, [r0, #SAVE_VFP]
+	vstmia	r3!, {d0-d15}
+	vstmia	r3!, {d16-d31}
+	vmrs	r4, FPSCR
+	str		r4, [r3]
 
 _no_save_vfp:
 	/* save USR/SYS info */
-	mrs		r0, SPSR_svc
-	mrs		r1, SP_usr
-	mrs		r2, LR_usr
-	push	{r0,r1,r2}
+	mrs		r4, SPSR_svc
+	mrs		r5, SP_usr
+	mrs		r6, LR_usr
+	push	{r4,r5,r6}
 
-	str		sp, [lr,#SAVE_SP]
+	str		sp, [r0,#SAVE_SP]
 
 _restore_context:
 	/* All register done saved */
+#if USE_SMP == 1
+	/* check affinity */
+	cmp		r2, #0
+	beq		no_affinity
 
-	/* copy _ntask -> _ctask */
-	ldr		r4, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		r4, [r4, r0, LSL #2]		/* get cpu_struct */
-#if USE_SMP==1
-	add		r0, r4, #CPUSTRUCT_LOCK
-	bl		spin_lock
+	mov		r1, r2
+	/* スタックを切り替えてaffinity処理呼び出し */
+	ldr		r2, =stack_idle
+	CPUID_get(r3)
+	sub		r2, r2, r3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, r2
+	b		do_set_affinity
+
+no_affinity:
 #endif
-	ldr		r5, [r4, #CPUSTRUCT_NTASK] 	/* r0 <- ntask */
-	str		r5, [r4, #CPUSTRUCT_CTASK]	/* r0 -> ctask */
-#if USE_SMP==1
-	add		r0, r4, #CPUSTRUCT_LOCK
-	bl		spin_unlock
-#endif
-	mov		lr, r5
 
 	/* check _ntask */
-	cmp		lr, #0
+	cmp		r1, #0
 	beq		_idle_loop
 
+	mov		lr, r1
 	/* restore SP (LR is _ntask)*/
 	ldr		sp, [lr,#SAVE_SP]
 
@@ -185,25 +184,22 @@ _entry_stub:
 
 _dispatch_irq:
 	/* ※ R0/R1/R2/R3/R12/LRはすでに退避されているので破壊されても良い */
+
+	bl		get_cpu_struct
+	mov		r2, r0
+	/* R2 is cpu_struct */
+	ldr		r0, [r2, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
+	ldr		r1, [r2, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
 	/* compare _ctask and _ntask */
-	ldr		r1, =cpu_struct_pointer
-	CPUID_get(r0)
-	ldr		r1, [r1, r0, LSL #2]		/* r1 <- cpu_struct */
-	ldr		r0, [r1, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
-	ldr		r1, [r1, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
 	cmp		r0, r1
 	beq		_nodispatch_irq /* _ctask == _ntask ? */
 
+	str		r1, [r2, #CPUSTRUCT_CTASK] 	/* ctask <- r1(ntask) */
 	/* r0:_ctask r1:_ntask */
-	/* _ctask check */
-	cmp		r0, #0
-	beq		_restore_context /* _ctask is NULL ? */
-
 	/* save current task context */
 	ldr		lr, =_entry_stub
-	push	{lr}
-	mov		lr, r0
-	b		_save_and_restore
+	mov		r2, #0
+	b		_switch_to
 
 _nodispatch_irq:
 	b		_entry_stub
@@ -216,7 +212,7 @@ _idle_loop:
 	cps		#MODE_SVC
 	ldr		r0, =stack_idle
 	CPUID_get(r1)
-	sub		r0, r0, r1, LSR #IDLE_TASK_STACK_SIZE_SHIFT
+	sub		r0, r0, r1, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, r0
 1:
 	bl		idle_task

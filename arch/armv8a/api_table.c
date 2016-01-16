@@ -19,6 +19,9 @@ void* svc_entry_table[] = {
 		[TASK_TSLEEP_APINO] =				(void*)__task_tsleep,
 		[TASK_DORMANT_APINO] =				(void*)__task_dormant,
 		[TASK_GET_TLS_APINO] =				(void*)__task_get_tls,
+#if USE_SMP == 1
+		[TASK_SET_AFFINITY_APINO] =			(void*)__task_set_affinity,
+#endif
 		[FLAG_CREATE_APINO] =				(void*)__flag_create,
 		[FLAG_SET_APINO] =					(void*)__flag_set,
 		[FLAG_WAIT_APINO] =					(void*)__flag_wait,
@@ -50,7 +53,4 @@ void* svc_entry_table[] = {
 		[TIMER_CREATE_APINO] =				(void*)__timer_create,
 		[TIMER_SET_APINO] =					(void*)__timer_set,
 		[TIMER_ENABLE_APINO] =				(void*)__timer_enable,
-#if USE_SMP == 1
-		[TASK_SET_AFFINITY_APINO] =			(void*)__task_set_affinity,
-#endif
 };

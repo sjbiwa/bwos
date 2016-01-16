@@ -1,31 +1,11 @@
+/*
+ * target.c
+ *
+ *  Created on: 2014/11/15
+ *      Author: biwa
+ */
 #include "bwos.h"
-
-void wait(uint32_t t)
-{
-	volatile uint32_t count = t;
-	while ( 0 < count ) {
-		count--;
-	}
-}
-
-void timer_handler(void* param)
-{
-//	task_wakeup(task_struct[0]);
-}
-
-void timer_start(uint32_t arg0, uint32_t arg1)
-{
-	TimerInfo info;
-	int timer = timer_create();
-	info.cyclic = SEC(10);
-	info.tmout = SEC(1);
-	info.kind = TIMER_CYCLIC;
-	info.param = 0;
-	info.handler = timer_handler;
-
-	timer_set(timer, &info);
-	timer_enable(timer, true);
-}
+#include "cp15reg.h"
 
 typedef	struct {
 	uint32_t	buff1[16];
@@ -33,7 +13,7 @@ typedef	struct {
 } Message;
 
 /* configuration task */
-static int		task_struct[64];
+static int		task_struct[32];
 
 static volatile int mutex;
 static volatile int fixmb;
@@ -42,18 +22,16 @@ static volatile int flag;
 
 void task1(uint32_t arg0, uint32_t arg1)
 {
-	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
-		lprintf("CORE=%d:task%d:%d\n", CPUID_get(), arg0, ix);
-		task_set_affinity(ix%CPU_NUM);
-		task_tsleep(MSEC(500));
+	for (;;) {
+		lprintf("CORE=%d:task1\n", CPUID_get());
+		task_tsleep(MSEC(100));
 	}
 }
 
 void task2(uint32_t arg0, uint32_t arg1)
 {
-	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
-		lprintf("CORE=%d:task2:%d\n", CPUID_get(), ix);
-		task_set_affinity(ix%CPU_NUM);
+	for (;;) {
+		lprintf("CORE=%d:task2\n", CPUID_get());
 		task_tsleep(MSEC(200));
 	}
 }
@@ -66,14 +44,13 @@ void task3(uint32_t arg0, uint32_t arg1)
 	Message* ptr;
 	for (int ix=0;;ix++ ) {
 		lprintf("CORE=%d:task3\n", CPUID_get());
-		int ret = fixmb_trequest(fixmb, (void**)(&ptr), MSEC(500));
+		int ret = fixmb_trequest(fixmb, (void**)(&ptr), SEC(30));
 		if ( ret == RT_OK ) {
 			lprintf("CORE=%d:get %08X\n", CPUID_get(), ptr);
 		}
 		else {
 			lprintf("CORE=%d:%d:get xxxxx error\n", CPUID_get(), ix);
 		}
-		task_set_affinity(ix%CPU_NUM);
 	}
 }
 
@@ -238,32 +215,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 0, 1024, 0, 7, (void*)0},
 #endif
 #if 1
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)0},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)1},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)2},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)3},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)4},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)5},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)6},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 5, (void*)7},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)8},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)9},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)10},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)11},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)12},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)13},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)14},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)15},
-#endif
-#if 0
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)0},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)1},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)2},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)3},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)4},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)5},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)6},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)7},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)1},
 		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 6, (void*)1},

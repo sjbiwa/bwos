@@ -244,6 +244,4 @@ int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr);
 int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
 int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr);
 
-void _dispatch();
-
 #endif /* INC_KERNEL_API_H_ */

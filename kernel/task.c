@@ -109,6 +109,11 @@ bool can_dispatch(void)
 	return arch_can_dispatch();
 }
 
+CpuStruct* get_cpu_struct(void)
+{
+	return &cpu_struct[CPUID_get()];
+}
+
 void _kernel_timer_update(Link* task_time_out_list)
 {
 #if defined(USE_TICKLESS)
@@ -533,7 +538,7 @@ int _kernel_task_dormant(void)
 }
 
 #if USE_SMP == 1
-static inline void cpu_serialize(CpuStruct** cpu1, CpuStruct** cpu2)
+static inline void cpu_ordering(CpuStruct** cpu1, CpuStruct** cpu2)
 {
 	if ( (*cpu2)->cpuid < (*cpu1)->cpuid ) {
 		CpuStruct* temp;
@@ -545,14 +550,14 @@ static inline void cpu_serialize(CpuStruct** cpu1, CpuStruct** cpu2)
 
 static void cpu_spinlock_aff(CpuStruct* cpu1, CpuStruct* cpu2)
 {
-	cpu_serialize(&cpu1, &cpu2);
+	cpu_ordering(&cpu1, &cpu2);
 	cpu_spinlock(cpu1);
 	cpu_spinlock(cpu2);
 }
 
 static void cpu_spinunlock_aff(CpuStruct* cpu1, CpuStruct* cpu2)
 {
-	cpu_serialize(&cpu1, &cpu2);
+	cpu_ordering(&cpu1, &cpu2);
 	cpu_spinunlock(cpu2);
 	cpu_spinunlock(cpu1);
 }
@@ -585,7 +590,7 @@ void do_set_affinity(TaskStruct* ctask, AffinityInfo* info)
 	ipi_request_dispatch_one(t_cpu);
 
 	/* 自CPU(旧CPU)のdispatch */
-	_dispatch_sub(0, ntask, 0);
+	_switch_to(0, ntask, 0);
 }
 
 int _kernel_task_set_affinity(uint32_t aff)
@@ -609,7 +614,7 @@ int _kernel_task_set_affinity(uint32_t aff)
 		AffinityInfo aff_info;
 		aff_info.c_cpu = c_cpu;
 		aff_info.t_cpu = t_cpu;
-		_dispatch_sub(ctask, 0, &aff_info);
+		_switch_to(ctask, 0, &aff_info);
 
 		ret = RT_OK;
 	}
