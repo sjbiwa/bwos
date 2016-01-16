@@ -20,6 +20,9 @@
 #define	task_tsleep			__task_tsleep
 #define	task_dormant		__task_dormant
 #define	task_get_tls		__task_get_tls
+#if USE_SMP == 1
+#define	task_set_affinity	__task_set_affinity
+#endif
 
 /* フラグ関連API */
 #define	flag_create			__flag_create

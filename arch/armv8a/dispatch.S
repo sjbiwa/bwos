@@ -10,15 +10,18 @@
 	.text
 	.balign 4
 
-	.global _dispatch
-	.type   _dispatch, %function
+	.global _dispatch_sub
+	.type   _dispatch_sub, %function
 
 /*
-**  _dispatch
+**  _dispatch_sub
 */
-_dispatch:
+_dispatch_sub:
 /**
-** _dispatch
+** _dispatch_sub
+**    X0:      ctask  (dispatch from)
+**    X1:      ntask  (dispatch to)
+**    X2:      aff_info (==0: dispatch !=0: affinity_info)
 **    X30(LR): return address
 **    EL1/割り込み禁止で呼び出すこと
 **
@@ -36,17 +39,13 @@ _dispatch:
 **		import _ctask	(current task)
 **		import _ntask	(next task)
 */
-	.global _dispatch
-	.type   _dispatch, %function
+	.global _dispatch_sub
+	.type   _dispatch_sub, %function
 
-_dispatch:
+_dispatch_sub:
 	/* ※ 関数として呼ばれるエントリなので X0-X7は破壊されても良い */
 
 	/* check _ctask	*/
-	ldr		x1, =cpu_struct_pointer
-	CPUID_get(x0)
-	ldr		x1, [x1, x0, LSL #3]		/* x1 <- cpu_struct */
-	ldr		x0, [x1, #CPUSTRUCT_CTASK] /* x0 <- ctask */
 	cmp		x0, #0
 
 	/* IF _ctask not available ignore save_context */
@@ -72,57 +71,58 @@ _save_and_restore:
 	/*******************/
 	/* FPUレジスタ退避 */
 	/*******************/
-	ldr		x1, [x0, #SAVE_VFP]
-	stp		 q0,  q1, [x1], #32
-	stp		 q2,  q3, [x1], #32
-	stp		 q4,  q5, [x1], #32
-	stp		 q6,  q7, [x1], #32
-	stp		 q8,  q9, [x1], #32
-	stp		q10, q11, [x1], #32
-	stp		q12, q13, [x1], #32
-	stp		q14, q15, [x1], #32
-	stp		q16, q17, [x1], #32
-	stp		q18, q19, [x1], #32
-	stp		q20, q21, [x1], #32
-	stp		q22, q23, [x1], #32
-	stp		q24, q25, [x1], #32
-	stp		q26, q27, [x1], #32
-	stp		q28, q29, [x1], #32
-	stp		q30, q31, [x1], #32
+	ldr		x3, [x0, #SAVE_VFP]
+	stp		 q0,  q1, [x3], #32
+	stp		 q2,  q3, [x3], #32
+	stp		 q4,  q5, [x3], #32
+	stp		 q6,  q7, [x3], #32
+	stp		 q8,  q9, [x3], #32
+	stp		q10, q11, [x3], #32
+	stp		q12, q13, [x3], #32
+	stp		q14, q15, [x3], #32
+	stp		q16, q17, [x3], #32
+	stp		q18, q19, [x3], #32
+	stp		q20, q21, [x3], #32
+	stp		q22, q23, [x3], #32
+	stp		q24, q25, [x3], #32
+	stp		q26, q27, [x3], #32
+	stp		q28, q29, [x3], #32
+	stp		q30, q31, [x3], #32
 	FPCR_get(x8)
 	FPSR_get(x9)
-	stp		x8, x9, [x1]
+	stp		x8, x9, [x3]
 
 no_vfp_save:
-	mov		x1, sp
-	str		x1, [x0,#SAVE_SP]
+	mov		x3, sp
+	str		x3, [x0,#SAVE_SP]
 
 _restore_context:
 	/* All register done saved */
 
-	/* copy _ntask -> _ctask */
-	ldr		x19, =cpu_struct_pointer
-	CPUID_get(x0)
-	ldr		x19, [x19, x0, LSL #3]		/* get cpu_struct */
-#if USE_SMP==1
-	add		x0, x19, #CPUSTRUCT_LOCK
-	bl		spin_lock
-#endif
-	ldr		x8, [x19, #CPUSTRUCT_NTASK]	/* x0 <- ntask */
-	str		x8, [x19, #CPUSTRUCT_CTASK]	/* x0 -> ctask */
-#if USE_SMP==1
-	add		x0, x19, #CPUSTRUCT_LOCK
-	bl		spin_unlock
-#endif
+#if USE_SMP == 1
+	/* check affinity */
+	cmp		x2, #0
+	beq		no_affinity
 
+	mov		x1, x2
+	/* スタックを切り替えてaffinity処理呼び出し */
+	ldr		x2, =stack_idle
+	CPUID_get(x3)
+	sub		x2, x2, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, x2
+1:
+	bl		do_set_affinity
+	b		1b
+
+no_affinity:
+#endif
 	/* check _ntask */
-	mov		x0, x8
-	cmp		x0, #0
+	cmp		x1, #0
 	beq		_idle_loop
 
 	/* restore SP (X0 is _ntask)*/
-	ldr		x1, [x0,#SAVE_SP]
-	mov		sp, x1
+	ldr		x3, [x1,#SAVE_SP]
+	mov		sp, x3
 
 	ldp		x19, x20, [sp], #16
 	ldp		x21, x22, [sp], #16
@@ -142,24 +142,24 @@ _restore_context:
 	/*******************/
 	/* FPUレジスタ復帰 */
 	/*******************/
-	ldr		x1, [x0, #SAVE_VFP]
-	ldp		 q0,  q1, [x1], #32
-	ldp		 q2,  q3, [x1], #32
-	ldp		 q4,  q5, [x1], #32
-	ldp		 q6,  q7, [x1], #32
-	ldp		 q8,  q9, [x1], #32
-	ldp		q10, q11, [x1], #32
-	ldp		q12, q13, [x1], #32
-	ldp		q14, q15, [x1], #32
-	ldp		q16, q17, [x1], #32
-	ldp		q18, q19, [x1], #32
-	ldp		q20, q21, [x1], #32
-	ldp		q22, q23, [x1], #32
-	ldp		q24, q25, [x1], #32
-	ldp		q26, q27, [x1], #32
-	ldp		q28, q29, [x1], #32
-	ldp		q30, q31, [x1], #32
-	ldp		x8, x9, [x1]
+	ldr		x3, [x1, #SAVE_VFP]
+	ldp		 q0,  q1, [x3], #32
+	ldp		 q2,  q3, [x3], #32
+	ldp		 q4,  q5, [x3], #32
+	ldp		 q6,  q7, [x3], #32
+	ldp		 q8,  q9, [x3], #32
+	ldp		q10, q11, [x3], #32
+	ldp		q12, q13, [x3], #32
+	ldp		q14, q15, [x3], #32
+	ldp		q16, q17, [x3], #32
+	ldp		q18, q19, [x3], #32
+	ldp		q20, q21, [x3], #32
+	ldp		q22, q23, [x3], #32
+	ldp		q24, q25, [x3], #32
+	ldp		q26, q27, [x3], #32
+	ldp		q28, q29, [x3], #32
+	ldp		q30, q31, [x3], #32
+	ldp		x8, x9, [x3]
 	FPCR_set(x8)
 	FPSR_set(x9)
 
@@ -200,24 +200,6 @@ _entry_stub:
 
 	eret
 
-
-_entry_stub2:
-	ldp		 x8,  x9, [sp], #16
-	ELR_EL1_set(x8)
-	SPSR_EL1_set(x9)
-
-	ldp		 x0,  x1, [sp], #16
-	ldp		 x2,  x3, [sp], #16
-	ldp		 x4,  x5, [sp], #16
-	ldp		 x6,  x7, [sp], #16
-	ldp		 x8,  x9, [sp], #16
-	ldp		x10, x11, [sp], #16
-	ldp		x12, x13, [sp], #16
-	ldp		x14, x15, [sp], #16
-	ldp		x16, x17, [sp], #16
-	ldp		x18, x30, [sp], #16
-
-	eret
 /*
 **  _dispatch_irq
 */
@@ -229,27 +211,26 @@ _entry_stub2:
 
 _dispatch_irq:
 	/* ※ X0-X18はすでに退避されているので破壊されても良い */
+
+	bl		get_cpu_struct
+	mov		x2, x0
+	/* x2 is cpu_struct */
+	ldr		x0, [x2, #CPUSTRUCT_CTASK] 	/* x0 <- ctask */
+	ldr		x1, [x2, #CPUSTRUCT_NTASK]	/* x1 <- ntask */
 	/* compare _ctask and _ntask */
-	ldr		x1, =cpu_struct_pointer
-	CPUID_get(x0)
-	ldr		x1, [x1, x0, LSL #3]		/* x1 <- cpu_struct */
-	ldr		x0, [x1, #CPUSTRUCT_CTASK] 	/* x0 <- ctask */
-	ldr		x1, [x1, #CPUSTRUCT_NTASK]	/* x1 <- ntask */
 	cmp		x0, x1
 	beq		_nodispatch_irq /* _ctask == _ntask ? */
 
+	str		x1, [x2, #CPUSTRUCT_CTASK] 	/* ctask <- x1(ntask) */
 	/* x0:_ctask x1:_ntask */
-	/* _ctask check */
-	cmp		x0, #0
-	beq		_restore_context /* _ctask is NULL ? */
-
 	/* save current task context */
 	ldr		x30, =_entry_stub
-	b		_save_and_restore
+	mov		x2, #0
+	b		_dispatch_sub
 
 
 _nodispatch_irq:
-	b		_entry_stub2
+	b		_entry_stub
 
 /*
 **	_idle_loop
@@ -258,7 +239,7 @@ _nodispatch_irq:
 _idle_loop:
 	ldr		x0, =stack_idle
 	CPUID_get(x1)
-	sub		x0, x0, x1, LSR #IDLE_TASK_STACK_SIZE_SHIFT
+	sub		x0, x0, x1, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, x0
 1:
 	bl		idle_task

@@ -532,6 +532,93 @@ int _kernel_task_dormant(void)
 	return RT_OK;
 }
 
+#if USE_SMP == 1
+static inline void cpu_serialize(CpuStruct** cpu1, CpuStruct** cpu2)
+{
+	if ( (*cpu2)->cpuid < (*cpu1)->cpuid ) {
+		CpuStruct* temp;
+		temp = *cpu1;
+		*cpu1 = *cpu2;
+		*cpu2 = temp;
+	}
+}
+
+static void cpu_spinlock_aff(CpuStruct* cpu1, CpuStruct* cpu2)
+{
+	cpu_serialize(&cpu1, &cpu2);
+	cpu_spinlock(cpu1);
+	cpu_spinlock(cpu2);
+}
+
+static void cpu_spinunlock_aff(CpuStruct* cpu1, CpuStruct* cpu2)
+{
+	cpu_serialize(&cpu1, &cpu2);
+	cpu_spinunlock(cpu2);
+	cpu_spinunlock(cpu1);
+}
+
+typedef	struct {
+	CpuStruct* c_cpu;
+	CpuStruct* t_cpu;
+} AffinityInfo;
+
+/* affinity切り替え用 */
+/* 本関数呼び出し時
+ *   - 自taskのコンテキストは保存済
+ *   - スタックは独立したスタック(IDLEスタックが○)
+ *   - c_cpu/t_cpuはspinlock済
+ */
+void do_set_affinity(TaskStruct* ctask, AffinityInfo* info)
+{
+	CpuStruct* c_cpu = info->c_cpu;
+	CpuStruct* t_cpu = info->t_cpu;
+	TaskStruct* ntask = c_cpu->ntask;
+
+	/* 新CPUを再スケジュール */
+	ctask->cpu_struct = t_cpu;
+	task_add_queue(ctask);
+	schedule(t_cpu);
+
+	cpu_spinunlock_aff(c_cpu, t_cpu);
+
+	/* 新CPUにdispatch要求 */
+	ipi_request_dispatch_one(t_cpu);
+
+	/* 自CPU(旧CPU)のdispatch */
+	_dispatch_sub(0, ntask, 0);
+}
+
+int _kernel_task_set_affinity(uint32_t aff)
+{
+	int ret = RT_ERR;
+	uint32_t		irq_state;
+	irq_state = irq_save();
+	TaskStruct* ctask = CTASK();
+	CpuStruct* c_cpu = ctask->cpu_struct;
+
+	if ( (aff < CPU_NUM) && (c_cpu->cpuid != aff) ) {
+		CpuStruct* t_cpu = &cpu_struct[aff];
+		cpu_spinlock_aff(c_cpu, t_cpu);
+
+		/* taskをrun_queueから切り離して旧CPUを再スケジュール */
+		task_remove_queue(ctask);
+		link_clear(&(ctask->link));
+		schedule(c_cpu);
+		c_cpu->ctask = c_cpu->ntask;
+
+		AffinityInfo aff_info;
+		aff_info.c_cpu = c_cpu;
+		aff_info.t_cpu = t_cpu;
+		_dispatch_sub(ctask, 0, &aff_info);
+
+		ret = RT_OK;
+	}
+
+	irq_restore(irq_state);
+	return ret;
+}
+#endif
+
 int _kernel_task_get_tls(TaskStruct* task, void** ptr)
 {
 	if ( task == TASK_SELF ) {
@@ -605,3 +692,10 @@ OSAPISTUB int __task_get_tls(int id, void** ptr)
 	}
 	return ret;
 }
+
+#if USE_SMP == 1
+OSAPISTUB int __task_set_affinity(uint32_t aff)
+{
+	return _kernel_task_set_affinity(aff);
+}
+#endif

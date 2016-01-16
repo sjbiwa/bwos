@@ -50,5 +50,7 @@ void* svc_entry_table[] = {
 		[TIMER_CREATE_APINO] =				(void*)__timer_create,
 		[TIMER_SET_APINO] =					(void*)__timer_set,
 		[TIMER_ENABLE_APINO] =				(void*)__timer_enable,
-
+#if USE_SMP == 1
+		[TASK_SET_AFFINITY_APINO] =			(void*)__task_set_affinity,
+#endif
 };

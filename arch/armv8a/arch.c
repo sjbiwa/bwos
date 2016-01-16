@@ -275,6 +275,19 @@ extern void init_task_board_depend(void);
 	init_task_board_depend();
 }
 
+void _dispatch(void)
+{
+	TaskStruct* ctask = cpu_struct[CPUID_get()].ctask;
+	TaskStruct* ntask = cpu_struct[CPUID_get()].ntask;
+	cpu_struct[CPUID_get()].ctask = ntask;
+	_dispatch_sub(ctask, ntask, 0);
+}
+
+CpuStruct* get_cpu_struct(void)
+{
+	return &cpu_struct[CPUID_get()];
+}
+
 /* ０除算呼び出し */
 void raise(void)
 {

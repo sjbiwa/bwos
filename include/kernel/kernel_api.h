@@ -150,6 +150,7 @@ OSAPISTUB int __task_wakeup(int id);
 OSAPISTUB int __task_tsleep(TimeOut tm);
 OSAPISTUB int __task_dormant(void);
 OSAPISTUB int __task_get_tls(int id, void** ptr);
+OSAPISTUB int __task_set_affinity(uint32_t aff);
 
 /* フラグ関連API */
 OSAPISTUB int __flag_create(void);

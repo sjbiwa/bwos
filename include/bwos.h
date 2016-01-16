@@ -27,6 +27,9 @@ OSAPI int task_wakeup(int id);
 OSAPI int task_tsleep(TimeOut tm);
 OSAPI int task_dormant(void);
 OSAPI int task_get_tls(int id, void** ptr);
+#if USE_SMP == 1
+OSAPI int task_set_affinity(uint32_t aff);
+#endif
 
 /* フラグ関連API */
 OSAPI int flag_create(void);
