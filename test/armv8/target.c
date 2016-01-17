@@ -40,9 +40,12 @@ static volatile int fixmb;
 static volatile int sem;
 static volatile int flag;
 
+volatile int* test_ptr = (volatile int*)(&task_struct[63]);
+
 void task1(uint32_t arg0, uint32_t arg1)
 {
-	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
+	uint32_t ix = CPUID_get()+1;
+	for (;;ix++ ) {
 		lprintf("CORE=%d:task%d:%d\n", CPUID_get(), arg0, ix);
 		task_set_affinity(ix%CPU_NUM);
 		task_tsleep(MSEC(500));
@@ -241,11 +244,11 @@ TaskCreateInfo	task_info[] = {
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)0},
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)1},
 		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)2},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 0, 5, (void*)3},
+		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)3},
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)4},
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)5},
 		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)6},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 1024, 0, 5, (void*)7},
+		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 0, 4096, 0, 5, (void*)7},
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)8},
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)9},
 		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task3, 0, 4096, 0, 5, (void*)10},
@@ -254,8 +257,6 @@ TaskCreateInfo	task_info[] = {
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)13},
 		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)14},
 		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task4, 0, 4096, 0, 5, (void*)15},
-#endif
-#if 0
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)0},
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)1},
 		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 4096, 0, 5, (void*)2},
@@ -312,6 +313,6 @@ void main_task(void)
 		task_struct[ix] = task_create(&task_info[ix]);
 	}
 
-	task_active(task_struct[1], 0);
+	//task_active(task_struct[1], 0);
 	task_sleep();
 }

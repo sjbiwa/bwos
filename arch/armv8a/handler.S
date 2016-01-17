@@ -105,6 +105,10 @@ enter_from_task:
 enter_from_handler:
 enter_op_done:
 
+	mov		x0, x8
+	ELR_EL1_get(x1)
+	SPSR_EL1_get(x2)
+
 	bl		c_handler
 
 	/* IRQネスト値更新 */

@@ -44,7 +44,7 @@ DEFS += -DMASTER_CPU_ID=0 -DUSE_TICKLESS
 CPUFLAGS = -mcpu=$(CPU)
 
 CFLAGS  += -std=gnu11 $(CPUFLAGS) $(DEFS)
-CFLAGS  += -g -gdwarf-3 -O0 -fno-builtin
+CFLAGS  += -g -gdwarf-3 -O2 -fno-builtin
 AFLAGS  += $(CFLAGS) -D__ASM__
 LDFLAGS += $(CPUFLAGS) -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none

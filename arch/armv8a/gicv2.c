@@ -20,14 +20,14 @@ static struct {
 /*
  * 	c_handler
  */
-void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
+void c_handler(uint64_t sp, uint64_t pc, uint64_t sr)
 {
 	uint32_t		ack;
 	uint32_t		irqno;
 	/* Get Acknowledge */
 	ack = ioread32(GICC_IAR);
 	irqno = ack & 0x3ff;
-	//tprintf("c_handler:SP=%08X PC=%08X SR=%08X ACK=%08X\n", sp, pc, sr, ack);
+	//tprintf("c_handler:%d:SP=%08X PC=%08X SR=%08X IRQ=%d\n", CPUID_get(), lword(sp), lword(pc), lword(sr), irqno);
 
 	if ( (irqno < IRQ_NUM) && irq_action[irqno].handler ) {
 		(*irq_action[irqno].handler)(irqno, irq_action[irqno].info);

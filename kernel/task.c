@@ -424,10 +424,8 @@ int _kernel_task_active(TaskStruct* task, void* act_param)
 	irq_state = irq_save();
 	cpu_spinlock(task->cpu_struct);
 
-	arch_task_active(task, act_param);
-
 	if ( task->task_state == TASK_STANDBY ) {
-
+		arch_task_active(task, act_param);
 		task->task_state = TASK_READY;
 		task_add_queue(task);
 
