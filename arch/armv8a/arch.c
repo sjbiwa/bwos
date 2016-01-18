@@ -17,6 +17,9 @@
 #include "gicv3reg.h"
 #include "memmgr.h"
 
+extern void board_register_normal_memory(void);
+extern void board_init_task_depend(void);
+
 extern void	_entry_stub(void);
 extern char __heap_start;
 
@@ -53,14 +56,14 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 	}
 
 	/* setup task-context */
-	ptr[TASK_FRAME_STUB] = (PtrInt_t)_entry_stub;
-	ptr[TASK_FRAME_PC] = (PtrInt_t)task->entry;
+	ptr[TASK_FRAME_STUB] = (uint64_t)_entry_stub;
+	ptr[TASK_FRAME_PC] = (uint64_t)task->entry;
 	ptr[TASK_FRAME_PSR] = (task->task_attr&TASK_SYS)?MODE_SYS:MODE_USR;
 	ptr[TASK_FRAME_CPACR] = 0x00000000;
-	ptr[TASK_FRAME_SP_EL0] = (PtrInt_t)usr_stack;
-	ptr[TASK_FRAME_LR] = (PtrInt_t)task_dormant;
+	ptr[TASK_FRAME_SP_EL0] = (uint64_t)usr_stack;
+	ptr[TASK_FRAME_LR] = (uint64_t)task_dormant;
 	/* Task entry arg */
-	ptr[TASK_FRAME_X0] = (uint32_t)cre_param;
+	ptr[TASK_FRAME_X0] = (uint64_t)cre_param;
 	ptr[TASK_FRAME_X1] = 0;
 	ptr[TASK_FRAME_X2] = 0;
 	ptr[TASK_FRAME_X3] = 0;
@@ -92,6 +95,7 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 	ptr[TASK_FRAME_X29] = 29;
 }
 
+/* arch依存の初期タスク生成 */
 void arch_init_task_create(TaskStruct* task)
 {
 	task->stack_size = TASK_SVC_STACK_SIZE;
@@ -111,6 +115,7 @@ void arch_init_task_create(TaskStruct* task)
 	arch_init_task(task, NULL);
 }
 
+/* arch依存のタスク生成 */
 int arch_task_create(TaskStruct* task, void* cre_param)
 {
 	int ret = RT_OK;
@@ -244,6 +249,7 @@ void arch_register_st_memory()
 
 arch_register_normal_memory(void)
 {
+	board_register_normal_memory();
 }
 
 void arch_system_postinit(uint32_t cpuid)
@@ -256,7 +262,6 @@ void _delayed_dispatch(void)
 
 bool arch_can_dispatch(void)
 {
-extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	bool ret = false;
 	if ( _irq_level[CPUID_get()] == 0 ) {
 		ret = true;
@@ -272,10 +277,9 @@ void _dispatch(void)
 	_switch_to(ctask, ntask, 0);
 }
 
-void init_task_arch_depend(void)
+void arch_init_task_depend(void)
 {
-extern void init_task_board_depend(void);
-	init_task_board_depend();
+	board_init_task_depend();
 }
 
 /* ０除算呼び出し */

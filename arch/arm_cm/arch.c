@@ -18,6 +18,9 @@
 
 extern char __heap_start;
 
+extern void board_register_normal_memory(void);
+extern void board_init_task_depend(void);
+
 extern void	_entry_stub(void);
 
 static inline void arch_init_task(TaskStruct* task, void* cre_param)
@@ -93,6 +96,7 @@ void arch_register_st_memory()
 
 void arch_register_normal_memory(void)
 {
+	board_register_normal_memory();
 }
 
 void arch_system_postinit(uint32_t cpuid)
@@ -144,10 +148,10 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 {
 }
 
-void init_task_arch_depend(void)
+void arch_init_task_depend(void)
 {
-extern void init_task_board_depend(void);
-	init_task_board_depend();
+extern void board_init_task_depend(void);
+	board_init_task_depend();
 }
 
 static inline void setup_sys_int(uint32_t id, uint32_t pri)

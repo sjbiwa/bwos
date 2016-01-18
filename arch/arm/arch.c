@@ -16,6 +16,9 @@
 #include "mpcore.h"
 #include "my_board.h"
 
+extern void board_register_normal_memory(void);
+extern void board_init_task_depend(void);
+
 extern void	_entry_stub(void);
 extern char __heap_start;
 
@@ -213,6 +216,7 @@ void arch_register_st_memory()
 }
 arch_register_normal_memory(void)
 {
+	board_register_normal_memory();
 }
 
 void arch_system_postinit(uint32_t cpuid)
@@ -254,10 +258,9 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
 }
 
-void init_task_arch_depend(void)
+void arch_init_task_depend(void)
 {
-extern void init_task_board_depend(void);
-	init_task_board_depend();
+	board_init_task_depend();
 }
 
 /* ０除算呼び出し */

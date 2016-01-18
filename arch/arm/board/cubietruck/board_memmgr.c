@@ -26,6 +26,10 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(0x01C25000), 0x3000, ATTR_DEV);
 }
 
-void init_task_board_depend(void)
+void board_register_normal_memory(void)
+{
+}
+
+void board_init_task_depend(void)
 {
 }

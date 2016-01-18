@@ -58,11 +58,13 @@ void task1(void)
 	uint32_t addr = 0x20000000;
 	uint32_t idx = 0;
 	uint32_t col = 0;
-	for (;;) {
+	for (uint32_t ix=CPUID_get();;ix++) {
+		task_set_affinity(ix % CPU_NUM);
 		draw_fill_rectangle(addr, 512, 384, 1024, col, 1);
 		col += 0x004488dd;
 		uint32_t ret_pattern;
 		flag_wait(sync_flag, 0x0001, FLAG_OR|FLAG_BITCLR, &ret_pattern);
+
 	}
 }
 
@@ -72,7 +74,8 @@ void task2(void)
 	uint32_t addr = 0x20800000;
 	uint32_t idx = 0;
 	uint32_t col = 0x405060;
-	for (;;) {
+	for (uint32_t ix=CPUID_get();;ix++) {
+		task_set_affinity(ix % CPU_NUM);
 		draw_fill_rectangle(addr, 512, 384, 1024, col, 0x00FFEEDD);
 		col += 0x00010306;
 		uint32_t ret_pattern;
@@ -88,7 +91,8 @@ void task3(void)
 	uint32_t addr = 0x21000000;
 	uint32_t idx = 0;
 	uint32_t col = 0;
-	for (;;) {
+	for (uint32_t ix=CPUID_get();;ix++) {
+		task_set_affinity(ix % CPU_NUM);
 		draw_fill_rectangle(addr, 512, 384, 1024, col, 0x80C0F0);
 		col += 0x00010306;
 		uint32_t ret_pattern;
@@ -102,7 +106,8 @@ void task4(void)
 	uint32_t addr = 0x21800000;
 	uint32_t idx = 0;
 	uint32_t col = 0x405060;
-	for (;;) {
+	for (uint32_t ix=CPUID_get();;ix++) {
+		task_set_affinity(ix % CPU_NUM);
 		draw_fill_rectangle(addr, 512, 384, 1024, col, 0x010203);
 		col += 0x00010306;
 		uint32_t ret_pattern;

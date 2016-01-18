@@ -24,6 +24,6 @@ void smp_boot_slave_cpu(void)
 #endif
 
 
-void init_task_board_depend(void)
+void board_init_task_depend(void)
 {
 }

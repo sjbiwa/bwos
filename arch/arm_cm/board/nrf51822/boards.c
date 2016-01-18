@@ -11,7 +11,7 @@
 
 #include "bwos.h"
 
-void init_task_board_depend(void)
+void board_init_task_depend(void)
 {
 	/************************/
 	/* clock configure		*/
@@ -23,5 +23,9 @@ void init_task_board_depend(void)
 }
 
 void board_system_preinit(void)
+{
+}
+
+void board_register_normal_memory(void)
 {
 }

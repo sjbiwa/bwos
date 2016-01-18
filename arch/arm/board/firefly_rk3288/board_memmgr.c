@@ -71,3 +71,7 @@ void board_mmgr_init(void)
 	/* Internal SRAM */
 	mmgr_add_entry((void*)(ISRAM_MEM_BASE), 	ISRAM_MEM_SIZE,	ATTR_DEV);
 }
+
+void board_register_normal_memory(void)
+{
+}

@@ -93,7 +93,7 @@ static I2cDeviceInfo i2c_info[] = {
 		{ I2CHDMI_REG_BASE,		IRQ_I2C_HDMI,	CLOCK_I2C5},	/* I2C HDMI  */
 };
 
-void init_task_board_depend(void)
+void board_init_task_depend(void)
 {
 	/****************************************/
 	/* firefly3288: 						*/
