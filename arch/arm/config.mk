@@ -39,7 +39,10 @@ else
 DEFS += -DUSE_SMP=0
 endif
 C_SRCS += arch_smp.c
-A_SRCS += spinlock.S
+
+#A_SRCS += spinlock.S
+# Ticket-based spinlock
+A_SRCS += ticket_spinlock.S
 
 DEFS += -DUSE_TICKLESS -DMASTER_CPU_ID=0
 CFLAGS  += -std=gnu11 -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=vfpv4 -mno-thumb-interwork -mthumb $(DEFS)
