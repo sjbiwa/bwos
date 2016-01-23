@@ -8,9 +8,7 @@
  *  Created on: 2015/05/13
  *      Author: biwa
  */
-#include <stdint.h>
 #include "kernel.h"
-#include "link.h"
 
 #if !defined(TIMER_MAX_NUM)
 #define	TIMER_MAX_NUM		(100)

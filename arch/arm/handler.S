@@ -3,7 +3,6 @@
  */
 
 	.syntax unified
-	.cpu cortex-a7
 	.thumb
 	.thumb_func
 
@@ -23,8 +22,6 @@
 	.global _dabort_entry
 	.global _irq_entry
 	.global _fiq_entry
-	.global cpsr_get
-	.global cpsr_set
 	.global	call_svc
 	.global FPEXC_get
 	.global FPEXC_set
@@ -34,8 +31,6 @@
 	.type   _dabort_entry, %function
 	.type   _irq_entry, %function
 	.type   _fiq_entry, %function
-	.type   cpsr_get, %function
-	.type   cpsr_set, %function
 	.type   call_svc, %function
 	.type	FPEXC_get, %function
 	.type	FPEXC_set, %function
@@ -225,13 +220,3 @@ _not_change_irq:
 	blx		r4
 	pop		{r4,lr}
 	subs	pc, lr, #0
-
-
-cpsr_get:
-	mrs		r0, cpsr
-	bx		lr
-
-
-cpsr_set:
-	msr		cpsr_fsxc, r0
-	bx		lr

@@ -3,14 +3,13 @@
  */
 
 /*
- * ticket_spinlock.S
+ * ticketlock.S
  *
  *  Created on: 2016/01/21
  *      Author: biwa
  */
 
 	.syntax unified
-	.cpu cortex-a7
 	.thumb
 	.thumb_func
 

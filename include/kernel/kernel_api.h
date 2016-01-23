@@ -9,8 +9,8 @@
  *      Author: biwa
  */
 
-#ifndef INC_KERNEL_API_H_
-#define INC_KERNEL_API_H_
+#ifndef _KERNEL_API_H_
+#define _KERNEL_API_H_
 
 #include <stdint.h>
 #include "common.h"
@@ -23,120 +23,6 @@
 #include "kernel/fixmb.h"
 #include "kernel/malloc.h"
 #include "kernel/smp.h"
-
-/***********************************************/
-/* オブジェクト<->インデックス変換用マクロ一式 */
-/***********************************************/
-#define	OBJECT_INDEX_FUNC(OBJNAME,OBJSTRUCT,MAX_NUM) \
-static OBJSTRUCT *	OBJNAME##_struct_array = 0; \
-static int			OBJNAME##_struct_max = 0; \
-static int			OBJNAME##_struct_alloc_id = 0; \
-static SpinLockObj	OBJNAME##_struct_spinlock; \
-void OBJNAME##_init(void) \
-{ \
-	if ( 0 < MAX_NUM ) { \
-		OBJNAME##_struct_array = st_malloc_align(sizeof(OBJSTRUCT) * MAX_NUM, NORMAL_ALIGN); \
-	} \
-	else { \
-		OBJNAME##_struct_array = 0; \
-	} \
-	OBJNAME##_struct_max = MAX_NUM; \
-	OBJNAME##_struct_alloc_id = 0; \
-	OBJNAME##_struct_alloc_id = 0; \
-	spin_init(&(OBJNAME##_struct_spinlock)); \
-	OBJNAME##_sub_init(); \
-}\
-static int alloc_##OBJNAME##_id(void) \
-{ \
-	uint32_t irq_state; \
-	irq_state = irq_save(); \
-	spin_lock(&(OBJNAME##_struct_spinlock)); \
-	int ret = RT_ERR; \
-	if ( OBJNAME##_struct_alloc_id < OBJNAME##_struct_max ) { \
-		ret = OBJNAME##_struct_alloc_id; \
-		OBJNAME##_struct_array[ret].id_initialized = false; \
-		OBJNAME##_struct_alloc_id++; \
-	} \
-	spin_unlock(&(OBJNAME##_struct_spinlock)); \
-	irq_restore(irq_state); \
-	return ret; \
-} \
-static OBJSTRUCT * OBJNAME##id2object(int id) \
-{ \
-	OBJSTRUCT * ret = NULL; \
-	order_barrier(); \
-	if ( (0 <= id) && (id < OBJNAME##_struct_alloc_id) && OBJNAME##_struct_array[id].id_initialized ) { \
-		ret = &OBJNAME##_struct_array[id]; \
-	} \
-	return ret; \
-} \
-static OBJSTRUCT * OBJNAME##id2buffer(int id) \
-{ \
-	return &OBJNAME##_struct_array[id]; \
-} \
-static void free_##OBJNAME##_struct(int id) \
-{ \
-}
-
-/* オブジェクト用spinlock関数 */
-#if USE_SMP==1
-
-#define	OBJECT_SPINLOCK_FUNC(OBJNAME,OBJSTRUCT) \
-static inline void OBJNAME##_spininit(OBJSTRUCT* obj) \
-{ \
-	spin_init(&(obj->spin_lock)); \
-} \
-static inline void OBJNAME##_spinlock(OBJSTRUCT* obj) \
-{ \
-	spin_lock(&(obj->spin_lock)); \
-} \
-static inline void OBJNAME##_spinunlock(OBJSTRUCT* obj) \
-{ \
-	spin_unlock(&(obj->spin_lock)); \
-} \
-static inline int OBJNAME##_spintrylock(OBJSTRUCT* obj) \
-{ \
-	return spin_trylock(&(obj->spin_lock)); \
-} \
-static inline uint32_t OBJNAME##_spinlock_irq_save(OBJSTRUCT* obj) \
-{ \
-	uint32_t irq_state = irq_save(); \
-	spin_lock(&(obj->spin_lock)); \
-	return irq_state; \
-} \
-static inline void OBJNAME##_spinunlock_irq_restore(OBJSTRUCT* obj, uint32_t irq_state) \
-{ \
-	spin_unlock(&(obj->spin_lock)); \
-	irq_restore(irq_state); \
-}
-
-#else
-
-#define	OBJECT_SPINLOCK_FUNC(OBJNAME,OBJSTRUCT) \
-static inline void OBJNAME##_spininit(OBJSTRUCT* obj) \
-{ \
-} \
-static inline void OBJNAME##_spinlock(OBJSTRUCT* obj) \
-{ \
-} \
-static inline void OBJNAME##_spinunlock(OBJSTRUCT* obj) \
-{ \
-} \
-static inline int OBJNAME##_spintrylock(OBJSTRUCT* obj) \
-{ \
-	return 1; \
-} \
-static inline uint32_t OBJNAME##_spinlock_irq_save(OBJSTRUCT* obj) \
-{ \
-	return irq_save(); \
-} \
-static inline void OBJNAME##_spinunlock_irq_restore(OBJSTRUCT* obj, uint32_t irq_state) \
-{ \
-	irq_restore(irq_state); \
-}
-
-#endif
-
 
 /********************************************************/
 /* OSAPISTUB											*/
@@ -204,44 +90,44 @@ OSAPISTUB int __timer_enable(int id, bool enable);
 /*	カーネル内部から呼び出される						*/
 /********************************************************/
 /* タスク関連API */
-int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info);
-int _kernel_task_active(TaskStruct* task, void* act_param);
-int _kernel_task_sleep(void);
-int _kernel_task_wakeup(TaskStruct* task);
-int _kernel_task_tsleep(TimeOut tm);
-int _kernel_task_dormant(void);
-int _kernel_task_get_tls(TaskStruct* task, void** ptr);
+KERNAPI int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info);
+KERNAPI int _kernel_task_active(TaskStruct* task, void* act_param);
+KERNAPI int _kernel_task_sleep(void);
+KERNAPI int _kernel_task_wakeup(TaskStruct* task);
+KERNAPI int _kernel_task_tsleep(TimeOut tm);
+KERNAPI int _kernel_task_dormant(void);
+KERNAPI int _kernel_task_get_tls(TaskStruct* task, void** ptr);
 
 /* フラグ関連API */
-int _kernel_flag_create(FlagStruct* flag);
-int _kernel_flag_set(FlagStruct* flag, uint32_t pattern);
-int _kernel_flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern);
-int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);
-int _kernel_flag_clear(FlagStruct* flag, uint32_t pattern);
+KERNAPI int _kernel_flag_create(FlagStruct* flag);
+KERNAPI int _kernel_flag_set(FlagStruct* flag, uint32_t pattern);
+KERNAPI int _kernel_flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern);
+KERNAPI int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout);
+KERNAPI int _kernel_flag_clear(FlagStruct* flag, uint32_t pattern);
 
 /* ミューテックス関連API */
-int _kernel_mutex_create(MutexStruct* mtx);
-int _kernel_mutex_unlock(MutexStruct* mtx);
-int _kernel_mutex_lock(MutexStruct* mtx);
-int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout);
+KERNAPI int _kernel_mutex_create(MutexStruct* mtx);
+KERNAPI int _kernel_mutex_unlock(MutexStruct* mtx);
+KERNAPI int _kernel_mutex_lock(MutexStruct* mtx);
+KERNAPI int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout);
 
 /* セマフォ関連API */
-int _kernel_sem_create(SemStruct* sem, uint32_t max);
-int _kernel_sem_request(SemStruct* sem, uint32_t num);
-int _kernel_sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout);
-int _kernel_sem_release(SemStruct* sem, uint32_t num);
+KERNAPI int _kernel_sem_create(SemStruct* sem, uint32_t max);
+KERNAPI int _kernel_sem_request(SemStruct* sem, uint32_t num);
+KERNAPI int _kernel_sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout);
+KERNAPI int _kernel_sem_release(SemStruct* sem, uint32_t num);
 
 /* メッセージキュー関連API */
-int _kernel_msgq_create(MsgqStruct* msgq, uint32_t length);
-int _kernel_msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length);
-int _kernel_msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
-int _kernel_msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length);
-int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
+KERNAPI int _kernel_msgq_create(MsgqStruct* msgq, uint32_t length);
+KERNAPI int _kernel_msgq_send(MsgqStruct* msgq, void* ptr, uint32_t length);
+KERNAPI int _kernel_msgq_tsend(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
+KERNAPI int _kernel_msgq_recv(MsgqStruct* msgq, void* ptr, uint32_t length);
+KERNAPI int _kernel_msgq_trecv(MsgqStruct* msgq, void* ptr, uint32_t length, TimeOut tmout);
 
 /* 固定長メモリブロック関連API */
-int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);
-int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr);
-int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
-int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr);
+KERNAPI int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length);
+KERNAPI int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr);
+KERNAPI int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
+KERNAPI int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr);
 
-#endif /* INC_KERNEL_API_H_ */
+#endif /* _KERNEL_API_H_ */

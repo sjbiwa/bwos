@@ -15,16 +15,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "types.h"
 #include "arch_common.h"
-#include "sys_irq.h"
 
 /* OS固有定義マクロ */
 #define	OSAPI
 #define	OSAPISTUB
+#define	KERNAPI
 
 #ifndef NULL
-#define	NULL			(0)
+#define	NULL								((void*)0)
 #endif
 
 /* ユーティリティマクロ */
@@ -56,17 +55,17 @@
 
 
 #ifndef MIN
-#define	MIN(a,b)			((a)<(b)?(a):(b))
+#define	MIN(a,b)							((a)<(b)?(a):(b))
 #endif
 #ifndef MAX
-#define	MAX(a,b)			((a)>(b)?(a):(b))
+#define	MAX(a,b)							((a)>(b)?(a):(b))
 #endif
 
 /* アドレスアラインメント演算用マクロ */
-#define	PRE_ALIGN_BY(x,n)		((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
-#define	POST_ALIGN_BY(x,n)		((void*)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
+#define	PRE_ALIGN_BY(x,n)					((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
+#define	POST_ALIGN_BY(x,n)					((void*)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
 
-#define	PTRVAR(x)				((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
+#define	PTRVAR(x)							((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 
 /* メモリサイズ用 */
 #define	SIZE_PRE_ALIGN_BY(x,n)	((MemSize_t)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))

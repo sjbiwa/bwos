@@ -3,7 +3,6 @@
  */
 
 	.syntax unified
-	.cpu cortex-a7
 	.thumb
 	.thumb_func
 //

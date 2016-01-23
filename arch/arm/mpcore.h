@@ -9,10 +9,10 @@
  *      Author: biwa
  */
 
-#include "my_board.h"
-
 #ifndef MPCORE_H_
 #define MPCORE_H_
+
+#include "common.h"
 
 #define	MPCORE_SCU_BASE			(MPCORE_BASE)
 #define	MPCORE_GICD_BASE		(MPCORE_BASE+0x1000)

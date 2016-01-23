@@ -13,8 +13,6 @@
 #define KERNEL_H_
 
 #include "common.h"
-#include "interface.h"
-#include "link.h"
 #include "kernel/kernel_api.h"
 #include "kernel/fixmb.h"
 #include "kernel/flag.h"
@@ -23,6 +21,13 @@
 #include "kernel/mutex.h"
 #include "kernel/sem.h"
 #include "kernel/task.h"
+#include "kernel/kobject.h"
+#include "kernel/arch_kernel_api.h"
+#include "interface.h"
+#include "lock.h"
+#include "link.h"
 
+/* 初期タスクの生成パラメータ(arch側で用意する) */
+extern TaskCreateInfo	_init_task_create_param;
 
 #endif /* KERNEL_H_ */

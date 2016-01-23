@@ -48,8 +48,8 @@ void task2(uint32_t arg0, uint32_t arg1)
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT, task1, 0, 256, 0, 5, (void*)128},
-		{"TASK2", TASK_ACT, task2, 0, 256, 0, 6, (void*)128},
+		{"TASK1", TASK_ACT, task1, 256, 0, 5, (void*)128},
+		{"TASK2", TASK_ACT, task2, 256, 0, 6, (void*)128},
 };
 
 void main_task(void)

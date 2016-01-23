@@ -15,13 +15,13 @@
 #include <stdint.h>
 #include "common.h"
 
-extern void sys_malloc_init(void);
-extern void sys_malloc_add_block(void* addr, MemSize_t size);
-extern void* sys_malloc_body(MemSize_t size);
-extern void* sys_malloc_align_body(MemSize_t size, uint32_t align);
+KERNAPI extern void  __sys_malloc_init(void);
+KERNAPI extern void  __sys_malloc_add_block(void* addr, MemSize_t size);
+KERNAPI extern void* __sys_malloc_body(MemSize_t size);
+KERNAPI extern void* __sys_malloc_align_body(MemSize_t size, uint32_t align);
 
-extern void st_malloc_init(void* mem_addr, MemSize_t mem_size);
-extern void* st_malloc_align(MemSize_t alloc_size, uint32_t align);
-extern void st_malloc_normalize(void);
+KERNAPI extern void  __st_malloc_init(void* mem_addr, MemSize_t mem_size);
+KERNAPI extern void* __st_malloc_align(MemSize_t alloc_size, uint32_t align);
+KERNAPI extern void  __st_malloc_normalize(void);
 
 #endif /* MALLOC_H_ */

@@ -13,7 +13,6 @@
 #include "arm.h"
 #include "mpcore.h"
 #include "cp15reg.h"
-#include "my_board.h"
 #include "memmgr.h"
 #include "ioregs.h"
 

@@ -14,15 +14,19 @@
 #include "arm.h"
 #include "cp15reg.h"
 #include "mpcore.h"
-#include "my_board.h"
+#include "arch_local.h"
 
 extern void board_register_normal_memory(void);
-extern void board_init_task_depend(void);
 
 extern void	_entry_stub(void);
 extern char __heap_start;
 
 CpuStruct* cpu_struct_pointer[CPU_NUM]; /* 各コアが自身のcpu_structを取り出すためのもの */
+
+/* 初期タスクの生成パラメータ */
+TaskCreateInfo	_init_task_create_param = {
+	NULL, CPU_CORE0|TASK_ACT|TASK_SYS, NULL, 1024, 0, 0, (void*)0
+};
 
 
 /* 最初に1になるビットを左側から探す */
@@ -69,9 +73,9 @@ void arch_init_task_create(TaskStruct* task)
 	/* 初期タスクのスタック確保は sys_malloc系を使う */
 #if !defined(NO_USE_SEPARATE_STACK)
 	task->stack_size = TASK_SVC_STACK_SIZE;
-	task->init_sp = sys_malloc_align_body(task->stack_size, STACK_ALIGN);
+	task->init_sp = __sys_malloc_align_body(task->stack_size, STACK_ALIGN);
 #endif
-	task->usr_init_sp = sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
+	task->usr_init_sp = __sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
 
 	/* ::init_spまたはusr_init_spがnullの時はシステムエラー */
 
@@ -212,9 +216,9 @@ void arch_system_preinit(uint32_t cpuid)
 void arch_register_st_memory()
 {
 	/* 起動時メモリ登録 */
-	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
+	__st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
 }
-arch_register_normal_memory(void)
+void arch_register_normal_memory(void)
 {
 	board_register_normal_memory();
 }
@@ -256,11 +260,6 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 	uint32_t cpuid = cpu->cpuid;
 	__dsb();
 	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
-}
-
-void arch_init_task_depend(void)
-{
-	board_init_task_depend();
 }
 
 /* ０除算呼び出し */

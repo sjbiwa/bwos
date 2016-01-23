@@ -139,7 +139,7 @@ volatile SectEntry_t*		section_tbl;
 static SectEntry_t* secttbl_alloc(void)
 {
 	/* 16Kバイトアラインメント */
-	SectEntry_t* tbl = (SectEntry_t*)st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_ALIGN);
+	SectEntry_t* tbl = (SectEntry_t*)__st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_ALIGN);
 	memset(tbl, 0, SECT_TABLE_SIZE);
 	return tbl;
 }
@@ -148,7 +148,7 @@ static SectEntry_t* secttbl_alloc(void)
 static PageEntry_t* pagetbl_alloc(void)
 {
 	/* 1Kバイトアラインメント */
-	PageEntry_t* tbl = (PageEntry_t*)st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_ALIGN);
+	PageEntry_t* tbl = (PageEntry_t*)__st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_ALIGN);
 	memset(tbl, 0, PAGE_TABLE_SIZE);
 	return tbl;
 }

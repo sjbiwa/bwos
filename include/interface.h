@@ -12,7 +12,6 @@
 #ifndef INTERFACE_H_
 #define INTERFACE_H_
 
-#include "stdint.h"
 #include "common.h"
 
 /* 終了ステータス */
@@ -27,11 +26,11 @@
 #define	TMO_FEVER		((TimeOut)(-1))
 
 /* タスク生成パラメータ */
+typedef	void (*TaskEntry)(void* cre_param, void* sta_param);
 typedef	struct {
 	uint8_t*	name;				/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
-	void		(*entry)();			/* Start Entry */
-	void*		usr_init_sp;		/* Initialize SP */
+	TaskEntry	entry;				/* Start Entry */
 	uint32_t	usr_stack_size;		/* Stack Size */
 	uint32_t	tls_size;			/* TLS size */
 	uint32_t	priority;			/* Task Priority */
@@ -64,6 +63,8 @@ typedef	struct {
 #define	IRQ_DISABLE		(0)
 #define	IRQ_ENABLE		(1)
 
+typedef	void (*IRQ_HANDLER)(uint32_t irqno, void* info);
+
 
 /* タイマハンドラ関連API */
 typedef	struct {
@@ -76,10 +77,5 @@ typedef	struct {
 
 #define	TIMER_ONESHOT	(0)			/* tmoutのみ設定 */
 #define	TIMER_CYCLIC	(1)			/* tmout/cyclic両方設定 */
-
-
-extern uint32_t cpsr_get(void);
-extern void cpsr_set(uint32_t flags);
-
 
 #endif /* INTERFACE_H_ */

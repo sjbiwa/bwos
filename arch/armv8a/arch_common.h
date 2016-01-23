@@ -25,16 +25,9 @@
 #define	irq_save()			({ uint32_t _reg; _reg = DAIF_get(); DAIFSet_seti(0x2); _reg;})
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) DAIFClr_seti(0x2); } while(0)
 
-#define	STACK_ALIGN							(16)
 #define	NORMAL_ALIGN						(16)
-#define	TASK_SVC_STACK_SIZE					(2048)
-#define	INITIAL_TASK_USR_STACK_SIZE			(1024)
 
 typedef	uint64_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint64_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */
-
-extern bool arch_can_dispatch(void);
-extern TimeSpec get_tick_count(void);
-extern void update_first_timeout(TimeSpec tmout);
 
 #endif /* ARCHV8_COMMON_H_ */

@@ -73,7 +73,7 @@ static void flag_wait_func(TaskStruct* task, void* wait_obj)
 	flag_spinunlock(flag);
 }
 
-int _kernel_flag_create(FlagStruct* flag)
+KERNAPI int _kernel_flag_create(FlagStruct* flag)
 {
 	link_clear(&flag->link);
 	flag->value = 0;
@@ -83,7 +83,7 @@ int _kernel_flag_create(FlagStruct* flag)
 	return RT_OK;
 }
 
-int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
+KERNAPI int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 {
 	Link* link;
 	uint32_t irq_state;
@@ -132,7 +132,7 @@ int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 	return RT_OK;
 }
 
-int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
+KERNAPI int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
 {
 	FlagInfoStruct flag_info;
 	uint32_t		irq_state;
@@ -182,12 +182,12 @@ int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, u
 	return ret;
 }
 
-int _kernel_flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
+KERNAPI int _kernel_flag_wait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern)
 {
 	return _kernel_flag_twait(flag, pattern, wait_mode, ret_pattern, TMO_FEVER);
 }
 
-int _kernel_flag_clear(FlagStruct* flag, uint32_t pattern)
+KERNAPI int _kernel_flag_clear(FlagStruct* flag, uint32_t pattern)
 {
 	uint32_t		irq_state;
 	irq_state = flag_spinlock_irq_save(flag);

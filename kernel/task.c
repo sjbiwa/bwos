@@ -17,18 +17,14 @@ static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
 
 
 /* オブジェクト<->インデックス変換用 */
-void task_sub_init(void);
 OBJECT_INDEX_FUNC(task,TaskStruct,TASK_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
-extern bool schedule(CpuStruct* cpu);
-extern void _dispatch();
-extern void init_task(void);
 extern void arch_init_task_create(TaskStruct* task);
 extern int arch_task_create(TaskStruct* task, void* cre_param);
 extern void arch_task_active(TaskStruct* task, void* act_param);
 
-void task_sub_init(void)
+static void task_sub_init(void)
 {
 	for ( int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
 		cpu_spininit(&cpu_struct[cpuid]);
@@ -312,7 +308,7 @@ void self_request_dispatch(void)
 }
 
 static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t task_attr, void* entry,
-					void* usr_init_sp, uint32_t usr_stack_size, uint32_t priority)
+													uint32_t usr_stack_size, uint32_t priority)
 {
 	link_clear(&task->link);
 	task->save_sp = 0;
@@ -330,7 +326,7 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->init_sp = 0;
 	task->stack_size = 0;
 #endif
-	task->usr_init_sp = usr_init_sp;
+	task->usr_init_sp = NULL;
 	task->usr_stack_size = usr_stack_size;
 	task->priority = priority;
 	task->tls = 0;
@@ -355,34 +351,30 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 
 void task_init_task_create(void)
 {
-	int			ix;
-
 	/* 初期タスクの生成 */
 	task_init_struct(&init_task_struct,
-						"INIT_TASK",
-						TASK_ACT|TASK_SYS,
-						init_task,
-						0,
-						INITIAL_TASK_USR_STACK_SIZE, /* USRスタックサイズ */
-						0);
+					"INIT_TASK",
+					_init_task_create_param.task_attr,
+					init_task,
+					_init_task_create_param.usr_stack_size,
+					0);
 	arch_init_task_create(&init_task_struct);
 	init_task_struct.task_state = TASK_READY;
 	task_add_queue(&init_task_struct);
 }
 
-int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
+KERNAPI int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 {
 	task_init_struct(task,
 					info->name,
 					info->task_attr,
 					info->entry,
-					info->usr_init_sp,
 					info->usr_stack_size,
 					info->priority);
 
 	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
-		task->tls = __sys_malloc_align(task->tls_size, STACK_ALIGN);
+		task->tls = __sys_malloc_align(task->tls_size, NORMAL_ALIGN);
 		if ( task->tls ) {
 			memset(task->tls, 0, task->tls_size);
 		}
@@ -416,7 +408,7 @@ ERR_RET:
 	return RT_ERR;
 }
 
-int _kernel_task_active(TaskStruct* task, void* act_param)
+KERNAPI int _kernel_task_active(TaskStruct* task, void* act_param)
 {
 	uint32_t		irq_state;
 	bool req_dispatch = false;
@@ -441,7 +433,7 @@ int _kernel_task_active(TaskStruct* task, void* act_param)
 	return RT_OK;
 }
 
-int _kernel_task_sleep(void)
+KERNAPI int _kernel_task_sleep(void)
 {
 	bool req_dispatch = false;
 	uint32_t		irq_state;
@@ -459,7 +451,7 @@ int _kernel_task_sleep(void)
 	return RT_OK;
 }
 
-int _kernel_task_wakeup(TaskStruct* task)
+KERNAPI int _kernel_task_wakeup(TaskStruct* task)
 {
 	bool req_dispatch = false;
 	int ret = RT_ERR;
@@ -486,7 +478,7 @@ int _kernel_task_wakeup(TaskStruct* task)
 	return ret;
 }
 
-int _kernel_task_tsleep(TimeOut tm)
+KERNAPI int _kernel_task_tsleep(TimeOut tm)
 {
 	bool req_dispatch = false;
 	uint32_t		irq_state;
@@ -511,7 +503,7 @@ int _kernel_task_tsleep(TimeOut tm)
 	return ctask->result_code;
 }
 
-int _kernel_task_dormant(void)
+KERNAPI int _kernel_task_dormant(void)
 {
 	bool req_dispatch = false;
 	uint32_t		irq_state;
@@ -591,7 +583,7 @@ void do_set_affinity(TaskStruct* ctask, AffinityInfo* info)
 	_switch_to(0, ntask, 0);
 }
 
-int _kernel_task_set_affinity(uint32_t aff)
+KERNAPI int _kernel_task_set_affinity(uint32_t aff)
 {
 	int ret = RT_ERR;
 	uint32_t		irq_state;
@@ -622,7 +614,7 @@ int _kernel_task_set_affinity(uint32_t aff)
 }
 #endif
 
-int _kernel_task_get_tls(TaskStruct* task, void** ptr)
+KERNAPI int _kernel_task_get_tls(TaskStruct* task, void** ptr)
 {
 	if ( task == TASK_SELF ) {
 		task = CTASK();

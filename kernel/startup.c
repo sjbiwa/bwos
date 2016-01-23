@@ -10,7 +10,6 @@
  */
 #include "kernel.h"
 #include "version.h"
-#include "kernel/smp.h"
 
 static volatile uint8_t cpu_boot_sync_flag[CPU_NUM];
 
@@ -60,9 +59,9 @@ static void startup_master(uint32_t cpuid)
 	arch_system_postinit(cpuid);
 
 	/* 標準メモリマネージャ初期化 */
-	sys_malloc_init();
+	__sys_malloc_init();
 	/* 起動時メモリマネージャの残りメモリを標準メモリマネージャに移行 */
-	st_malloc_normalize();
+	__st_malloc_normalize();
 	/* その他のメモリを標準メモリマネージャに登録 */
 	arch_register_normal_memory();
 

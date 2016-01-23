@@ -6,12 +6,10 @@
 **
 */
 	.syntax unified
-	.cpu cortex-a7
 	.thumb
 	.thumb_func
 
 #include "arm.h"
-#include "cp15reg.h"
 #include "api_no.h"
 
 /* OSAPI定義用マクロ */

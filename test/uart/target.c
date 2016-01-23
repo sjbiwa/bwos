@@ -113,9 +113,9 @@ void task3(void)
 
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5},
-		{"TASK2", TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 5},
-		{"TASK3", TASK_FPU|TASK_SYS, task3, 0, 1024, 1024, 5},
+		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 1024, 5},
+		{"TASK2", TASK_FPU|TASK_SYS, task2, 1024, 1024, 5},
+		{"TASK3", TASK_FPU|TASK_SYS, task3, 1024, 1024, 5},
 };
 
 void main_task(void)

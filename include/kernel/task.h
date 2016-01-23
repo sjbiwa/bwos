@@ -36,7 +36,7 @@ typedef	struct tagTaskStruct {
 	/* ユーザー定義領域 */
 	uint8_t		name[32];			/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
-	void		(*entry)(void);		/* Start Entry */
+	TaskEntry	entry;				/* Start Entry */
 #if !defined(NO_USE_SEPARATE_STACK)
 	void*		init_sp;			/* Initialize SP (SVC) */
 	MemSize_t	stack_size;			/* Stack Size (SVC) */
@@ -90,6 +90,9 @@ extern void _dispatch(void);
 extern void _switch_to(TaskStruct* ctask, TaskStruct* ntask, void* affinfo);
 #endif
 extern CpuStruct* get_cpu_struct(void);
+extern void task_init_task_create(void);
+extern void init_task(void* cre_param, void* sta_param);
+
 
 static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task, void* wait_obj))
 {

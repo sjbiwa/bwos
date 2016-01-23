@@ -13,7 +13,6 @@
 #include "arm.h"
 #include "mpcore.h"
 #include "cp15reg.h"
-#include "my_board.h"
 #include "memmgr.h"
 
 extern void board_mmgr_init(void);

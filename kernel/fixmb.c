@@ -72,7 +72,7 @@ static void fixmb_wait_func(TaskStruct* task, void* wait_obj)
 	fixmb_spinunlock(fixmb);
 }
 
-int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
+KERNAPI int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t length)
 {
 	link_clear(&fixmb->link);
 	if ( mb_size < sizeof(FixmbList) ) {
@@ -116,7 +116,7 @@ ERR_RET2:
 	return RT_ERR;
 }
 
-int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
+KERNAPI int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
 	FixmbInfoStruct fixmb_info;
 	uint32_t alloc_index;
@@ -192,12 +192,12 @@ retry_lock:
 	return ret;
 }
 
-int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
+KERNAPI int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr)
 {
 	return _kernel_fixmb_trequest(fixmb, ptr, TMO_FEVER);
 }
 
-int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
+KERNAPI int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr)
 {
 	uint32_t area_size;
 	uint32_t		irq_state;

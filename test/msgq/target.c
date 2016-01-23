@@ -71,9 +71,9 @@ void task3(void)
 int		task_struct[16];
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU, task1, 0, 1024, 1024, 7},
-		{"TASK2", TASK_ACT|TASK_FPU, task2, 0, 1024, 1024, 6},
-		{"TASK3", TASK_ACT|TASK_FPU, task3, 0, 1024, 1024, 5},
+		{"TASK1", TASK_ACT|TASK_FPU, task1, 1024, 1024, 7},
+		{"TASK2", TASK_ACT|TASK_FPU, task2, 1024, 1024, 6},
+		{"TASK3", TASK_ACT|TASK_FPU, task3, 1024, 1024, 5},
 };
 
 void main_task(void)

@@ -3,21 +3,21 @@
  */
 
 /*
- * api.h
+ * bwos.h
  *
  *  Created on: 2014/11/15
  *      Author: biwa
  */
 
-#ifndef INC_API_H_
-#define INC_API_H_
+#ifndef INC_BWOS_H_
+#define INC_BWOS_H_
+
+#include "common.h"
+#include "interface.h"
 
 #if defined(NO_USE_SVC_CALL)
 #include "no_svc_call.h"
 #endif
-
-#include "common.h"
-#include "interface.h"
 
 /* タスク関連API */
 OSAPI int task_create(TaskCreateInfo* info);
@@ -78,4 +78,8 @@ OSAPI int timer_create(void);
 OSAPI int timer_set(int id, TimerInfo* info);
 OSAPI int timer_enable(int id, bool enable);
 
-#endif /* INC_API_H_ */
+/* 初期タスクから呼び出される関数群 */
+extern void main_task(void); /* ユーザ側で最初に呼び出される関数 */
+extern void arch_init_task_depend(void);
+
+#endif /* _BWOS_H_ */

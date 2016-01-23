@@ -16,6 +16,7 @@
 #include "armv8reg.h"
 #include "gicv3reg.h"
 #include "memmgr.h"
+#include "arch_local.h"
 
 extern void board_register_normal_memory(void);
 extern void board_init_task_depend(void);
@@ -24,6 +25,11 @@ extern void	_entry_stub(void);
 extern char __heap_start;
 
 uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
+
+/* 初期タスクの生成パラメータ */
+TaskCreateInfo	_init_task_create_param = {
+	NULL, CPU_CORE0|TASK_ACT|TASK_SYS, NULL, 2048, 0, 0, (void*)0
+};
 
 
 /* 最初に1になるビットを左側から探す */
@@ -108,9 +114,9 @@ void arch_init_task_create(TaskStruct* task)
 	else {
 		/* USRタスク */
 		/* タスク用スタックとSVC用スタックは個別 */
-		task->usr_init_sp = sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
+		task->usr_init_sp = __sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
 	}
-	task->init_sp = sys_malloc_align_body(task->stack_size, STACK_ALIGN);
+	task->init_sp = __sys_malloc_align_body(task->stack_size, STACK_ALIGN);
 
 	arch_init_task(task, NULL);
 }
@@ -244,7 +250,7 @@ void arch_system_preinit(uint32_t cpuid)
 void arch_register_st_memory()
 {
 	/* 起動時メモリ登録 */
-	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
+	__st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
 }
 
 arch_register_normal_memory(void)

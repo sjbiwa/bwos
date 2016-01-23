@@ -13,7 +13,6 @@
 #include "arm.h"
 #include "mpcore.h"
 #include "cp15reg.h"
-#include "my_board.h"
 #include "memmgr.h"
 
 #define	SHARE_SECT				(0x01u<<16)
@@ -63,7 +62,7 @@ static uint32_t* section_tbl;
 static uint32_t* sectiontbl_alloc(void)
 {
 	/* 16Kバイトアラインメント */
-	void* tbl = st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_SIZE);
+	void* tbl = __st_malloc_align(SECT_TABLE_SIZE, SECT_TABLE_SIZE);
 	memset(tbl, 0, SECT_TABLE_SIZE);
 	return (uint32_t*)tbl;
 }
@@ -72,7 +71,7 @@ static uint32_t* sectiontbl_alloc(void)
 static uint32_t* tbl_alloc(void)
 {
 	/* 1Kバイトアラインメント */
-	void* tbl = st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_SIZE);
+	void* tbl = __st_malloc_align(PAGE_TABLE_SIZE, PAGE_TABLE_SIZE);
 	memset(tbl, 0, PAGE_TABLE_SIZE);
 	return (uint32_t*)tbl;
 }

@@ -9,7 +9,6 @@
  *      Author: biwa
  */
 
-#include <stdint.h>
 #include "kernel.h"
 
 #define	MB_ALIGN				(sizeof(PtrInt_t))	/* 空きブロック/使用中ブロックのアラインメント */
@@ -67,7 +66,7 @@ static 	Link	mb_space_link;
 /* 排他用mutex */
 static MutexStruct	malloc_mutex;
 
-void sys_malloc_init(void)
+KERNAPI void __sys_malloc_init(void)
 {
 	link_clear(&mb_space_link);
 	_kernel_mutex_create(&malloc_mutex);
@@ -78,7 +77,7 @@ static void* mb_start_addr;
 static void* mb_end_addr;
 #endif
 
-void sys_malloc_add_block(void* start_addr, MemSize_t size)
+KERNAPI void __sys_malloc_add_block(void* start_addr, MemSize_t size)
 {
 	/* ブロックの先頭/最終にMBIdentifyを置いて、挟まれた初期空きブロックがALIGNされるstart/endを算出 */
 	void* end_addr = PTRVAR(start_addr) + size;
@@ -144,7 +143,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, MemSize_t size)
 	return ret;
 }
 
-void* sys_malloc_align_body(MemSize_t size, uint32_t align)
+KERNAPI void* __sys_malloc_align_body(MemSize_t size, uint32_t align)
 {
 	void* ret = NULL;
 
@@ -207,7 +206,7 @@ void* sys_malloc_align_body(MemSize_t size, uint32_t align)
 
 }
 
-void* sys_malloc_body(MemSize_t size)
+KERNAPI void* __sys_malloc_body(MemSize_t size)
 {
 	void* ret = NULL;
 
@@ -242,7 +241,7 @@ void* sys_malloc_body(MemSize_t size)
 OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
 {
 	_kernel_mutex_lock(&malloc_mutex);
-	void* ret = sys_malloc_align_body(size, align);
+	void* ret = __sys_malloc_align_body(size, align);
 	_kernel_mutex_unlock(&malloc_mutex);
 
 	return ret;
@@ -252,7 +251,7 @@ OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
 OSAPISTUB void* __sys_malloc(MemSize_t size)
 {
 	_kernel_mutex_lock(&malloc_mutex);
-	void* ret = sys_malloc_body(size);
+	void* ret = __sys_malloc_body(size);
 	_kernel_mutex_unlock(&malloc_mutex);
 
 	return ret;

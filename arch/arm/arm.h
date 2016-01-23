@@ -12,6 +12,8 @@
 #ifndef ARM_H_
 #define ARM_H_
 
+#include "cp15reg.h"
+
 #define	MODE_USR		(0b10000)
 #define	MODE_FIQ		(0b10001)
 #define	MODE_IRQ		(0b10010)

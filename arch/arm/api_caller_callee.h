@@ -8,8 +8,7 @@
  *  Created on: 2015/01/29
  *      Author: biwa
  */
-#include <stdint.h>
-#include "bwos.h"
+#include "common.h"
 
 #ifndef _API_CALLER_CALLEE_H_
 #define _API_CALLER_CALLEE_H_

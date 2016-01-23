@@ -23,6 +23,11 @@ extern void board_init_task_depend(void);
 
 extern void	_entry_stub(void);
 
+/* 初期タスクの生成パラメータ */
+TaskCreateInfo	_init_task_create_param = {
+	NULL, TASK_ACT, NULL, 512, 0, 0, (void*)0
+};
+
 static inline void arch_init_task(TaskStruct* task, void* cre_param)
 {
 	uint32_t*		ptr;
@@ -48,7 +53,7 @@ static inline void arch_init_task(TaskStruct* task, void* cre_param)
 
 void arch_init_task_create(TaskStruct* task)
 {
-	task->usr_init_sp = sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
+	task->usr_init_sp = __sys_malloc_align_body(task->usr_stack_size, STACK_ALIGN);
 	/* ::init_spまたはusr_init_spがnullの時はシステムエラー */
 
 	arch_init_task(task, NULL);
@@ -91,7 +96,7 @@ void arch_system_preinit(uint32_t cpuid)
 void arch_register_st_memory()
 {
 	/* 起動時メモリ登録 */
-	st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
+	__st_malloc_init(&__heap_start, PTRVAR(END_MEM_ADDR+1) - PTRVAR(&__heap_start));
 }
 
 void arch_register_normal_memory(void)

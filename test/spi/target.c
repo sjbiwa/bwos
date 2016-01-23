@@ -89,15 +89,15 @@ void task3(uint32_t arg0, uint32_t arg1)
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 0, 1024, 1024, 5, (void*)128},
-		{"TASK2", CPU_CORE0|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
-		{"TASK3", CPU_CORE1|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)512},
-		{"TASK2", CPU_CORE2|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
-		{"TASK3", CPU_CORE3|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)512},
-		{"TASK2", CPU_CORE0|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
-		{"TASK3", CPU_CORE1|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)512},
-		{"TASK2", CPU_CORE2|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)256},
-		{"TASK3", CPU_CORE3|TASK_FPU|TASK_SYS, task2, 0, 1024, 1024, 6, (void*)512},
+		{"TASK1", TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 1024, 5, (void*)128},
+		{"TASK2", CPU_CORE0|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)256},
+		{"TASK3", CPU_CORE1|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)512},
+		{"TASK2", CPU_CORE2|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)256},
+		{"TASK3", CPU_CORE3|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)512},
+		{"TASK2", CPU_CORE0|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)256},
+		{"TASK3", CPU_CORE1|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)512},
+		{"TASK2", CPU_CORE2|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)256},
+		{"TASK3", CPU_CORE3|TASK_FPU|TASK_SYS, task2, 1024, 1024, 6, (void*)512},
 };
 
 void main_task(void)
