@@ -21,7 +21,6 @@ typedef	struct {
 static void flag_sub_init(void) {}
 OBJECT_INDEX_FUNC(flag,FlagStruct,FLAG_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(flag,FlagStruct);
-OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 #if FLAG_MAX_NUM != 0
 
@@ -63,11 +62,11 @@ static inline bool check_and_result(FlagStruct* flag, uint32_t pattern, uint32_t
 static void flag_wait_func(TaskStruct* task, void* wait_obj)
 {
 	FlagStruct* flag = ((FlagInfoStruct*)(wait_obj))->obj;
-	CpuStruct* cpu = task->cpu_struct;
 
 	/* タイムアウトしたタスクを起床させる */
 	flag_spinlock(flag);
-	cpu_spinlock(cpu);
+	cpu_spinlock_by_task(task);
+	CpuStruct* cpu = task->cpu_struct;
 	task_wakeup_stub(task, RT_TIMEOUT);
 	cpu_spinunlock(cpu);
 	flag_spinunlock(flag);
@@ -98,8 +97,8 @@ KERNAPI int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 	link = flag->link.next;
 	while ( (link != &(flag->link)) && (flag->value != 0) ) {
 		TaskStruct* task = containerof(link, TaskStruct, link);
+		cpu_spinlock_by_task(task);
 		CpuStruct* cpu = task->cpu_struct;
-		cpu_spinlock(cpu);
 		link = link->next; /* 現エントリがリストから外される可能性があるので先に次のエントリを取得しておく */
 		FlagInfoStruct* flag_info = (FlagInfoStruct*)(task->wait_obj);
 		if ( check_and_result(flag, flag_info->pattern, flag_info->wait_mode, flag_info->ret_pattern) ) {
@@ -151,8 +150,8 @@ KERNAPI int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait
 		else {
 			/* completeしない/ポーリングではない場合 */
 			task = task_self();
+			cpu_spinlock_by_task(task);
 			CpuStruct* cpu = task->cpu_struct;
-			cpu_spinlock(cpu);
 			/* 待ちリストに追加 */
 			flag_info.obj = flag;
 			flag_info.pattern = pattern;

@@ -18,7 +18,6 @@ static TaskStruct	init_task_struct;	/* 初期タスク構造体 */
 
 /* オブジェクト<->インデックス変換用 */
 OBJECT_INDEX_FUNC(task,TaskStruct,TASK_MAX_NUM);
-OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 extern void arch_init_task_create(TaskStruct* task);
 extern int arch_task_create(TaskStruct* task, void* cre_param);
@@ -388,7 +387,7 @@ KERNAPI int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 	if ( task->task_attr & TASK_ACT ) {
 		uint32_t		irq_state;
 		irq_state = irq_save();
-		cpu_spinlock(task->cpu_struct);
+		cpu_spinlock_by_task(task);
 		task->task_state = TASK_READY;
 		task_add_queue(task);
 
@@ -414,7 +413,7 @@ KERNAPI int _kernel_task_active(TaskStruct* task, void* act_param)
 	bool req_dispatch = false;
 
 	irq_state = irq_save();
-	cpu_spinlock(task->cpu_struct);
+	cpu_spinlock_by_task(task);
 
 	if ( task->task_state == TASK_STANDBY ) {
 		arch_task_active(task, act_param);
@@ -439,8 +438,8 @@ KERNAPI int _kernel_task_sleep(void)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
+	cpu_spinlock_by_task(ctask);
 	CpuStruct* cpu = ctask->cpu_struct;
-	cpu_spinlock(cpu);
 	task_sleep_stub(ctask);
 	req_dispatch = schedule(cpu);
 	cpu_spinunlock(cpu);
@@ -458,8 +457,8 @@ KERNAPI int _kernel_task_wakeup(TaskStruct* task)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 
+	cpu_spinlock_by_task(task);
 	CpuStruct* cpu = task->cpu_struct;
-	cpu_spinlock(cpu);
 
 	/* wait状態でリソース待ちが無いときにwakeupする */
 	if ( (task->task_state == TASK_WAIT) && link_is_empty(&(task->link)) ) {
@@ -484,8 +483,9 @@ KERNAPI int _kernel_task_tsleep(TimeOut tm)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
+
+	cpu_spinlock_by_task(ctask);
 	CpuStruct* cpu = ctask->cpu_struct;
-	cpu_spinlock(cpu);
 
 	task_sleep_stub(ctask);
 	ctask->timeout = get_tick_count() + tm;
@@ -509,8 +509,8 @@ KERNAPI int _kernel_task_dormant(void)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
+	cpu_spinlock_by_task(ctask);
 	CpuStruct* cpu = ctask->cpu_struct;
-	cpu_spinlock(cpu);
 
 	task_remove_queue(ctask);
 	link_clear(&(ctask->link));

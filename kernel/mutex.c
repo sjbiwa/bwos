@@ -15,7 +15,6 @@
 static void mutex_sub_init(void) {}
 OBJECT_INDEX_FUNC(mutex,MutexStruct,MUTEX_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(mutex,MutexStruct);
-OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 #if MUTEX_MAX_NUM != 0
 int _kernel_mutex_create(MutexStruct* mtx)
@@ -31,11 +30,11 @@ int _kernel_mutex_create(MutexStruct* mtx)
 static void mutex_wait_func(TaskStruct* task, void* wait_obj)
 {
 	MutexStruct* mutex = (MutexStruct*)(wait_obj);
-	CpuStruct* cpu = task->cpu_struct;
 
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	mutex_spinlock(mutex);
-	cpu_spinlock(cpu);
+	cpu_spinlock_by_task(task);
+	CpuStruct* cpu = task->cpu_struct;
 	task_wakeup_stub(task, RT_TIMEOUT);
 	cpu_spinunlock(cpu);
 	mutex_spinunlock(mutex);
@@ -63,12 +62,12 @@ retry_lock:
 		/* 他タスクlock中なので待ち状態に遷移 */
 		/* 最初に自cpuをlock */
 		task = task_self();
-		CpuStruct* cpu = task->cpu_struct;
-		if ( !cpu_spintrylock(cpu) ) {
+		if ( !cpu_spintrylock_by_task(task) ) {
 			/* cpuがlockできなければいったんmutex開放して再実行 */
 			mutex_spinunlock_irq_restore(mtx, irq_state);
 			goto retry_lock;
 		}
+		CpuStruct* cpu = task->cpu_struct;
 		/* mutex + cpu をlock完了 */
 
 		task_set_wait(task, mtx, mutex_wait_func);
@@ -110,12 +109,12 @@ retry_lock:
 			/* linkの先頭タスク取得して対応するCPUをlock */
 			Link* link = mtx->link.next;
 			TaskStruct* task = containerof(link, TaskStruct, link);
-			CpuStruct* cpu = task->cpu_struct;
-			if ( !cpu_spintrylock(cpu) ) {
+			if ( !cpu_spintrylock_by_task(task) ) {
 				/* cpuがlockできなければいったんmutex開放して再取得 */
 				mutex_spinunlock_irq_restore(mtx, irq_state);
 				goto retry_lock;
 			}
+			CpuStruct* cpu = task->cpu_struct;
 			/* mutex + cpu をlock完了 */
 
 			/* linkの先頭タスクをwakeupさせる */

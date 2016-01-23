@@ -24,7 +24,7 @@
 #include "kernel/kobject.h"
 #include "kernel/arch_kernel_api.h"
 #include "interface.h"
-#include "lock.h"
+#include "kernel_lock.h"
 #include "link.h"
 
 /* 初期タスクの生成パラメータ(arch側で用意する) */

@@ -28,7 +28,6 @@ typedef	struct {
 static void msgq_sub_init(void) {}
 OBJECT_INDEX_FUNC(msgq,MsgqStruct,MSGQ_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(msgq,MsgqStruct);
-OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 #if MSGQ_MAX_NUM != 0
 static uint32_t queue_space(MsgqStruct* msgq)
@@ -119,8 +118,8 @@ uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStru
 	while ( !link_is_empty(&(msgq->link)) ) {
 		Link* link = msgq->link.next;
 		TaskStruct* task = containerof(link, TaskStruct, link);
+		cpu_spinlock_by_task(task);
 		CpuStruct* cpu = task->cpu_struct;
-		cpu_spinlock(cpu);
 		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(task->wait_obj);
 
 		/* コピーされなかったら終了 */
@@ -152,11 +151,11 @@ static void msgq_wait_func(TaskStruct* task, void* wait_obj)
 {
 	uint32_t	wakeup_cpu_list = 0;
 	MsgqStruct* msgq = ((MsgqInfoStruct*)wait_obj)->msgq;
-	CpuStruct* cpu = task->cpu_struct;
 
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	msgq_spinlock(msgq);
-	cpu_spinlock(cpu);
+	cpu_spinlock_by_task(task);
+	CpuStruct* cpu = task->cpu_struct;
 	task_wakeup_stub(task, RT_TIMEOUT);
 	cpu_spinunlock(cpu);
 
@@ -228,12 +227,12 @@ retry_lock:
 			/* キューに空きがない状態 または すでに送信待ちタスクが存在する 待ち状態に遷移する */
 			/* 最初に自cpuをlock */
 			TaskStruct* task = task_self();
-			CpuStruct* cpu = task->cpu_struct;
-			if ( !cpu_spintrylock(cpu) ) {
+			if ( !cpu_spintrylock_by_task(task) ) {
 				/* cpuがlockできなければいったんmsgq開放して再取得 */
 				msgq_spinunlock_irq_restore(msgq, irq_state);
 				goto retry_lock;
 			}
+			CpuStruct* cpu = task->cpu_struct;
 			/* msgq + cpu をlock完了 */
 
 			MsgqInfoStruct msgq_info;
@@ -312,12 +311,12 @@ retry_lock:
 			/* キューにデータがない -> 待ち状態になる */
 			/* 最初に自cpuをlock */
 			TaskStruct* task = task_self();
-			CpuStruct* cpu = task->cpu_struct;
-			if ( !cpu_spintrylock(cpu) ) {
+			if ( !cpu_spintrylock_by_task(task) ) {
 				/* cpuがlockできなければいったんmsgq開放して再取得 */
 				msgq_spinunlock_irq_restore(msgq, irq_state);
 				goto retry_lock;
 			}
+			CpuStruct* cpu = task->cpu_struct;
 			/* msgq + cpu をlock完了 */
 			MsgqInfoStruct msgq_info;
 			msgq_info.msgq = msgq;

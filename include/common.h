@@ -68,7 +68,7 @@
 #define	PTRVAR(x)							((uint8_t*)(x)) /* ポインタ演算用 (バイトアドレス型に変換) */
 
 /* メモリサイズ用 */
-#define	SIZE_PRE_ALIGN_BY(x,n)	((MemSize_t)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
-#define	SIZE_POST_ALIGN_BY(x,n)	((MemSize_t)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
+#define	SIZE_PRE_ALIGN_BY(x,n)				((MemSize_t)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
+#define	SIZE_POST_ALIGN_BY(x,n)				((MemSize_t)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
 
 #endif /* COMMON_H_ */

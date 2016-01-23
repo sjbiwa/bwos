@@ -20,7 +20,6 @@ typedef	struct {
 static void sem_sub_init(void) {}
 OBJECT_INDEX_FUNC(sem,SemStruct,SEM_MAX_NUM);
 OBJECT_SPINLOCK_FUNC(sem,SemStruct);
-OBJECT_SPINLOCK_FUNC(cpu,CpuStruct);
 
 #if SEM_MAX_NUM != 0
 
@@ -49,9 +48,8 @@ retry_lock:
 	while ( !link_is_empty(&(sem->link)) ) {
 		Link* link = sem->link.next;
 		TaskStruct* task = containerof(link, TaskStruct, link);
-		CpuStruct* cpu = task->cpu_struct;
 		if ( is_context ) {
-			if ( !cpu_spintrylock(cpu) ) {
+			if ( !cpu_spintrylock_by_task(task) ) {
 				/* cpuがlockできなければいったんsem開放して再取得 */
 				sem_spinunlock(sem);
 				irq_restore(irq_state);
@@ -59,8 +57,9 @@ retry_lock:
 			}
 		}
 		else {
-			cpu_spinlock(cpu);
+			cpu_spinlock_by_task(task);
 		}
+		CpuStruct* cpu = task->cpu_struct;
 		/* sem + cpu をlock完了 */
 
 		SemInfoStruct* sem_info = (SemInfoStruct*)task->wait_obj;
@@ -106,11 +105,11 @@ retry_lock:
 static void sem_wait_func(TaskStruct* task, void* wait_obj)
 {
 	SemStruct* sem = ((SemInfoStruct*)wait_obj)->sem;
-	CpuStruct* cpu = task->cpu_struct;
 
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	sem_spinlock(sem);
-	cpu_spinlock(cpu);
+	cpu_spinlock_by_task(task);
+	CpuStruct* cpu = task->cpu_struct;
 	task_wakeup_stub(task, RT_TIMEOUT);
 	cpu_spinunlock(cpu);
 	sem_spinunlock(sem);
@@ -153,12 +152,12 @@ retry_lock:
 		/* 先に待ちタスクがいるか数が足りない場合は待ちに入る */
 		/* 最初に自cpu lock */
 		task = task_self();
-		CpuStruct* cpu = task->cpu_struct;
-		if ( !cpu_spintrylock(cpu) ) {
+		if ( !cpu_spintrylock_by_task(task) ) {
 			/* cpuがlockできなければいったんsem開放して再取得 */
 			sem_spinunlock_irq_restore(sem, irq_state);
 			goto retry_lock;
 		}
+		CpuStruct* cpu = task->cpu_struct;
 		/* sem + cpu をlock完了 */
 
 		sem_info.sem = sem;
