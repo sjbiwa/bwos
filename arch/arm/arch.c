@@ -21,7 +21,8 @@ extern void board_register_normal_memory(void);
 extern void	_entry_stub(void);
 extern char __heap_start;
 
-CpuStruct* cpu_struct_pointer[CPU_NUM]; /* 各コアが自身のcpu_structを取り出すためのもの */
+uint32_t _irq_level[CPU_NUM] = {0}; /* 多重割り込みレベル */
+uint8_t _dispatch_disable[CPU_NUM] = {0}; /* ディスパッチ禁止フラグ */
 
 /* 初期タスクの生成パラメータ */
 TaskCreateInfo	_init_task_create_param = {
@@ -139,9 +140,6 @@ smp0_handler(uint32_t irqno, void* info)
 void arch_system_preinit(uint32_t cpuid)
 {
 	if ( cpuid == MASTER_CPU_ID ) {
-		for (int cpuid=0; cpuid < CPU_NUM; cpuid++ ) {
-			cpu_struct_pointer[cpuid] = &cpu_struct[cpuid];
-		}
 		debug_print_init();
 	}
 
@@ -233,20 +231,12 @@ void _delayed_dispatch(void)
 
 bool arch_can_dispatch(void)
 {
-extern	uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 	bool ret = false;
-	if ( _irq_level[CPUID_get()] == 0 ) {
+	uint32_t cpuid = CPUID_get();
+	if ( (_irq_level[cpuid] == 0) && (_dispatch_disable[cpuid] == 0) ) {
 		ret = true;
 	}
 	return ret;
-}
-
-void _dispatch(void)
-{
-	TaskStruct* ctask = cpu_struct[CPUID_get()].ctask;
-	TaskStruct* ntask = cpu_struct[CPUID_get()].ntask;
-	cpu_struct[CPUID_get()].ctask = ntask;
-	_switch_to(ctask, ntask, 0);
 }
 
 void ipi_request_dispatch(uint32_t other_cpu_list)
@@ -260,6 +250,11 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 	uint32_t cpuid = cpu->cpuid;
 	__dsb();
 	iowrite32(GICD_SGIR, 0x00010000u << cpuid);
+}
+
+void _dispatch(void)
+{
+	_switch_to(&cpu_struct[CPUID_get()]);
 }
 
 /* ０除算呼び出し */

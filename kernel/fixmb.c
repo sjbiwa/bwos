@@ -64,8 +64,8 @@ static void fixmb_wait_func(TaskStruct* task, void* wait_obj)
 
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	fixmb_spinlock(fixmb);
-	cpu_spinlock_by_task(task);
 	CpuStruct* cpu = task->cpu_struct;
+	cpu_spinlock(cpu);
 	task_wakeup_stub(task, RT_TIMEOUT);
 	cpu_spinunlock(cpu);
 	fixmb_spinunlock(fixmb);
@@ -158,12 +158,12 @@ retry_lock:
 		/* 割り当てブロックがないので待ち状態に遷移 */
 		/* 最初に自cpuをlock */
 		task = task_self();
-		if ( !cpu_spintrylock_by_task(task) ) {
+		CpuStruct* cpu = task->cpu_struct;
+		if ( !cpu_spintrylock(cpu) ) {
 			/* cpuがlockできなければいったんfixmb開放して再取得 */
 			fixmb_spinunlock_irq_restore(fixmb, irq_state);
 			goto retry_lock;
 		}
-		CpuStruct* cpu = task->cpu_struct;
 		/* fixmb + cpu をlock完了 */
 
 		fixmb_info.obj = fixmb;
@@ -218,12 +218,12 @@ retry_lock:
 			/* 開放するMBをそのままwakeupするタスクに渡す */
 			Link* link = fixmb->link.next;
 			TaskStruct* task = containerof(link, TaskStruct, link);
-			if ( !cpu_spintrylock_by_task(task) ) {
+			CpuStruct* cpu = task->cpu_struct;
+			if ( !cpu_spintrylock(cpu) ) {
 				/* cpuがlockできなければいったんmutex開放して再取得 */
 				fixmb_spinunlock_irq_restore(fixmb, irq_state);
 				goto retry_lock;
 			}
-			CpuStruct* cpu = task->cpu_struct;
 			/* fixmb + cpu をlock完了 */
 
 			FixmbInfoStruct* fixmb_info;

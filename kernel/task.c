@@ -387,7 +387,7 @@ KERNAPI int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 	if ( task->task_attr & TASK_ACT ) {
 		uint32_t		irq_state;
 		irq_state = irq_save();
-		cpu_spinlock_by_task(task);
+		cpu_spinlock(task->cpu_struct);
 		task->task_state = TASK_READY;
 		task_add_queue(task);
 
@@ -413,6 +413,7 @@ KERNAPI int _kernel_task_active(TaskStruct* task, void* act_param)
 	bool req_dispatch = false;
 
 	irq_state = irq_save();
+	/* taskはどのコアで動いているかはlockしてみるまで不明なので_by_taskを使う */
 	cpu_spinlock_by_task(task);
 
 	if ( task->task_state == TASK_STANDBY ) {
@@ -438,8 +439,8 @@ KERNAPI int _kernel_task_sleep(void)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
-	cpu_spinlock_by_task(ctask);
 	CpuStruct* cpu = ctask->cpu_struct;
+	cpu_spinlock(cpu);
 	task_sleep_stub(ctask);
 	req_dispatch = schedule(cpu);
 	cpu_spinunlock(cpu);
@@ -457,6 +458,7 @@ KERNAPI int _kernel_task_wakeup(TaskStruct* task)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 
+	/* taskはどのコアで動いているかはlockしてみるまで不明なので_by_taskを使う */
 	cpu_spinlock_by_task(task);
 	CpuStruct* cpu = task->cpu_struct;
 
@@ -484,8 +486,8 @@ KERNAPI int _kernel_task_tsleep(TimeOut tm)
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
 
-	cpu_spinlock_by_task(ctask);
 	CpuStruct* cpu = ctask->cpu_struct;
+	cpu_spinlock(cpu);
 
 	task_sleep_stub(ctask);
 	ctask->timeout = get_tick_count() + tm;
@@ -509,8 +511,8 @@ KERNAPI int _kernel_task_dormant(void)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
-	cpu_spinlock_by_task(ctask);
 	CpuStruct* cpu = ctask->cpu_struct;
+	cpu_spinlock(cpu);
 
 	task_remove_queue(ctask);
 	link_clear(&(ctask->link));
@@ -563,11 +565,15 @@ typedef	struct {
  *   - スタックは独立したスタック(IDLEスタックが○)
  *   - c_cpu/t_cpuはspinlock済
  */
-void do_set_affinity(TaskStruct* ctask, AffinityInfo* info)
+void do_set_affinity(AffinityInfo* info)
 {
 	CpuStruct* c_cpu = info->c_cpu;
 	CpuStruct* t_cpu = info->t_cpu;
+	TaskStruct* ctask = c_cpu->ctask;
 	TaskStruct* ntask = c_cpu->ntask;
+
+	/* 旧CPUを再スケジュール */
+	schedule(c_cpu);
 
 	/* 新CPUを再スケジュール */
 	ctask->cpu_struct = t_cpu;
@@ -580,7 +586,7 @@ void do_set_affinity(TaskStruct* ctask, AffinityInfo* info)
 	ipi_request_dispatch_one(t_cpu);
 
 	/* 自CPU(旧CPU)のdispatch */
-	_switch_to(0, ntask, 0);
+	_attach_active_task(c_cpu);
 }
 
 KERNAPI int _kernel_task_set_affinity(uint32_t aff)
@@ -589,22 +595,20 @@ KERNAPI int _kernel_task_set_affinity(uint32_t aff)
 	uint32_t		irq_state;
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
-	CpuStruct* c_cpu = ctask->cpu_struct;
-
-	if ( (aff < CPU_NUM) && (c_cpu->cpuid != aff) ) {
+	if ( (aff < CPU_NUM) && (ctask->cpu_struct->cpuid != aff) ) {
+		CpuStruct* c_cpu = ctask->cpu_struct;
 		CpuStruct* t_cpu = &cpu_struct[aff];
+
 		cpu_spinlock_aff(c_cpu, t_cpu);
 
-		/* taskをrun_queueから切り離して旧CPUを再スケジュール */
+		/* taskをrun_queueから切り離し */
 		task_remove_queue(ctask);
 		link_clear(&(ctask->link));
-		schedule(c_cpu);
-		c_cpu->ctask = c_cpu->ntask;
 
 		AffinityInfo aff_info;
 		aff_info.c_cpu = c_cpu;
 		aff_info.t_cpu = t_cpu;
-		_switch_to(ctask, 0, &aff_info);
+		_detach_active_task(c_cpu, &aff_info);
 
 		ret = RT_OK;
 	}

@@ -1,5 +1,9 @@
 #include "bwos.h"
 
+#if USE_SMP != 1
+#define	task_set_affinity(...)
+#endif
+
 void wait(uint32_t t)
 {
 	volatile uint32_t count = t;
@@ -33,7 +37,7 @@ typedef	struct {
 } Message;
 
 /* configuration task */
-static int		task_struct[64];
+static int		task_struct[100];
 
 static volatile int mutex;
 static volatile int fixmb;
@@ -206,7 +210,6 @@ void task_msgq_3(void)
 
 
 TaskCreateInfo	task_info[] = {
-#if 0
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
@@ -236,26 +239,6 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
-#endif
-#if 1
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)0},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)1},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)2},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)3},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 4096, 0, 5, (void*)4},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 4096, 0, 5, (void*)5},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 4096, 0, 5, (void*)6},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)7},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task3, 4096, 0, 5, (void*)8},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task3, 4096, 0, 5, (void*)9},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task3, 4096, 0, 5, (void*)10},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task3, 4096, 0, 5, (void*)11},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task4, 4096, 0, 5, (void*)12},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task4, 4096, 0, 5, (void*)13},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task4, 4096, 0, 5, (void*)14},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task4, 4096, 0, 5, (void*)15},
-#endif
-#if 0
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)0},
 		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)1},
 		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)2},
@@ -292,7 +275,6 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
-#endif
 };
 
 void main_task(void)
@@ -312,6 +294,5 @@ void main_task(void)
 		task_struct[ix] = task_create(&task_info[ix]);
 	}
 
-	task_active(task_struct[1], 0);
 	task_sleep();
 }

@@ -15,11 +15,45 @@
 	.text
 	.balign 4
 
+#if USE_SMP == 1
+/*
+** void _detach_active_task(CpuStruct* cpu, void* aff_info);
+**     R0: CpuStruct* cpu
+**     R1: void* aff_info
+*/
+	.global _detach_active_task
+	.type   _detach_active_task, %function
+	.type   _do_post_aff, %function
+_detach_active_task:
+	push	{lr}
+	ldr		r2, [r0, #CPUSTRUCT_CTASK]
+	ldr		lr, =_do_post_aff /* _save_contextの後処理 */
+	b		_save_context
+
+_do_post_aff:
+	/* スタックを切り替えてaffinity処理呼び出し */
+	ldr		r2, =stack_idle
+	CPUID_get(r3)
+	sub		r2, r2, r3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, r2
+	mov		r0, r1
+	b		do_set_affinity
+
+/*
+** void _attach_active_task(CpuStruct* cpu);
+**     R0: TaskStruct* task
+*/
+	.global _attach_active_task
+	.type   _attach_active_task, %function
+
+_attach_active_task:
+	b		_restore_context
+
+#endif
+
 /**
 ** _switch_to
-**    R0:      ctask  (dispatch from)
-**    R1:      ntask  (dispatch to)
-**    R2:      aff_info (==0: dispatch !=0: affinity_info)
+**    R0: CpuStruct* cpu_struct
 **    LR: return address
 **    SVCモード/割り込み禁止で呼び出すこと
 **
@@ -54,24 +88,28 @@
 **			---------------------
 ** beforeSP |					|+88
 **
-**		import _ctask	(current task)
-**		import _ntask	(next task)
 */
 	.global _switch_to
 	.type   _switch_to, %function
+	.type   _restore_context, %function
 
 _switch_to:
 	/* ※ 関数として呼ばれるエントリなので R0/R1/R2/R3/R12は破壊されても良い */
 	push	{lr}
 
-	/* check _ctask	*/
-	cmp		r0, #0
+	ldr		lr, =_restore_context /* _save_context/_skip_save_contextの後処理 */
+
+	/* load and check _ctask */
+	ldr		r2, [r0, #CPUSTRUCT_CTASK]
+	cmp		r2, #0
 
 	/* IF _ctask not available ignore save_context */
-	beq		_restore_context
+	beq		_skip_save_context
 
-_save_and_restore:
-	/* save _ctask state (R0 is _ctask) */
+_save_context:
+	/* R0:CpuStruct R2:ctask (R1は使用禁止) */
+
+	/* save _ctask state */
 	push	{r0,r4-r11}
 	/* save FPEXC */
 	vmrs	r3, FPEXC
@@ -81,7 +119,7 @@ _save_and_restore:
 	/*********************************/
 	tst		r3, #0x40000000
 	beq		_no_save_vfp
-	ldr		r3, [r0, #SAVE_VFP]
+	ldr		r3, [r2, #SAVE_VFP]
 	vstmia	r3!, {d0-d15}
 	vstmia	r3!, {d16-d31}
 	vmrs	r4, FPSCR
@@ -94,53 +132,65 @@ _no_save_vfp:
 	mrs		r6, LR_usr
 	push	{r4,r5,r6}
 
-	str		sp, [r0,#SAVE_SP]
+	str		sp, [r2,#SAVE_SP]
+
+_skip_save_context:
+	/* ここで割り込み許可して保留中の割り込みを受付 */
+	/* 割り込み受付時のスタックをidleスタックに切り替え */
+	/* ※ディスパッチしないようにディスパッチ禁止 */
+	CPUID_get(r12)
+	ldr		r3, =stack_idle
+	sub		r3, r3, r12, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, r3
+	ldr		r3, =_dispatch_disable
+	add		r3, r3, r12
+
+	/* ディスパッチ禁止/割り込み許可 */
+	mov		r12, #1
+	strb	r12, [r3]
+	cpsie	i
+	/**********************/
+	/* 外部割り込み受付中 */
+	/**********************/
+	/* 割り込み禁止/ディスパッチ許可 */
+	cpsid	i
+	mov		r12, #0
+	strb	r12, [r3]
+
+	bx		lr /* 次処理へ分岐 */
 
 _restore_context:
 	/* All register done saved */
-#if USE_SMP == 1
-	/* check affinity */
+	/* R0: cpu_struct */
+
+	/* loadn and check _ntask */
+	ldr		r2, [r0, #CPUSTRUCT_NTASK]
+	/* store _ctask <- _ntask */
+	str		r2, [r0, #CPUSTRUCT_CTASK]
+
 	cmp		r2, #0
-	beq		no_affinity
-
-	mov		r1, r2
-	/* スタックを切り替えてaffinity処理呼び出し */
-	ldr		r2, =stack_idle
-	CPUID_get(r3)
-	sub		r2, r2, r3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
-	mov		sp, r2
-	b		do_set_affinity
-
-no_affinity:
-#endif
-
-	/* check _ntask */
-	cmp		r1, #0
 	beq		_idle_loop
 
-	mov		lr, r1
-	/* restore SP (LR is _ntask)*/
-	ldr		sp, [lr,#SAVE_SP]
+
+	/* restore SP (R2 is _ntask)*/
+	ldr		sp, [r2,#SAVE_SP]
 
 	/* restore USR/SYS info */
-	pop		{r0,r1,r2}
-	msr		SPSR_svc, r0
-	msr		SP_usr, r1
-	msr		LR_usr, r2
-
-	/* restore FPEXC */
-	pop		{r1}
-	vmsr	FPEXC, r1
+	pop		{r4,r5,r6,r7}
+	msr		SPSR_svc, r4
+	msr		SP_usr, r5
+	msr		LR_usr, r6
+	vmsr	FPEXC, r7
 	/*********************************/
 	/* if FPEXC.EN==1 restore VFP !!!!! */
 	/*********************************/
-	tst		r1, #0x40000000
+	tst		r7, #0x40000000
 	beq		_no_load_vfp
-	ldr		r1, [lr, #SAVE_VFP]
-	vldmia	r1!, {d0-d15}
-	vldmia	r1!, {d16-d31}
-	ldr		r0, [r1]
-	vmsr	FPSCR, r0
+	ldr		r3, [r2, #SAVE_VFP]
+	vldmia	r3!, {d0-d15}
+	vldmia	r3!, {d16-d31}
+	ldr		r4, [r3]
+	vmsr	FPSCR, r4
 
 _no_load_vfp:
 	/* restore general-regs and return from _dispatch */
@@ -185,19 +235,15 @@ _dispatch_irq:
 	/* ※ R0/R1/R2/R3/R12/LRはすでに退避されているので破壊されても良い */
 
 	bl		get_cpu_struct
-	mov		r2, r0
-	/* R2 is cpu_struct */
-	ldr		r0, [r2, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
-	ldr		r1, [r2, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
+	/* R0 is cpu_struct */
+	ldr		r1, [r0, #CPUSTRUCT_CTASK] 	/* r0 <- ctask */
+	ldr		r2, [r0, #CPUSTRUCT_NTASK]	/* r1 <- ntask */
 	/* compare _ctask and _ntask */
-	cmp		r0, r1
+	cmp		r1, r2
 	beq		_nodispatch_irq /* _ctask == _ntask ? */
 
-	str		r1, [r2, #CPUSTRUCT_CTASK] 	/* ctask <- r1(ntask) */
-	/* r0:_ctask r1:_ntask */
-	/* save current task context */
+	/* R0 is cpu_struct */
 	ldr		lr, =_entry_stub
-	mov		r2, #0
 	b		_switch_to
 
 _nodispatch_irq:

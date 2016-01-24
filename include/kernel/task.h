@@ -86,8 +86,12 @@ extern bool schedule(CpuStruct* cpu);
 extern uint32_t schedule_any(uint32_t wakeup_cpu_list);
 extern void self_request_dispatch(void);
 extern void _dispatch(void);
+
 #if USE_SMP==1
-extern void _switch_to(TaskStruct* ctask, TaskStruct* ntask, void* affinfo);
+/* set_affinity用API */
+extern void _detach_active_task(CpuStruct* cpu, void* aff_info);
+extern void _attach_active_task(CpuStruct* cpu);
+extern void _switch_to(CpuStruct* cpu);
 #endif
 extern CpuStruct* get_cpu_struct(void);
 extern void task_init_task_create(void);

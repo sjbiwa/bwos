@@ -11,8 +11,6 @@
 #include "kernel.h"
 #include "mpcore.h"
 
-uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
-
 static struct {
 	IRQ_HANDLER		handler;
 	void*			info;

@@ -195,6 +195,13 @@ _common_ope:
 	cmp		r0, #0
 	bne		_nodispatch_irq
 
+	/* check _dispatch_disable */
+	CPUID_get(r0)
+	ldr		r1, =_dispatch_disable
+	ldrb	r0, [r1,r0]
+	cmp		r0, #0
+	bne		_nodispatch_irq
+
 	b		_dispatch_irq
 
 _fiq_entry:
