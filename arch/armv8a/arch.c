@@ -25,6 +25,7 @@ extern void	_entry_stub(void);
 extern char __heap_start;
 
 uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
+uint8_t _dispatch_disable[CPU_NUM] = {0}; /* ディスパッチ禁止フラグ */
 
 /* 初期タスクの生成パラメータ */
 TaskCreateInfo	_init_task_create_param = {
@@ -269,7 +270,8 @@ void _delayed_dispatch(void)
 bool arch_can_dispatch(void)
 {
 	bool ret = false;
-	if ( _irq_level[CPUID_get()] == 0 ) {
+	uint32_t cpuid = CPUID_get();
+	if ( (_irq_level[cpuid] == 0) && (_dispatch_disable[cpuid] == 0) ) {
 		ret = true;
 	}
 	return ret;
@@ -277,10 +279,7 @@ bool arch_can_dispatch(void)
 
 void _dispatch(void)
 {
-	TaskStruct* ctask = cpu_struct[CPUID_get()].ctask;
-	TaskStruct* ntask = cpu_struct[CPUID_get()].ntask;
-	cpu_struct[CPUID_get()].ctask = ntask;
-	_switch_to(ctask, ntask, 0);
+	_switch_to(&cpu_struct[CPUID_get()]);
 }
 
 void arch_init_task_depend(void)

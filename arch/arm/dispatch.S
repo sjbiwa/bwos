@@ -27,16 +27,18 @@
 _detach_active_task:
 	push	{lr}
 	ldr		r2, [r0, #CPUSTRUCT_CTASK]
-	ldr		lr, =_do_post_aff /* _save_contextの後処理 */
 	b		_save_context
 
 _do_post_aff:
-	/* スタックを切り替えてaffinity処理呼び出し */
-	ldr		r2, =stack_idle
-	CPUID_get(r3)
-	sub		r2, r2, r3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
-	mov		sp, r2
-	mov		r0, r1
+	/* 現タスクのコンテキストは保存されたのでスタックを切り替える */
+	/* _attach_active_taskが呼び出されるまでの間にIDLEスタックは  */
+	/* 使われないので、これを使う                                 */
+	CPUID_get(r12)
+	ldr		r3, =stack_idle
+	sub		r3, r3, r12, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, r3
+
+	mov		r0, r1 /* r0 <- aff_info */
 	b		do_set_affinity
 
 /*
@@ -47,7 +49,7 @@ _do_post_aff:
 	.type   _attach_active_task, %function
 
 _attach_active_task:
-	b		_restore_context
+	b		_skip_save_context
 
 #endif
 
@@ -91,13 +93,12 @@ _attach_active_task:
 */
 	.global _switch_to
 	.type   _switch_to, %function
-	.type   _restore_context, %function
 
 _switch_to:
 	/* ※ 関数として呼ばれるエントリなので R0/R1/R2/R3/R12は破壊されても良い */
 	push	{lr}
 
-	ldr		lr, =_restore_context /* _save_context/_skip_save_contextの後処理 */
+	mov		r1, #0 /* 通常のdispatch処理用 (r1!=0の時はset_affinity) */
 
 	/* load and check _ctask */
 	ldr		r2, [r0, #CPUSTRUCT_CTASK]
@@ -107,7 +108,8 @@ _switch_to:
 	beq		_skip_save_context
 
 _save_context:
-	/* R0:CpuStruct R2:ctask (R1は使用禁止) */
+	/* R0:CpuStruct R1:dispatch/affinity指定 R2:ctask */
+	/* R3/R12/LRはテンポラリとして使用可能 */
 
 	/* save _ctask state */
 	push	{r0,r4-r11}
@@ -134,17 +136,33 @@ _no_save_vfp:
 
 	str		sp, [r2,#SAVE_SP]
 
+#if USE_SMP == 1
+	/* dispatch/affinity 処理チェック */
+	cmp		r1, #0
+	bne		_do_post_aff
+#endif
+
 _skip_save_context:
-	/* ここで割り込み許可して保留中の割り込みを受付 */
-	/* 割り込み受付時のスタックをidleスタックに切り替え */
-	/* ※ディスパッチしないようにディスパッチ禁止 */
+	/* R0: cpu_struct */
+
+	/* IDLEタスク/割り込み受付用スタックに切り替え */
 	CPUID_get(r12)
 	ldr		r3, =stack_idle
 	sub		r3, r3, r12, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, r3
+
+	/* loadn and check _ntask */
+	ldr		r2, [r0, #CPUSTRUCT_NTASK]
+	/* store _ctask <- _ntask */
+	str		r2, [r0, #CPUSTRUCT_CTASK]
+	/* dispatchするタスクが無い場合はIDLEタスクへ */
+	cmp		r2, #0
+	beq		_idle_loop
+
+	/* 割り込み許可して保留中の割り込みを受付     */
+	/* ※ディスパッチしないようにディスパッチ禁止 */
 	ldr		r3, =_dispatch_disable
 	add		r3, r3, r12
-
 	/* ディスパッチ禁止/割り込み許可 */
 	mov		r12, #1
 	strb	r12, [r3]
@@ -156,21 +174,6 @@ _skip_save_context:
 	cpsid	i
 	mov		r12, #0
 	strb	r12, [r3]
-
-	bx		lr /* 次処理へ分岐 */
-
-_restore_context:
-	/* All register done saved */
-	/* R0: cpu_struct */
-
-	/* loadn and check _ntask */
-	ldr		r2, [r0, #CPUSTRUCT_NTASK]
-	/* store _ctask <- _ntask */
-	str		r2, [r0, #CPUSTRUCT_CTASK]
-
-	cmp		r2, #0
-	beq		_idle_loop
-
 
 	/* restore SP (R2 is _ntask)*/
 	ldr		sp, [r2,#SAVE_SP]
@@ -254,11 +257,5 @@ _nodispatch_irq:
 */
 	.type   _idle_loop, %function
 _idle_loop:
-	cps		#MODE_SVC
-	ldr		r0, =stack_idle
-	CPUID_get(r1)
-	sub		r0, r0, r1, LSL #IDLE_TASK_STACK_SIZE_SHIFT
-	mov		sp, r0
-1:
 	bl		idle_task
-	b		1b
+	b		_idle_loop

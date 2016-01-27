@@ -44,9 +44,15 @@ typedef	struct {
 #define	CPU_MASK			(0xFFu<<24)
 #define	CPU_SELF			(0xFFu<<24)
 #define	CPU_CORE0			(0x00u<<24)
+#if USE_SMP == 1
 #define	CPU_CORE1			(0x01u<<24)
 #define	CPU_CORE2			(0x02u<<24)
 #define	CPU_CORE3			(0x03u<<24)
+#else
+#define	CPU_CORE1			(0x00u<<24)
+#define	CPU_CORE2			(0x00u<<24)
+#define	CPU_CORE3			(0x00u<<24)
+#endif
 #define	CPU_GET(f)			(((f)&CPU_MASK)>>24)
 
 #define	TASK_SELF			(0)

@@ -94,6 +94,7 @@ void task4(uint32_t arg0, uint32_t arg1)
 			lprintf("CORE=%d:%d:get yyyyy error\n", CPUID_get(), ix);
 			break;
 		}
+		task_set_affinity(ix%CPU_NUM);
 	}
 	mutex_unlock(mutex);
 
@@ -101,15 +102,17 @@ void task4(uint32_t arg0, uint32_t arg1)
 	for (ix--; 0 <= ix; ix--) {
 		fixmb_release(fixmb, ptr[ix]);
 		task_tsleep(SEC(50));
+		task_set_affinity(ix%CPU_NUM);
 	}
 }
 
 void task5(uint32_t arg0, uint32_t arg1)
 {
 	lprintf("CORE=%d:task5:%d\n", CPUID_get(), sem);
-	for (;;) {
+	for (int ix=0;;ix++ ) {
 		int ret = sem_trequest(sem, 10, MSEC(5));
 		lprintf("CORE=%d:task5:request ret=%d\n", CPUID_get(), ret);
+		task_set_affinity(ix%CPU_NUM);
 	}
 }
 
@@ -117,31 +120,34 @@ void task6(uint32_t arg0, uint32_t arg1)
 {
 	lprintf("CORE=%d:task6\n", CPUID_get());
 	task_tsleep(MSEC(5));
-	for (;;) {
+	for (int ix=0;;ix++ ) {
 		int ret = sem_trequest(sem, 5, MSEC(3));
 		lprintf("CORE=%d:task6:request ret=%d\n", CPUID_get(), ret);
 		ret = sem_release(sem, 2);
 		task_tsleep(MSEC(3));
+		task_set_affinity(ix%CPU_NUM);
 	}
 }
 
 void task7(uint32_t arg0, uint32_t arg1)
 {
 	lprintf("CORE=%d:task7\n", CPUID_get());
-	for (;;) {
+	for (int ix=0;;ix++ ) {
 		uint32_t pattern;
 		flag_wait(flag, 0x0001, FLAG_OR|FLAG_CLR, &pattern);
 		lprintf("CORE=%d:flag_wait done\n", CPUID_get());
+		task_set_affinity(ix%CPU_NUM);
 	}
 }
 
 void task8(uint32_t arg0, uint32_t arg1)
 {
 	lprintf("CORE=%d:task8\n", CPUID_get());
-	for (;;) {
+	for (int ix=0;;ix++ ) {
 		task_tsleep(MSEC(500));
 		flag_set(flag, 0x0001);
 		lprintf("CORE=%d:flag_set done\n", CPUID_get());
+		task_set_affinity(ix%CPU_NUM);
 	}
 }
 

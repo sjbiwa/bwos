@@ -84,12 +84,11 @@ el1_irq_handler:
 	CPUID_get(x0)
 	ldr		x1, =_irq_level
 	add		x1, x1, x0, LSL #2
-	ldr		w0, [x1]
-	add		w0, w0, #1
+	ldr		w2, [x1]
+	add		w0, w2, #1
 	str		w0, [x1]
 	/* ネスト値==1(first-in)? */
-	cmp		w0, #1
-	bne		enter_from_handler
+	cbnz	w0, enter_from_handler
 
 enter_from_task:
 	CPACR_EL1_get(x0)
@@ -115,13 +114,19 @@ enter_op_done:
 	CPUID_get(x0)
 	ldr		x1, =_irq_level
 	add		x1, x1, x0, LSL #2
-	ldr		w0, [x1]
-	sub		w0, w0, #1
-	str		w0, [x1]
-
+	ldr		w2, [x1]
+	sub		w2, w2, #1
+	str		w2, [x1]
 	/* ネスト値==0(return to task)? */
-	cmp		w0, #0
-	bne		ret_to_handler
+	cbnz	w2, ret_to_handler
+
+	/* check _dispatch_disable */
+	ldr		x1, =_dispatch_disable
+	ldrb	w2, [x1,x0]
+	cbnz	w2,
+	cmp		w2, #0
+	bne		ret_with_nodispatch
+
 ret_to_task:
 	ldr		x0, [sp, #0]
 	mov		sp, x0
@@ -133,6 +138,7 @@ ret_to_task:
 	b		_dispatch_irq
 
 ret_to_handler:
+ret_with_nodispatch:
 	b		_nodispatch_irq
 
 
