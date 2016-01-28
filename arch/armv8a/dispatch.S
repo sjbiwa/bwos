@@ -10,14 +10,48 @@
 	.text
 	.balign 4
 
+#if USE_SMP == 1
+/*
+** void _detach_active_task(CpuStruct* cpu, void* aff_info);
+**     X0: CpuStruct* cpu
+**     X1: void* aff_info
+*/
+	.global _detach_active_task
+	.type   _detach_active_task, %function
+	.type   _do_post_aff, %function
+_detach_active_task:
+	ldr		x2, [x0, #CPUSTRUCT_CTASK]
+	b		_save_context
+
+_do_post_aff:
+	/* 現タスクのコンテキストは保存されたのでスタックを切り替える */
+	/* _attach_active_taskが呼び出されるまでの間にIDLEスタックは  */
+	/* 使われないので、これを使う                                 */
+	CPUID_get(x3)
+	ldr		x4, =stack_idle
+	sub		x4, x4, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, x4
+
+	mov		x0, x1 /* x0 <- aff_info */
+	b		do_set_affinity
+
+/*
+** void _attach_active_task(CpuStruct* cpu);
+**     X0: TaskStruct* task
+*/
+	.global _attach_active_task
+	.type   _attach_active_task, %function
+
+_attach_active_task:
+	b		_skip_save_context
+
+#endif
+
 	.global _switch_to
 	.type   _switch_to, %function
-
 /**
 ** _switch_to
-**    X0:      ctask  (dispatch from)
-**    X1:      ntask  (dispatch to)
-**    X2:      aff_info (==0: dispatch !=0: affinity_info)
+**    X0: CpuStruct* cpu_struct
 **    X30(LR): return address
 **    EL1/割り込み禁止で呼び出すこと
 **
@@ -36,14 +70,15 @@
 _switch_to:
 	/* ※ 関数として呼ばれるエントリなので X0-X7は破壊されても良い */
 
-	/* check _ctask	*/
-	cmp		x0, #0
+	mov		x1, #0 /* 通常のdispatch処理用 */
 
-	/* IF _ctask not available ignore save_context */
-	beq		_restore_context
+	/* load and check _ctask */
+	ldr		x2, [x0, #CPUSTRUCT_CTASK]
+	cbz		x2, _skip_save_context
 
-_save_and_restore:
-	/* x0 is ctask */
+_save_context:
+	/* X0:CpuStruct X1:dispatch/affinity指定 X2:ctask */
+
 	SP_EL0_get(x8)
 	CPACR_EL1_get(x9)
 	stp		 x8,  x9, [sp, #-16]!
@@ -62,56 +97,70 @@ _save_and_restore:
 	/*******************/
 	/* FPUレジスタ退避 */
 	/*******************/
-	ldr		x3, [x0, #SAVE_VFP]
-	stp		 q0,  q1, [x3], #32
-	stp		 q2,  q3, [x3], #32
-	stp		 q4,  q5, [x3], #32
-	stp		 q6,  q7, [x3], #32
-	stp		 q8,  q9, [x3], #32
-	stp		q10, q11, [x3], #32
-	stp		q12, q13, [x3], #32
-	stp		q14, q15, [x3], #32
-	stp		q16, q17, [x3], #32
-	stp		q18, q19, [x3], #32
-	stp		q20, q21, [x3], #32
-	stp		q22, q23, [x3], #32
-	stp		q24, q25, [x3], #32
-	stp		q26, q27, [x3], #32
-	stp		q28, q29, [x3], #32
-	stp		q30, q31, [x3], #32
+	ldr		x4, [x2, #SAVE_VFP]
+	stp		 q0,  q1, [x4], #32
+	stp		 q2,  q3, [x4], #32
+	stp		 q4,  q5, [x4], #32
+	stp		 q6,  q7, [x4], #32
+	stp		 q8,  q9, [x4], #32
+	stp		q10, q11, [x4], #32
+	stp		q12, q13, [x4], #32
+	stp		q14, q15, [x4], #32
+	stp		q16, q17, [x4], #32
+	stp		q18, q19, [x4], #32
+	stp		q20, q21, [x4], #32
+	stp		q22, q23, [x4], #32
+	stp		q24, q25, [x4], #32
+	stp		q26, q27, [x4], #32
+	stp		q28, q29, [x4], #32
+	stp		q30, q31, [x4], #32
 	FPCR_get(x8)
 	FPSR_get(x9)
-	stp		x8, x9, [x3]
+	stp		x8, x9, [x4]
 
 no_vfp_save:
-	mov		x3, sp
-	str		x3, [x0,#SAVE_SP]
-
-_restore_context:
-	/* All register done saved */
+	mov		x4, sp
+	str		x4, [x2,#SAVE_SP]
 
 #if USE_SMP == 1
-	/* check affinity */
-	cmp		x2, #0
-	beq		no_affinity
-
-	mov		x1, x2
-	/* スタックを切り替えてaffinity処理呼び出し */
-	ldr		x2, =stack_idle
-	CPUID_get(x3)
-	sub		x2, x2, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
-	mov		sp, x2
-	b		do_set_affinity
-
-no_affinity:
+	/* dispatch/affinity 処理チェック */
+	cbnz	x1, _do_post_aff
 #endif
-	/* check _ntask */
-	cmp		x1, #0
-	beq		_idle_loop
 
-	/* restore SP (X0 is _ntask)*/
-	ldr		x3, [x1,#SAVE_SP]
-	mov		sp, x3
+_skip_save_context:
+	/* X0:CpuStruct */
+
+	/* IDLEタスク/割り込み受付用スタックに切り替え */
+	CPUID_get(x3)
+	ldr		x4, =stack_idle
+	sub		x4, x4, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
+	mov		sp, x4
+
+	/* 割り込み許可して保留中の割り込みを受付     */
+	/* ※ディスパッチしないようにディスパッチ禁止 */
+	ldr		x4, =_dispatch_disable
+	add		x4, x4, x3
+	/* ディスパッチ禁止/割り込み許可 */
+	mov		w5, #1
+	strb	w5, [x4]
+	DAIFClr_seti(0x2)
+	/**********************/
+	/* 外部割り込み受付中 */
+	/**********************/
+	/* 割り込み禁止/ディスパッチ許可 */
+	DAIFSet_seti(0x2)
+	strb	wzr, [x4]
+
+	/* loadn and check _ntask */
+	ldr		x2, [x0, #CPUSTRUCT_NTASK]
+	/* store _ctask <- _ntask */
+	str		x2, [x0, #CPUSTRUCT_CTASK]
+	/* dispatchするタスクが無い場合はIDLEタスクへ */
+	cbz		x2, _idle_loop
+
+	/* restore SP (X2 is _ntask)*/
+	ldr		x4, [x2, #SAVE_SP]
+	mov		sp, x4
 
 	ldp		x19, x20, [sp], #16
 	ldp		x21, x22, [sp], #16
@@ -131,24 +180,24 @@ no_affinity:
 	/*******************/
 	/* FPUレジスタ復帰 */
 	/*******************/
-	ldr		x3, [x1, #SAVE_VFP]
-	ldp		 q0,  q1, [x3], #32
-	ldp		 q2,  q3, [x3], #32
-	ldp		 q4,  q5, [x3], #32
-	ldp		 q6,  q7, [x3], #32
-	ldp		 q8,  q9, [x3], #32
-	ldp		q10, q11, [x3], #32
-	ldp		q12, q13, [x3], #32
-	ldp		q14, q15, [x3], #32
-	ldp		q16, q17, [x3], #32
-	ldp		q18, q19, [x3], #32
-	ldp		q20, q21, [x3], #32
-	ldp		q22, q23, [x3], #32
-	ldp		q24, q25, [x3], #32
-	ldp		q26, q27, [x3], #32
-	ldp		q28, q29, [x3], #32
-	ldp		q30, q31, [x3], #32
-	ldp		x8, x9, [x3]
+	ldr		x4, [x2, #SAVE_VFP]
+	ldp		 q0,  q1, [x4], #32
+	ldp		 q2,  q3, [x4], #32
+	ldp		 q4,  q5, [x4], #32
+	ldp		 q6,  q7, [x4], #32
+	ldp		 q8,  q9, [x4], #32
+	ldp		q10, q11, [x4], #32
+	ldp		q12, q13, [x4], #32
+	ldp		q14, q15, [x4], #32
+	ldp		q16, q17, [x4], #32
+	ldp		q18, q19, [x4], #32
+	ldp		q20, q21, [x4], #32
+	ldp		q22, q23, [x4], #32
+	ldp		q24, q25, [x4], #32
+	ldp		q26, q27, [x4], #32
+	ldp		q28, q29, [x4], #32
+	ldp		q30, q31, [x4], #32
+	ldp		x8, x9, [x4]
 	FPCR_set(x8)
 	FPSR_set(x9)
 
@@ -202,19 +251,15 @@ _dispatch_irq:
 	/* ※ X0-X18はすでに退避されているので破壊されても良い */
 
 	bl		get_cpu_struct
-	mov		x2, x0
-	/* x2 is cpu_struct */
-	ldr		x0, [x2, #CPUSTRUCT_CTASK] 	/* x0 <- ctask */
-	ldr		x1, [x2, #CPUSTRUCT_NTASK]	/* x1 <- ntask */
+	/* x0 is cpu_struct */
+	ldr		x1, [x0, #CPUSTRUCT_CTASK] 	/* x0 <- ctask */
+	ldr		x2, [x0, #CPUSTRUCT_NTASK]	/* x1 <- ntask */
 	/* compare _ctask and _ntask */
-	cmp		x0, x1
+	cmp		x1, x2
 	beq		_nodispatch_irq /* _ctask == _ntask ? */
 
-	str		x1, [x2, #CPUSTRUCT_CTASK] 	/* ctask <- x1(ntask) */
-	/* x0:_ctask x1:_ntask */
-	/* save current task context */
+	/* x0:_ctask */
 	ldr		x30, =_entry_stub
-	mov		x2, #0
 	b		_switch_to
 
 _nodispatch_irq:
@@ -225,10 +270,6 @@ _nodispatch_irq:
 */
 	.type   _idle_loop, %function
 _idle_loop:
-	ldr		x0, =stack_idle
-	CPUID_get(x1)
-	sub		x0, x0, x1, LSL #IDLE_TASK_STACK_SIZE_SHIFT
-	mov		sp, x0
 1:
 	bl		idle_task
 	b		1b

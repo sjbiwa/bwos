@@ -88,7 +88,7 @@ el1_irq_handler:
 	add		w0, w2, #1
 	str		w0, [x1]
 	/* ネスト値==1(first-in)? */
-	cbnz	w0, enter_from_handler
+	cbnz	w2, enter_from_handler
 
 enter_from_task:
 	CPACR_EL1_get(x0)
@@ -102,7 +102,6 @@ enter_from_task:
 	sub		sp, sp, #16
 	str		x8, [sp, #0]
 enter_from_handler:
-enter_op_done:
 
 	mov		x0, x8
 	ELR_EL1_get(x1)
@@ -120,20 +119,18 @@ enter_op_done:
 	/* ネスト値==0(return to task)? */
 	cbnz	w2, ret_to_handler
 
-	/* check _dispatch_disable */
-	ldr		x1, =_dispatch_disable
-	ldrb	w2, [x1,x0]
-	cbnz	w2,
-	cmp		w2, #0
-	bne		ret_with_nodispatch
-
 ret_to_task:
-	ldr		x0, [sp, #0]
-	mov		sp, x0
+	ldr		x1, [sp, #0]
+	mov		sp, x1
 	/* CPACRをとりあえず復帰 */
 	ldr		x1, [sp, #0]
 	CPACR_EL1_set(x1)
 	add		sp, sp, #16
+
+	/* check _dispatch_disable */
+	ldr		x1, =_dispatch_disable
+	ldrb	w2, [x1,x0]
+	cbnz	w2, ret_with_nodispatch
 
 	b		_dispatch_irq
 

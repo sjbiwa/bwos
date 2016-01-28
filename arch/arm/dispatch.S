@@ -151,14 +151,6 @@ _skip_save_context:
 	sub		r3, r3, r12, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, r3
 
-	/* loadn and check _ntask */
-	ldr		r2, [r0, #CPUSTRUCT_NTASK]
-	/* store _ctask <- _ntask */
-	str		r2, [r0, #CPUSTRUCT_CTASK]
-	/* dispatchするタスクが無い場合はIDLEタスクへ */
-	cmp		r2, #0
-	beq		_idle_loop
-
 	/* 割り込み許可して保留中の割り込みを受付     */
 	/* ※ディスパッチしないようにディスパッチ禁止 */
 	ldr		r3, =_dispatch_disable
@@ -174,6 +166,14 @@ _skip_save_context:
 	cpsid	i
 	mov		r12, #0
 	strb	r12, [r3]
+
+	/* loadn and check _ntask */
+	ldr		r2, [r0, #CPUSTRUCT_NTASK]
+	/* store _ctask <- _ntask */
+	str		r2, [r0, #CPUSTRUCT_CTASK]
+	/* dispatchするタスクが無い場合はIDLEタスクへ */
+	cmp		r2, #0
+	beq		_idle_loop
 
 	/* restore SP (R2 is _ntask)*/
 	ldr		sp, [r2,#SAVE_SP]
