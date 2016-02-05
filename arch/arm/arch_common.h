@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include "arm.h"
 #include "board_common.h"
+#include "cache.h"
 
 #define	NORMAL_ALIGN		(8)
 

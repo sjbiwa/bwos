@@ -26,6 +26,7 @@ A_SRCS += boot.S dispatch.S handler.S arch_api.S
 C_SRCS += arch.c memmgr.c api_table.c api_caller.c api_callee.c idle.c irq.c
 C_SRCS += arch_timer.c
 C_SRCS += arch_init_task.c
+C_SRCS += arch_cache.c
 
 #C_SRCS += arch_ptbl.c
 C_SRCS += arch_ptbl_lpae.c

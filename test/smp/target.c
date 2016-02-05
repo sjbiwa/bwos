@@ -44,12 +44,26 @@ static volatile int fixmb;
 static volatile int sem;
 static volatile int flag;
 
+volatile uint32_t test_array[128]  __attribute__((aligned(64)));
+
 void task1(uint32_t arg0, uint32_t arg1)
 {
 	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
 		lprintf("CORE=%d:task%d:%d\n", CPUID_get(), arg0, ix);
 		task_set_affinity(ix%CPU_NUM);
-		task_tsleep(MSEC(500));
+		test_array[0] = 0;
+		cache_clean_invalid_sync(test_array, sizeof(test_array));
+		test_array[0] = 0xa5a5a5a5;
+		cache_invalid_sync(test_array, sizeof(test_array));
+		if ( test_array[0] != 0xa5a5a5a5 ) {
+			lprintf("0:[0] = %08X\n", test_array[0]);
+		}
+		test_array[0] = 0x34343434;
+		cache_invalid_sync(test_array, sizeof(test_array));
+		if ( test_array[0] != 0x34343434 ) {
+			lprintf("1:[0] = %08X\n", test_array[0]);
+		}
+		task_tsleep(SEC(1));
 	}
 }
 
@@ -216,7 +230,7 @@ void task_msgq_3(void)
 
 
 TaskCreateInfo	task_info[] = {
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)0},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
 		{"TASK12", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
