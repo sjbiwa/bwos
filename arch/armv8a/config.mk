@@ -10,7 +10,7 @@ TARGET_BIN = $(PROJECT).bin
 TARGET_ELF = $(PROJECT).elf
 
 # for CYGWIN
-TOOL_PREFIX =  aarch64-none-elf-
+TOOL_PREFIX =  aarch64-elf-
 
 CC = $(TOOL_PREFIX)gcc
 AS = $(TOOL_PREFIX)gcc
