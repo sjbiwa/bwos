@@ -3,15 +3,17 @@
  */
 
 /*
- * sdmem.c
+ * sdmmc.c
  *
  *  Created on: 2015/02/01
  *      Author: biwa
  */
-
 /*
  * Firefly RK3288 SD/MMC driver
  */
+#include "bwos.h"
+#include "driver/sdmmc.h"
+#include "driver/clock.h"
 
 #define	SDMMC_CTRL					0x0				/* Control Register */
 #define	SDMMC_PWREN					0x4				/* Power Enable Register */
@@ -175,23 +177,136 @@
 #define	FSM_WAIT					0xf		 /* Wait: CMD-to-reponse turnaround */
 
 /* SDMMC_FIFOTH bit */
+#define	SDMMC_FIFOTH_DW_DMA_MULTIPLE_TRANSACTION_SIZE(n)	(((n) & 0x7u) << 28)
+#define	SDMMC_FIFOTH_RX_WMARK(n)							(((n) & 0xfffu) << 16)
+#define	SDMMC_FIFOTH_TX_WMARK(n)							((n) & 0xfffu)
+
 /* SDMMC_CDETECT bit */
+#define	SDMMC_CDETECT_CARD_DETECT_N						(0x1u<<0)
+
 /* SDMMC_WRTPRT bit */
+#define	SDMMC_WRTPRT_WRITE_PROTECT						(0x1u<<0)
+
 /* SDMMC_TCBCNT bit */
 /* SDMMC_TBBCNT bit */
+
 /* SDMMC_DEBNCE bit */
+#define	SDMMC_DEBNCE_DEBOUNCE_COUNT(n)					((n) & 0xffffffu)
+
 /* SDMMC_USRID bit */
 /* SDMMC_VERID bit */
+
 /* SDMMC_HCON bit */
+#define	SDMMC_HCON_ARO									(0x1u<<26)
+#define	SDMMC_HCON_NCD(n)								((n)>>24) & 0x3u)
+#define	SDMMC_HCON_SCFP									(0x1u<<23)
+#define	SDMMC_HCON_IHR									(0x1u<<22)
+#define	SDMMC_HCON_RIOS									(0x1u<<21)
+#define	SDMMC_HCON_DMADATAWIDTH(n)						((n)>>18) & 0x7u)
+#define	SDMMC_HCON_DMAINTF(n)							((n)>>16) & 0x3u)
+#define	SDMMC_HCON_HADDRWIDTH(n)						((n)>>10) & 0x3fu)
+#define	SDMMC_HCON_HDATAWIDTH(n)						(((n)>>7) & 0x7u)
+#define	SDMMC_HCON_HBUS									(0x1u<<6)
+#define	SDMMC_HCON_NC(n)								((n)>>1) & 0x1fu)
+#define	SDMMC_HCON_CT									(0x1u<<0)
+
 /* SDMMC_UHS_REG bit */
+#define	SDMMC_UHS_REG_DDR_REG							(0x1u<<16)
+#define	SDMMC_UHS_REG_VOLT_REG							(0x1u<<0)
+
 /* SDMMC_RST_N bit */
+#define	SDMMC_RST_N_CARD_RESET							(0x1u<<0)
+
 /* SDMMC_BMOD bit */
+#define	SDMMC_BMOD_PBL(n)								(((n)>>8)&0x7)
+#define	SDMMC_BMOD_DE									(0x1u<<7)
+#define	SDMMC_BMOD_DSL(n)								(((n)&0x1fu)<<2)
+#define	SDMMC_BMOD_FB									(0x1u<<1)
+#define	SDMMC_BMOD_SWR									(0x1u<<0)
+
 /* SDMMC_PLDMND bit */
+
 /* SDMMC_DBADDR bit */
+#define	SDMMC_DBADDR_SDL(n)								((n)&0xfffffffcu)
+
 /* SDMMC_IDSTS bit */
+#define	SDMMC_IDSTS_FSM(n)								(((n)>>13)&0xf)
+#define	SDMMC_IDSTS_EB(n)								(((n)>>10)&0x7)
+#define	SDMMC_IDSTS_AIS									(0x1u<<9)
+#define	SDMMC_IDSTS_NIS									(0x1u<<8)
+#define	SDMMC_IDSTS_CES									(0x1u<<5)
+#define	SDMMC_IDSTS_DU									(0x1u<<4)
+#define	SDMMC_IDSTS_FBE									(0x1u<<2)
+#define	SDMMC_IDSTS_RI									(0x1u<<1)
+#define	SDMMC_IDSTS_TI									(0x1u<<0)
+
 /* SDMMC_IDINTEN bit */
+#define	SDMMC_IDINTEN_AI								(0x1u<<9)
+#define	SDMMC_IDINTEN_NI								(0x1u<<8)
+#define	SDMMC_IDINTEN_CES								(0x1u<<5)
+#define	SDMMC_IDINTEN_DU								(0x1u<<4)
+#define	SDMMC_IDINTEN_FBE								(0x1u<<2)
+#define	SDMMC_IDINTEN_RI								(0x1u<<1)
+#define	SDMMC_IDINTEN_TI								(0x1u<<0)
+
 /* SDMMC_DSCADDR bit */
 /* SDMMC_BUFADDR bit */
+
 /* SDMMC_CARDTHRCTL bit */
+#define	SDMMC_CARDTHRCTL_CARDRDTHRESHOLD(n)				((n)&0xFFFu)<<16)
+#define	SDMMC_CARDTHRCTL_CARDRDTHREN					(0x1u<<0)
+
 /* SDMMC_BACK_END_POWER bit */
 /* SDMMC_DATA bit */
+
+typedef	struct {
+	SdmmcDeviceInfo*	dev;					/* デバイス情報 */
+	bool				active;					/* デバイス有効フラグ */
+	int					mutex;					/* チャネル毎の排他用 */
+	int					ev_flag;				/* 転送完了待ち用フラグ */
+	TimeOut				tmout;					/* タイムアウト指定(transfer呼び出し時に設定) */
+} SdmmcObject;
+
+
+static SdmmcObject*		sdmmc_obj_tbl;
+static uint32_t			sdmmc_obj_num;
+
+static void sdmmc_irq_handler(uint32_t irqno, void* info)
+{
+}
+
+void sdmmc_register(SdmmcDeviceInfo* info, uint32_t info_num)
+{
+	int ix;
+	sdmmc_obj_num = info_num;
+
+	sdmmc_obj_tbl = sys_malloc(sizeof(SdmmcObject) * info_num);
+	for ( ix=0; ix < info_num; ix++ ) {
+		sdmmc_obj_tbl[ix].dev = &info[ix];
+		sdmmc_obj_tbl[ix].active = false;
+		sdmmc_obj_tbl[ix].mutex = mutex_create();
+		sdmmc_obj_tbl[ix].ev_flag = flag_create();
+
+		irq_set_enable(sdmmc_obj_tbl[ix].dev->irq, IRQ_DISABLE, CPU_SELF);
+		irq_add_handler(sdmmc_obj_tbl[ix].dev->irq, sdmmc_irq_handler, &sdmmc_obj_tbl[ix]);
+	}
+}
+
+void sdmmc_reset(void)
+{
+	uint32_t rbase = sdmmc_obj_tbl[0].dev->io_addr;
+	uint32_t reset_param = SDMMC_CTRL_DMA_RESET|SDMMC_CTRL_FIFO_RESET|SDMMC_CTRL_CONTROLLER_RESET;
+	iowrite32(rbase+SDMMC_CTRL, reset_param);
+	while (	ioread32(rbase+SDMMC_CTRL) & reset_param ) {
+		task_tsleep(MSEC(100));
+	}
+	lprintf("SD/MMC reset end\n");
+}
+
+void sdmmc_check(void)
+{
+	uint32_t rbase = sdmmc_obj_tbl[0].dev->io_addr;
+	lprintf(" STAT:%08X\n", ioread32(rbase+SDMMC_STATUS));
+	lprintf(" DTCT:%08X\n", ioread32(rbase+SDMMC_CDETECT));
+	lprintf(" PROT:%08X\n", ioread32(rbase+SDMMC_WRTPRT));
+}

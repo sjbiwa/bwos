@@ -15,6 +15,7 @@
 #include "driver/gpio.h"
 #include "driver/spi.h"
 #include "driver/i2c.h"
+#include "driver/sdmmc.h"
 #include "irqdefs.h"
 #include "ioregs.h"
 #include "cruregs.h"
@@ -34,6 +35,7 @@
 #define	CLOCK_I2C3			11
 #define	CLOCK_I2C4			12
 #define	CLOCK_I2C5			13
+#define	CLOCK_SDMMC0		14
 
 
 static const uint32_t	cru = CRU_REG_BASE;
@@ -56,6 +58,7 @@ static ClockRegisterParam clock_params[] = {
 	[CLOCK_I2C3]	= { 74000000 },
 	[CLOCK_I2C4]	= { 74000000 },
 	[CLOCK_I2C5]	= { 74000000 },
+	[CLOCK_SDMMC0]	= { 48000000 },
 };
 
 static UartDeviceInfo uart_info[] = {
@@ -93,6 +96,11 @@ static I2cDeviceInfo i2c_info[] = {
 		{ I2CHDMI_REG_BASE,		IRQ_I2C_HDMI,	CLOCK_I2C5},	/* I2C HDMI  */
 };
 
+static SdmmcDeviceInfo sdmmc_info[] = {
+		{ SDMMC_REG_BASE,		IRQ_SDMMC,		CLOCK_SDMMC0},	/* SDMMC0  */
+};
+
+
 void board_init_task_depend(void)
 {
 	/****************************************/
@@ -113,6 +121,7 @@ void board_init_task_depend(void)
 	iowrite32(cru+CRU_CLKSEL27_CON, 0xffff0400); /* LCDC0 clock */
 	iowrite32(cru+CRU_CLKSEL25_CON, 0xffff0707); /* SPI0/SPI1 clock(codec pll / 8 = 48MHz) */
 	iowrite32(cru+CRU_CLKSEL39_CON, 0x00ff0007); /* SPI02 clock(codec pll / 8 = 48MHz) */
+	iowrite32(cru+CRU_CLKSEL11_CON, 0x00ff0007); /* SDMMC0 clock(codec pll / 8 = 48MHz) */
 
 	clock_register(clock_params, arrayof(clock_params));
 
@@ -183,10 +192,14 @@ void board_init_task_depend(void)
 	iowrite32(grf+GRF_GPIO7C_P, 0x03fc0000);
 	iowrite32(grf+GRF_GPIO7C_E, 0x03fc03fc);
 
+	/* SDMMC0 */
+	iowrite32(grf+GRF_GPIO6C_IOMUX, 0x17ff1555);
+	iowrite32(grf+GRF_SOC_CON0, 0x10001000);
 
 	/* register device */
 	uart_register(&uart_info, arrayof(uart_info));
 	gpio_register(&gpio_info, arrayof(gpio_info));
 	spi_register(&spi_info, arrayof(spi_info));
 	i2c_register(&i2c_info, arrayof(i2c_info));
+	sdmmc_register(&sdmmc_info, arrayof(sdmmc_info));
 }
