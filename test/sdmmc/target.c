@@ -7,6 +7,7 @@ void task1(uint32_t arg0, uint32_t arg1)
 {
 	lprintf("CORE=%d:task%d\n", CPUID_get(), arg0);
 	for (;;) {
+		sdmmc_reset(0);
 		sdmmc_check();
 		task_tsleep(SEC(1));
 	}
