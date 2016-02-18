@@ -58,7 +58,7 @@ static ClockRegisterParam clock_params[] = {
 	[CLOCK_I2C3]	= { 74000000 },
 	[CLOCK_I2C4]	= { 74000000 },
 	[CLOCK_I2C5]	= { 74000000 },
-	[CLOCK_SDMMC0]	= { 48000000 },
+	[CLOCK_SDMMC0]	= {192000000 },
 };
 
 static UartDeviceInfo uart_info[] = {
@@ -121,7 +121,7 @@ void board_init_task_depend(void)
 	iowrite32(cru+CRU_CLKSEL27_CON, 0xffff0400); /* LCDC0 clock */
 	iowrite32(cru+CRU_CLKSEL25_CON, 0xffff0707); /* SPI0/SPI1 clock(codec pll / 8 = 48MHz) */
 	iowrite32(cru+CRU_CLKSEL39_CON, 0x00ff0007); /* SPI02 clock(codec pll / 8 = 48MHz) */
-	iowrite32(cru+CRU_CLKSEL11_CON, 0x00ff0007); /* SDMMC0 clock(codec pll / 8 = 48MHz) */
+	iowrite32(cru+CRU_CLKSEL11_CON, 0x00ff0001); /* SDMMC0 clock(codec pll / 2 = 192MHz) */
 
 	clock_register(clock_params, arrayof(clock_params));
 

@@ -16,6 +16,7 @@
 #include "driver/gpio.h"
 #include "driver/clock.h"
 #include "cp15reg.h"
+#include "cache.h"
 
 #define	HIWORD(v)					((uint32_t)((v) >> 32))
 #define	LOWORD(v)					((uint32_t)(v))
@@ -265,6 +266,23 @@
 /* SDMMC_BACK_END_POWER bit */
 /* SDMMC_DATA bit */
 
+
+/* DMA Descriptor */
+#define	DES0_OWN		(0x1u<<31)
+#define	DES0_CES		(0x1u<<30)
+#define	DES0_ER			(0x1u<<5)
+#define	DES0_CH			(0x1u<<4)
+#define	DES0_FS			(0x1u<<3)
+#define	DES0_LR			(0x1u<<2)
+#define	DES0_DIC		(0x1u<<1)
+#define	DES1_BS2(n)		(((n)&0x1FFFu)<<13)
+#define	DES1_BS1(n)		(((n)&0x1FFFu)<<0)
+
+typedef	struct {
+	uint32_t			des[4];
+	uint32_t			dummy[12];
+} DescEntry;
+
 typedef	struct {
 	SdmmcDeviceInfo*	dev;					/* デバイス情報 */
 	bool				active;					/* デバイス有効フラグ */
@@ -273,6 +291,7 @@ typedef	struct {
 	TimeOut				tmout;					/* タイムアウト指定(transfer呼び出し時に設定) */
 } SdmmcObject;
 
+static DescEntry	desc_entry __attribute__((aligned(CACHE_LINE_SIZE)));
 
 static SdmmcObject*		sdmmc_obj_tbl;
 static uint32_t			sdmmc_obj_num;
@@ -343,7 +362,7 @@ static void wait_cmd_done(uint32_t rbase)
 }
 
 #define	STR_LEN		128
-static uint32_t buff[512/4];
+static uint32_t buff[512/4] __attribute__((aligned(CACHE_LINE_SIZE)));;
 
 static void snap(uint32_t* buff, uint32_t length)
 {
@@ -376,12 +395,33 @@ void sdmmc_reset(uint32_t port)
 	gpio_set_direction(8, 0x00000006, 0x00000006); /* LED */
 	gpio_set_bit(8, 1, 1);
 
+	/* 全割り込み禁止 */
+	iowrite32(rbase+SDMMC_INTMASK, 0);
+
 	uint32_t reset_param = SDMMC_CTRL_DMA_RESET|SDMMC_CTRL_FIFO_RESET|SDMMC_CTRL_CONTROLLER_RESET;
 	/* デバイスリセット */
 	iowrite32(rbase+SDMMC_CTRL, reset_param);
 	while (	ioread32(rbase+SDMMC_CTRL) & reset_param ) {
 		task_tsleep(MSEC(100));
 	}
+
+	/* DMA-enable / INTR-enable */
+	iowrite32(rbase+SDMMC_CTRL, SDMMC_CTRL_USE_INTERNAL_DMAC|SDMMC_CTRL_INT_ENABLE);
+	/* InternalDMA register */
+	iowrite32(rbase+SDMMC_BMOD, SDMMC_BMOD_DE);
+	iowrite32(rbase+SDMMC_FIFOTH,
+				SDMMC_FIFOTH_DW_DMA_MULTIPLE_TRANSACTION_SIZE(0)|
+				SDMMC_FIFOTH_RX_WMARK(0x3FF)|
+				SDMMC_FIFOTH_TX_WMARK(0));
+	iowrite32(rbase+SDMMC_DBADDR, (uint32_t)(&desc_entry));
+	iowrite32(rbase+SDMMC_IDSTS, ~0);
+	iowrite32(rbase+SDMMC_IDINTEN, 0);
+	/* DMA Descriptor */
+	desc_entry.des[0] = DES0_CH|DES0_FS|DES0_LR;
+	desc_entry.des[1] = DES1_BS2(0)|DES1_BS1(512);
+	desc_entry.des[2] = buff;
+	desc_entry.des[3] = 0;
+	cache_clean_sync(&desc_entry, sizeof(desc_entry));
 
 	/* パワーオン */
 	iowrite32(rbase+SDMMC_PWREN, SDMMC_PWREN_POWER_ENABLE);
@@ -497,7 +537,7 @@ void sdmmc_reset(uint32_t port)
 
 #if 1
 	/* クロック設定 (25MHz) */
-	sdmmc_change_clock(sdmmc_obj_tbl[port].dev, 25000000);
+	sdmmc_change_clock(sdmmc_obj_tbl[port].dev, 50000000);
 #endif
 
 	lprintf("initialize complete\n");
@@ -505,14 +545,37 @@ void sdmmc_reset(uint32_t port)
 	/* READ sector */
 	uint64_t time_count = CNTPCT_get();
 	uint32_t max_sector = (uint32_t)(capacity/512);
-	max_sector = 1000000;
+	max_sector = 100000;
 	for ( uint32_t sect = 0; sect < max_sector; sect++ ) {
+
+		/* DMA Descriptor */
+		desc_entry.des[0] = DES0_OWN|DES0_CH|DES0_FS|DES0_LR;
+		desc_entry.des[1] = DES1_BS2(0)|DES1_BS1(512);
+		desc_entry.des[2] = buff;
+		desc_entry.des[3] = 0;
+		cache_clean_sync(&desc_entry, sizeof(desc_entry));
+		iowrite32(rbase+SDMMC_IDSTS, 0xffffffff);
+		iowrite32(rbase+SDMMC_IDINTEN, 0xffffffff);
+
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
 		iowrite32(rbase+SDMMC_CMDARG, sect*addr_scale);
 		iowrite32(rbase+SDMMC_BLKSIZ, 512);
 		iowrite32(rbase+SDMMC_BYTCNT, 512);
 		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(17));
 		uint32_t buff_ix = 0;
+#if 0
+#if 1
+		for (;;) {
+			cache_invalid_sync(&desc_entry, sizeof(desc_entry));
+			uint32_t irqstat = ioread32(rbase+SDMMC_RINTSTS);
+			uint32_t desc = desc_entry.des[0];
+			uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
+			lprintf("DMA:IRQ:%08X DESC:%08X IDSTS:%08X\n", irqstat, desc, idsts);
+			task_tsleep(MSEC(10));
+			cache_invalid_sync(buff, 512);
+			snap(buff, 512);
+		}
+#else
 		for (;;) {
 			read_counter++;
 			uint32_t irqstat = ioread32(rbase+SDMMC_RINTSTS);
@@ -532,10 +595,30 @@ void sdmmc_reset(uint32_t port)
 				break;
 			}
 		}
+#endif
+#endif
 		wait_cmd_done(rbase);
+#if 0
 		if ( buff_ix < (512/4) ) {
 			lprintf("bud size:%d %d\n", sect, buff_ix);
 		}
+#endif
+		for (;;) {
+			uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
+			//lprintf("IDSTS:%08X\n", ioread32(rbase+SDMMC_IDSTS));
+			if ( idsts & SDMMC_IDSTS_RI ) {
+				break;
+			}
+		}
+		//while ( (ioread32(rbase+SDMMC_IDSTS) & SDMMC_IDSTS_RI) == 0 ) {
+		//	lprintf("IDSTS:%08X\n", ioread32(rbase+SDMMC_IDSTS));
+		//}
+		cache_invalid_sync(buff, 512);
+		cache_invalid_sync(&desc_entry, 64);
+		if ( (desc_entry.des[0] & DES0_OWN) || (desc_entry.des[0] & DES0_CES) ) {
+			lprintf("DMAC error:%08X\n", desc_entry.des[0]);
+		}
+
 		//snap(buff, 512);
 	}
 
