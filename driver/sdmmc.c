@@ -279,7 +279,10 @@
 #define	DES1_BS1(n)		(((n)&0x1FFFu)<<0)
 
 typedef	struct {
-	uint32_t			des[4];
+	uint32_t			des0;
+	uint32_t			des1;
+	uint32_t			des2;
+	uint32_t			des3;
 	uint32_t			dummy[12];
 } DescEntry;
 
@@ -289,6 +292,11 @@ typedef	struct {
 	int					mutex;					/* チャネル毎の排他用 */
 	int					ev_flag;				/* 転送完了待ち用フラグ */
 	TimeOut				tmout;					/* タイムアウト指定(transfer呼び出し時に設定) */
+	struct {
+		bool			is_init;
+		uint32_t		max_sector;
+		uint32_t		addr_scale;
+	}dev_info;
 } SdmmcObject;
 
 static DescEntry	desc_entry __attribute__((aligned(CACHE_LINE_SIZE)));
@@ -298,6 +306,16 @@ static uint32_t			sdmmc_obj_num;
 
 static void sdmmc_irq_handler(uint32_t irqno, void* info)
 {
+	SdmmcObject* obj = (SdmmcObject*)info;
+	uint32_t rbase = obj->dev->io_addr;
+	uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
+	iowrite32(rbase+SDMMC_IDSTS, idsts);
+	if ( idsts & SDMMC_IDSTS_RI ) {
+		iowrite32(rbase+SDMMC_INTMASK, 0);
+		flag_set(obj->ev_flag, 0x0001);
+		iowrite32(rbase+SDMMC_IDINTEN, 0xffffffff);
+		irq_set_enable(obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+	}
 }
 
 void sdmmc_register(SdmmcDeviceInfo* info, uint32_t info_num)
@@ -311,7 +329,9 @@ void sdmmc_register(SdmmcDeviceInfo* info, uint32_t info_num)
 		sdmmc_obj_tbl[ix].active = false;
 		sdmmc_obj_tbl[ix].mutex = mutex_create();
 		sdmmc_obj_tbl[ix].ev_flag = flag_create();
-
+		sdmmc_obj_tbl[ix].dev_info.is_init = false;
+		sdmmc_obj_tbl[ix].dev_info.max_sector = 0;
+		sdmmc_obj_tbl[ix].dev_info.addr_scale = 0;
 		irq_set_enable(sdmmc_obj_tbl[ix].dev->irq, IRQ_DISABLE, CPU_SELF);
 		irq_add_handler(sdmmc_obj_tbl[ix].dev->irq, sdmmc_irq_handler, &sdmmc_obj_tbl[ix]);
 	}
@@ -342,14 +362,6 @@ static void sdmmc_change_clock(SdmmcDeviceInfo* dev, uint32_t req_clock)
 	}
 }
 
-static bool led_flag = false;
-
-static void led_flush(void)
-{
-	gpio_set_bit(8, 1, led_flag?1:0);
-	led_flag = led_flag?false:true;
-}
-
 static void wait_cmd_done(uint32_t rbase)
 {
 	while ( ioread32(rbase+SDMMC_CMD) & SDMMC_CMD_START_CMD ) {
@@ -358,35 +370,9 @@ static void wait_cmd_done(uint32_t rbase)
 	while ( !(ioread32(rbase+SDMMC_RINTSTS) & SDMMC_INTMASK_CMD) ) {
 		//task_tsleep(MSEC(1));
 	}
-	//lprintf("RINTSTS:%08X %08X\n", ioread32(rbase+SDMMC_RINTSTS), ioread32(rbase+SDMMC_STATUS));
 }
 
-#define	STR_LEN		128
-static uint32_t buff[512/4] __attribute__((aligned(CACHE_LINE_SIZE)));;
-
-static void snap(uint32_t* buff, uint32_t length)
-{
-	uint8_t text[STR_LEN+1];
-	text[STR_LEN] = '\0';
-	uint8_t* ptr = (uint8_t*)buff;
-	for ( uint32_t ix=0; ix < length; ix++ ) {
-		//lprintf("%02X ", ptr[ix]);
-		if ( (0x20 <= ptr[ix]) && (ptr[ix] <= 0x7e) ) {
-			text[ix%STR_LEN] = ptr[ix];
-		}
-		else {
-			text[ix%STR_LEN] = '.';
-		}
-		if ( (ix % STR_LEN) == (STR_LEN-1) ) {
-			lprintf(" : %s\n", text);
-		}
-	}
-	lprintf("\n");
-}
-
-uint32_t read_counter;
-
-void sdmmc_reset(uint32_t port)
+void sdmmc_init(uint32_t port)
 {
 	uint32_t rbase = sdmmc_obj_tbl[port].dev->io_addr;
 	uint32_t resp;
@@ -417,10 +403,10 @@ void sdmmc_reset(uint32_t port)
 	iowrite32(rbase+SDMMC_IDSTS, ~0);
 	iowrite32(rbase+SDMMC_IDINTEN, 0);
 	/* DMA Descriptor */
-	desc_entry.des[0] = DES0_CH|DES0_FS|DES0_LR;
-	desc_entry.des[1] = DES1_BS2(0)|DES1_BS1(512);
-	desc_entry.des[2] = buff;
-	desc_entry.des[3] = 0;
+	desc_entry.des0 = DES0_CH|DES0_FS|DES0_LR;
+	desc_entry.des1 = DES1_BS2(0)|DES1_BS1(512);
+	desc_entry.des2 = 0;
+	desc_entry.des3 = 0;
 	cache_clean_sync(&desc_entry, sizeof(desc_entry));
 
 	/* パワーオン */
@@ -460,22 +446,51 @@ void sdmmc_reset(uint32_t port)
 		wait_cmd_done(rbase);
 		/* ACMD41 */
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
-		iowrite32(rbase+SDMMC_CMDARG, 0x41FF8000);
+		iowrite32(rbase+SDMMC_CMDARG, 0x51FF8000);
 		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(41));
 		wait_cmd_done(rbase);
-		uint32_t resp = ioread32(rbase+SDMMC_RESP0);
-		if ( resp & 0x80000000 ) {
-			if ( resp & 0x40000000 ) {
-				/* SDHC (block address) */
-				addr_scale = 1;
-			}
-			else {
-				/* SDSD (byte address) */
-				addr_scale = 512;
-			}
+		resp = ioread32(rbase+SDMMC_RESP0);
+		lprintf("ACMD41R:%08X\n", resp);
+		/* check power-up */
+		if ( resp & (0x1u<<31) ) {
 			break;
 		}
 	}
+
+	/* check CardCapacityStatus */
+	if ( resp & (0x1u<<30) ) {
+		/* SDHC (block address) */
+		addr_scale = 1;
+	}
+	else {
+		/* SDSD (byte address) */
+		addr_scale = 512;
+	}
+
+#if 0
+	/* check and switch S18R (1.8V) */
+	/* SD電源のコントロール方法が不明なため1.8V切り替えは現状は未対応 */
+	if ( resp & (0x1u<<24) ) {
+		/* CMD11 */
+		iowrite32(rbase+SDMMC_RINTSTS, ~0);
+		iowrite32(rbase+SDMMC_CMDARG, 0x00000000);
+		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(11));
+		wait_cmd_done(rbase);
+		/***********************/
+		/* switch 3.3V -> 1.8V */
+		/***********************/
+		iowrite32(rbase+SDMMC_RINTSTS, ~0);
+		/* stop SDACLK */
+		ioclr32(rbase+SDMMC_CLKENA, SDMMC_CLKENA_CCLK_ENABLE);
+		/* 1.8V Vdd */
+		ioset32(rbase+SDMMC_RST_N, SDMMC_UHS_REG_VOLT_REG);
+		/* wait 6ms */
+		task_tsleep(MSEC(6));
+		/* start SDACLK */
+		ioset32(rbase+SDMMC_CLKENA, SDMMC_CLKENA_CCLK_ENABLE);
+	}
+#endif
+
 	/* CMD2 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, 0x00000000);
@@ -511,7 +526,6 @@ void sdmmc_reset(uint32_t port)
 	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(7));
 	wait_cmd_done(rbase);
 
-#if 1
 	/* バスサイズ設定 (1bit -> 4bit) */
 	/* CMD55 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
@@ -520,7 +534,6 @@ void sdmmc_reset(uint32_t port)
 	wait_cmd_done(rbase);
 	/* コントローラ側バスサイズ設定 (1bit -> 4bit) */
 	iowrite32(rbase+SDMMC_CTYPE, SDMMC_CTYPE_CARD_WIDTH2);
-#endif
 
 	/* ACMD6 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
@@ -535,98 +548,53 @@ void sdmmc_reset(uint32_t port)
 	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(13));
 	wait_cmd_done(rbase);
 
-#if 1
 	/* クロック設定 (25MHz) */
 	sdmmc_change_clock(sdmmc_obj_tbl[port].dev, 50000000);
-#endif
+
+	sdmmc_obj_tbl[port].dev_info.is_init = true;
+	sdmmc_obj_tbl[port].dev_info.max_sector = capacity/512;
+	sdmmc_obj_tbl[port].dev_info.addr_scale = addr_scale;
 
 	lprintf("initialize complete\n");
+}
 
-	/* READ sector */
-	uint64_t time_count = CNTPCT_get();
-	uint32_t max_sector = (uint32_t)(capacity/512);
-	max_sector = 100000;
-	for ( uint32_t sect = 0; sect < max_sector; sect++ ) {
+void sdmmc_read_sector(uint32_t port, uint32_t sect_num, void* buff)
+{
+	SdmmcObject* obj = &sdmmc_obj_tbl[port];
+	uint32_t rbase = obj->dev->io_addr;
+	/* DMA Descriptor */
+	desc_entry.des0 = DES0_OWN|DES0_CH|DES0_FS|DES0_LR;
+	desc_entry.des1 = DES1_BS2(0)|DES1_BS1(512);
+	desc_entry.des2 = buff;
+	desc_entry.des3 = 0;
+	cache_clean_sync(&desc_entry, sizeof(desc_entry));
+	iowrite32(rbase+SDMMC_IDSTS, 0xffffffff);
+	iowrite32(rbase+SDMMC_IDINTEN, 0xffffffff);
+	iowrite32(rbase+SDMMC_RINTSTS, ~0);
+	iowrite32(rbase+SDMMC_CMDARG, sect_num * obj->dev_info.addr_scale);
+	iowrite32(rbase+SDMMC_BLKSIZ, 512);
+	iowrite32(rbase+SDMMC_BYTCNT, 512);
+	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(17));
+	uint32_t buff_ix = 0;
+	wait_cmd_done(rbase);
 
-		/* DMA Descriptor */
-		desc_entry.des[0] = DES0_OWN|DES0_CH|DES0_FS|DES0_LR;
-		desc_entry.des[1] = DES1_BS2(0)|DES1_BS1(512);
-		desc_entry.des[2] = buff;
-		desc_entry.des[3] = 0;
-		cache_clean_sync(&desc_entry, sizeof(desc_entry));
-		iowrite32(rbase+SDMMC_IDSTS, 0xffffffff);
-		iowrite32(rbase+SDMMC_IDINTEN, 0xffffffff);
+	/* 転送開始 */
+	flag_clear(obj->ev_flag, 0);
+	irq_set_enable(obj->dev->irq, IRQ_ENABLE, CPU_SELF);
+	uint32_t ret_pattern;
+	int ret = flag_wait(obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern);
 
-		iowrite32(rbase+SDMMC_RINTSTS, ~0);
-		iowrite32(rbase+SDMMC_CMDARG, sect*addr_scale);
-		iowrite32(rbase+SDMMC_BLKSIZ, 512);
-		iowrite32(rbase+SDMMC_BYTCNT, 512);
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(17));
-		uint32_t buff_ix = 0;
-#if 0
-#if 1
-		for (;;) {
-			cache_invalid_sync(&desc_entry, sizeof(desc_entry));
-			uint32_t irqstat = ioread32(rbase+SDMMC_RINTSTS);
-			uint32_t desc = desc_entry.des[0];
-			uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
-			lprintf("DMA:IRQ:%08X DESC:%08X IDSTS:%08X\n", irqstat, desc, idsts);
-			task_tsleep(MSEC(10));
-			cache_invalid_sync(buff, 512);
-			snap(buff, 512);
-		}
-#else
-		for (;;) {
-			read_counter++;
-			uint32_t irqstat = ioread32(rbase+SDMMC_RINTSTS);
-			uint32_t stat = ioread32(rbase+SDMMC_STATUS);
-			uint32_t fifo = SDMMC_STATUS_FIFO_COUNT(stat);
-			//lprintf("%08X %08X %d\n", stat, irqstat, buff_ix);
-			while ( 0 < fifo) {
-				if ( buff_ix < (512/4) ) {
-					buff[buff_ix++] = ioread32(rbase+SDMMC_DATA);
-				}
-				else {
-					ioread32(rbase+SDMMC_DATA);
-				}
-				fifo--;
-			}
-			if ( irqstat & SDMMC_INTMASK_DTO ) {
-				break;
-			}
-		}
-#endif
-#endif
-		wait_cmd_done(rbase);
-#if 0
-		if ( buff_ix < (512/4) ) {
-			lprintf("bud size:%d %d\n", sect, buff_ix);
-		}
-#endif
-		for (;;) {
-			uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
-			//lprintf("IDSTS:%08X\n", ioread32(rbase+SDMMC_IDSTS));
-			if ( idsts & SDMMC_IDSTS_RI ) {
-				break;
-			}
-		}
-		//while ( (ioread32(rbase+SDMMC_IDSTS) & SDMMC_IDSTS_RI) == 0 ) {
-		//	lprintf("IDSTS:%08X\n", ioread32(rbase+SDMMC_IDSTS));
-		//}
-		cache_invalid_sync(buff, 512);
-		cache_invalid_sync(&desc_entry, 64);
-		if ( (desc_entry.des[0] & DES0_OWN) || (desc_entry.des[0] & DES0_CES) ) {
-			lprintf("DMAC error:%08X\n", desc_entry.des[0]);
-		}
-
-		//snap(buff, 512);
+	cache_invalid(buff, 512);
+	cache_invalid(&desc_entry, 64);
+	if ( (desc_entry.des0 & DES0_OWN) || (desc_entry.des0 & DES0_CES) ) {
+		lprintf("DMAC error:%08X\n", desc_entry.des0);
 	}
+}
 
-	time_count = CNTPCT_get() - time_count;
-	lprintf("TIME=%d\n", (uint32_t)(time_count/CNTFRQ_VALUE));
-	time_count = ((uint64_t)max_sector * 512 * CNTFRQ_VALUE) / time_count;
-	lprintf("PERF=%d Bytes/s\n", (uint32_t)time_count);
-	task_sleep();
+uint32_t sdmmc_get_sector_num(uint32_t port)
+{
+	SdmmcObject* obj = &sdmmc_obj_tbl[port];
+	return obj->dev_info.max_sector;
 }
 
 void sdmmc_check(void)
