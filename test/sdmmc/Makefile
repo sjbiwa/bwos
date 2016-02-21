@@ -34,7 +34,7 @@ DEFS += -DMUTEX_MAX_NUM=100
 DEFS += -DMSGQ_MAX_NUM=100
 DEFS += -DFIXMB_MAX_NUM=100
 
-C_SRCS += target.c
+C_SRCS += target.c ff.c diskio.c
 
 all: $(TARGET)
 

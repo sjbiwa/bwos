@@ -294,6 +294,7 @@ typedef	struct {
 	TimeOut				tmout;					/* タイムアウト指定(transfer呼び出し時に設定) */
 	struct {
 		bool			is_init;
+		uint32_t		rca;
 		uint32_t		max_sector;
 		uint32_t		addr_scale;
 	}dev_info;
@@ -310,10 +311,9 @@ static void sdmmc_irq_handler(uint32_t irqno, void* info)
 	uint32_t rbase = obj->dev->io_addr;
 	uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
 	iowrite32(rbase+SDMMC_IDSTS, idsts);
-	if ( idsts & SDMMC_IDSTS_RI ) {
-		iowrite32(rbase+SDMMC_INTMASK, 0);
+	if ( idsts & SDMMC_IDSTS_NIS ) {
 		flag_set(obj->ev_flag, 0x0001);
-		iowrite32(rbase+SDMMC_IDINTEN, 0xffffffff);
+		iowrite32(rbase+SDMMC_IDINTEN, 0);
 		irq_set_enable(obj->dev->irq, IRQ_DISABLE, CPU_SELF);
 	}
 }
@@ -450,7 +450,7 @@ void sdmmc_init(uint32_t port)
 		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(41));
 		wait_cmd_done(rbase);
 		resp = ioread32(rbase+SDMMC_RESP0);
-		lprintf("ACMD41R:%08X\n", resp);
+		//lprintf("ACMD41R:%08X\n", resp);
 		/* check power-up */
 		if ( resp & (0x1u<<31) ) {
 			break;
@@ -461,6 +461,11 @@ void sdmmc_init(uint32_t port)
 	if ( resp & (0x1u<<30) ) {
 		/* SDHC (block address) */
 		addr_scale = 1;
+		/* CMD16 */
+		iowrite32(rbase+SDMMC_RINTSTS, ~0);
+		iowrite32(rbase+SDMMC_CMDARG, 0x100);
+		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(16));
+		wait_cmd_done(rbase);
 	}
 	else {
 		/* SDSD (byte address) */
@@ -474,7 +479,7 @@ void sdmmc_init(uint32_t port)
 		/* CMD11 */
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
 		iowrite32(rbase+SDMMC_CMDARG, 0x00000000);
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(11));
+		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_VOLT_SWITCH|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(11));
 		wait_cmd_done(rbase);
 		/***********************/
 		/* switch 3.3V -> 1.8V */
@@ -552,16 +557,36 @@ void sdmmc_init(uint32_t port)
 	sdmmc_change_clock(sdmmc_obj_tbl[port].dev, 50000000);
 
 	sdmmc_obj_tbl[port].dev_info.is_init = true;
+	sdmmc_obj_tbl[port].dev_info.rca = rca;
 	sdmmc_obj_tbl[port].dev_info.max_sector = capacity/512;
 	sdmmc_obj_tbl[port].dev_info.addr_scale = addr_scale;
 
 	lprintf("initialize complete\n");
 }
 
-void sdmmc_read_sector(uint32_t port, uint32_t sect_num, void* buff)
+static void sdmmc_transfer_sector(uint32_t port, uint32_t sect_num, void* buff, bool is_read)
 {
 	SdmmcObject* obj = &sdmmc_obj_tbl[port];
 	uint32_t rbase = obj->dev->io_addr;
+	if ( is_read ) {
+		cache_invalid_sync(buff, 512);
+	}
+	else {
+		cache_clean_sync(buff, 512);
+	}
+
+	for (;;) {
+		/* CMD13 */
+		iowrite32(rbase+SDMMC_RINTSTS, ~0);
+		iowrite32(rbase+SDMMC_CMDARG, obj->dev_info.rca);
+		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(13));
+		wait_cmd_done(rbase);
+		uint32_t resp = ioread32(rbase+SDMMC_RESP0);
+		if ( ((resp>>9) & 0xf) == 4 ) {
+			break;
+		}
+	}
+
 	/* DMA Descriptor */
 	desc_entry.des0 = DES0_OWN|DES0_CH|DES0_FS|DES0_LR;
 	desc_entry.des1 = DES1_BS2(0)|DES1_BS1(512);
@@ -574,21 +599,39 @@ void sdmmc_read_sector(uint32_t port, uint32_t sect_num, void* buff)
 	iowrite32(rbase+SDMMC_CMDARG, sect_num * obj->dev_info.addr_scale);
 	iowrite32(rbase+SDMMC_BLKSIZ, 512);
 	iowrite32(rbase+SDMMC_BYTCNT, 512);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(17));
-	uint32_t buff_ix = 0;
+	if ( is_read ) {
+		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|
+				SDMMC_CMD_WAIT_PRVDATA_COMPLETE|SDMMC_CMD_CMD_INDEX(17));
+	}
+	else {
+		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|
+				SDMMC_CMD_WAIT_PRVDATA_COMPLETE|SDMMC_CMD_READ_WRITE|SDMMC_CMD_CMD_INDEX(24));
+	}
 	wait_cmd_done(rbase);
 
-	/* 転送開始 */
+	/* 転送完了待ち */
 	flag_clear(obj->ev_flag, 0);
 	irq_set_enable(obj->dev->irq, IRQ_ENABLE, CPU_SELF);
 	uint32_t ret_pattern;
 	int ret = flag_wait(obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern);
 
-	cache_invalid(buff, 512);
+	if ( is_read ) {
+		cache_invalid(buff, 512);
+	}
 	cache_invalid(&desc_entry, 64);
 	if ( (desc_entry.des0 & DES0_OWN) || (desc_entry.des0 & DES0_CES) ) {
-		lprintf("DMAC error:%08X\n", desc_entry.des0);
+		lprintf("DMAC error:%08X %08X\n", desc_entry.des0, ioread32(rbase+SDMMC_RINTSTS));
 	}
+}
+
+void sdmmc_read_sector(uint32_t port, uint32_t sect_num, void* buff)
+{
+	sdmmc_transfer_sector(port, sect_num, buff, true);
+}
+
+void sdmmc_write_sector(uint32_t port, uint32_t sect_num, void* buff)
+{
+	sdmmc_transfer_sector(port, sect_num, buff, false);
 }
 
 uint32_t sdmmc_get_sector_num(uint32_t port)
