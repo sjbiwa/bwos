@@ -19,6 +19,10 @@
 #include "no_svc_call.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* タスク関連API */
 OSAPI int task_create(TaskCreateInfo* info);
 OSAPI int task_active(int id, void* act_param);
@@ -81,5 +85,9 @@ OSAPI int timer_enable(int id, bool enable);
 /* 初期タスクから呼び出される関数群 */
 extern void main_task(void); /* ユーザ側で最初に呼び出される関数 */
 extern void arch_init_task_depend(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _BWOS_H_ */

@@ -14,6 +14,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* 終了ステータス */
 #define	RT_OK			(0)
 #define	RT_ERR			(-1)
@@ -83,5 +87,9 @@ typedef	struct {
 
 #define	TIMER_ONESHOT	(0)			/* tmoutのみ設定 */
 #define	TIMER_CYCLIC	(1)			/* tmout/cyclic両方設定 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INTERFACE_H_ */

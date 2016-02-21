@@ -17,6 +17,10 @@
 #include <stddef.h>
 #include "arch_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* OS固有定義マクロ */
 #define	OSAPI
 #define	OSAPISTUB
@@ -70,5 +74,9 @@
 /* メモリサイズ用 */
 #define	SIZE_PRE_ALIGN_BY(x,n)				((MemSize_t)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
 #define	SIZE_POST_ALIGN_BY(x,n)				((MemSize_t)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMMON_H_ */

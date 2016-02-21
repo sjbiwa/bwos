@@ -17,6 +17,7 @@ TOOL_PREFIX = arm-linux-gnueabihf-
 #TOOL_PREFIX = arm-unknown-linux-gnueabi-
 
 CC = $(TOOL_PREFIX)gcc
+CXX = $(TOOL_PREFIX)g++
 AS = $(TOOL_PREFIX)gcc
 LD = $(TOOL_PREFIX)gcc
 OBJCOPY = $(TOOL_PREFIX)objcopy
@@ -54,3 +55,5 @@ AFLAGS  += $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
 LDFLAGS += -mcpu=cortex-a7 -mno-thumb-interwork -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none
 LDLIBS   = -lgcc
+
+CXXFLAGS = $(CFLAGS)
