@@ -6,20 +6,24 @@ extern "C" {
 extern	void lprintf(...);
 }
 
+class LedTest {
+public:
+		LedTest() : m_led_flag(false) {}
+		void flush() {
+			gpio_set_bit(8, 1, m_led_flag ? 1 : 0);
+			m_led_flag = m_led_flag ? false : true;
+		}
+
+private:
+		bool m_led_flag;
+};
+
 /* configuration task */
 static int		task_struct[100];
 
 #define	STR_LEN		512
 static uint8_t buff1[STR_LEN] __attribute__((aligned(CACHE_LINE_SIZE)));
 static uint8_t buff2[STR_LEN] __attribute__((aligned(CACHE_LINE_SIZE)));
-
-static bool led_flag = false;
-
-static void led_flush(void)
-{
-	gpio_set_bit(8, 1, led_flag?1:0);
-	led_flag = led_flag?false:true;
-}
 
 static void snap(uint32_t* buff, uint32_t length)
 {
@@ -66,8 +70,9 @@ static void task1(void* arg0, void* arg1)
 
 static void task2(void* arg0, void* arg1)
 {
+	LedTest led;
 	for (;;) {
-		led_flush();
+		led.flush();
 		task_tsleep(SEC(1));
 	}
 }
