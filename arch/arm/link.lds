@@ -18,6 +18,13 @@ SECTIONS
 		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 		*(.rodata1)
+	}
+	.init_array     :
+	{
+		PROVIDE_HIDDEN (__init_array_start = .);
+		KEEP (*(SORT(.init_array.*)))
+		KEEP (*(.init_array ))
+		PROVIDE_HIDDEN (__init_array_end = .);
 		__text_end = . ;
 	}
 

@@ -308,14 +308,8 @@ static uint32_t			sdmmc_obj_num;
 static void sdmmc_irq_handler(uint32_t irqno, void* info)
 {
 	SdmmcObject* obj = (SdmmcObject*)info;
-	uint32_t rbase = obj->dev->io_addr;
-	uint32_t idsts = ioread32(rbase+SDMMC_IDSTS);
-	iowrite32(rbase+SDMMC_IDSTS, idsts);
-	if ( idsts & SDMMC_IDSTS_NIS ) {
-		flag_set(obj->ev_flag, 0x0001);
-		iowrite32(rbase+SDMMC_IDINTEN, 0);
-		irq_set_enable(obj->dev->irq, IRQ_DISABLE, CPU_SELF);
-	}
+	irq_set_enable(obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+	flag_set(obj->ev_flag, 0x0001);
 }
 
 void sdmmc_register(SdmmcDeviceInfo* info, uint32_t info_num)
@@ -347,7 +341,7 @@ static void sdmmc_change_clock(SdmmcDeviceInfo* dev, uint32_t req_clock)
 	/* クロック設定 bclock / (req_clock * 2) = X */
 	uint32_t bclock = clock_get(dev->clock_src);
 	if ( req_clock < bclock ) {
-		bclock = (bclock / (req_clock * 2)) + 1;
+		bclock = (bclock / (req_clock/* *2 */)) + 1;
 	}
 	else {
 		bclock = 0;
@@ -362,19 +356,48 @@ static void sdmmc_change_clock(SdmmcDeviceInfo* dev, uint32_t req_clock)
 	}
 }
 
-static void wait_cmd_done(uint32_t rbase)
+static void cmd_run_wait(SdmmcObject* obj, uint32_t cmds, bool is_data_transfer)
 {
-	while ( ioread32(rbase+SDMMC_CMD) & SDMMC_CMD_START_CMD ) {
-		//task_tsleep(MSEC(1));
+	uint32_t rbase = obj->dev->io_addr;
+
+	if ( is_data_transfer ) {
+		iowrite32(rbase+SDMMC_IDSTS, 0xffffffff);	/* DMA割り込み要因クリア */
+		iowrite32(rbase+SDMMC_IDINTEN, 0xffffffff);	/* DMA割り込み全許可 */
 	}
-	while ( !(ioread32(rbase+SDMMC_RINTSTS) & SDMMC_INTMASK_CMD) ) {
-		//task_tsleep(MSEC(1));
+	iowrite32(rbase+SDMMC_RINTSTS, 0xffffffff);		/* SD/MMC割り込み要因クリア */
+	iowrite32(rbase+SDMMC_INTMASK, 0xffffffff);		/* SD/MMC割り込み全許可 */
+
+	/* コマンド送信 */
+	iowrite32(rbase+SDMMC_CMD, cmds);
+
+	uint32_t intsts = 0;
+	uint32_t idsts = 0;
+	for (;;) {
+		uint32_t ret_pattern;
+		flag_clear(obj->ev_flag, 0);
+		irq_set_enable(obj->dev->irq, IRQ_ENABLE, CPU_SELF);
+		int ret = flag_wait(obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern);
+		irq_set_enable(obj->dev->irq, IRQ_DISABLE, CPU_SELF);
+		/* obj->dev->irq割り込みは禁止状態 */
+		/* 要因集計 */
+		intsts |= ioread32(rbase+SDMMC_MINTSTS);
+		iowrite32(rbase+SDMMC_RINTSTS, intsts);		/* SD/MMC割り込み要因クリア */
+		if ( is_data_transfer ) {
+			idsts |= ioread32(rbase+SDMMC_IDSTS);
+			iowrite32(rbase+SDMMC_IDSTS, idsts);	/* DMA割り込み要因クリア */
+		}
+		/* 要因チェック */
+		if ( (intsts & SDMMC_INTMASK_CMD) && (!is_data_transfer || (idsts & SDMMC_IDSTS_NIS)) ) {
+			/* 完了 */
+			break;
+		}
 	}
 }
 
 void sdmmc_init(uint32_t port)
 {
-	uint32_t rbase = sdmmc_obj_tbl[port].dev->io_addr;
+	SdmmcObject* obj = &sdmmc_obj_tbl[port];
+	uint32_t rbase = obj->dev->io_addr;
 	uint32_t resp;
 	uint32_t addr_scale;
 
@@ -430,25 +453,21 @@ void sdmmc_init(uint32_t port)
 	/* CMD0 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, 0);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_SEND_INITIALIZATION|SDMMC_CMD_CMD_INDEX(0));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_SEND_INITIALIZATION|SDMMC_CMD_CMD_INDEX(0), false);
 	/* CMD8 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, 0x000001AA);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(8));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(8), false);
 
 	for (;;) {
 		/* CMD55 */
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
 		iowrite32(rbase+SDMMC_CMDARG, 0x00000000);
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(55));
-		wait_cmd_done(rbase);
+		cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(55), false);
 		/* ACMD41 */
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
 		iowrite32(rbase+SDMMC_CMDARG, 0x51FF8000);
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(41));
-		wait_cmd_done(rbase);
+		cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(41), false);
 		resp = ioread32(rbase+SDMMC_RESP0);
 		//lprintf("ACMD41R:%08X\n", resp);
 		/* check power-up */
@@ -464,8 +483,7 @@ void sdmmc_init(uint32_t port)
 		/* CMD16 */
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
 		iowrite32(rbase+SDMMC_CMDARG, 0x100);
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(16));
-		wait_cmd_done(rbase);
+		cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(16), false);
 	}
 	else {
 		/* SDSD (byte address) */
@@ -499,21 +517,18 @@ void sdmmc_init(uint32_t port)
 	/* CMD2 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, 0x00000000);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(2));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(2), false);
 
 	/* CMD3 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, 0x00000000);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(3));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(3), false);
 
 	uint32_t rca = ioread32(rbase+SDMMC_RESP0) & 0xffff0000;
 	/* CMD9 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, rca);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(9));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(9), false);
 
 	uint64_t capacity = ((uint64_t)ioread32(rbase+SDMMC_RESP2) << 32) | ioread32(rbase+SDMMC_RESP1);
 	capacity = (capacity >> 16) & 0x3fffff;
@@ -522,39 +537,30 @@ void sdmmc_init(uint32_t port)
 	/* CMD10 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, rca);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(10));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_RESPONSE_LENGTH|SDMMC_CMD_CMD_INDEX(10), false);
 
 	/* CMD7 */
 	iowrite32(rbase+SDMMC_RINTSTS, ~0);
 	iowrite32(rbase+SDMMC_CMDARG, rca);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(7));
-	wait_cmd_done(rbase);
+	cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(7), false);
 
 	/* バスサイズ設定 (1bit -> 4bit) */
-	/* CMD55 */
-	iowrite32(rbase+SDMMC_RINTSTS, ~0);
-	iowrite32(rbase+SDMMC_CMDARG, rca);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(55));
-	wait_cmd_done(rbase);
-	/* コントローラ側バスサイズ設定 (1bit -> 4bit) */
-	iowrite32(rbase+SDMMC_CTYPE, SDMMC_CTYPE_CARD_WIDTH2);
-
-	/* ACMD6 */
-	iowrite32(rbase+SDMMC_RINTSTS, ~0);
-	iowrite32(rbase+SDMMC_CMDARG, 0x00000002);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(6));
-	wait_cmd_done(rbase);
-	resp = ioread32(rbase+SDMMC_RESP0);
-
-	/* CMD13 */
-	iowrite32(rbase+SDMMC_RINTSTS, ~0);
-	iowrite32(rbase+SDMMC_CMDARG, rca);
-	iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(13));
-	wait_cmd_done(rbase);
+	if (1) {
+		/* CMD55 */
+		iowrite32(rbase+SDMMC_RINTSTS, ~0);
+		iowrite32(rbase+SDMMC_CMDARG, rca);
+		cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(55), false);
+		/* コントローラ側バスサイズ設定 (1bit -> 4bit) */
+		iowrite32(rbase+SDMMC_CTYPE, SDMMC_CTYPE_CARD_WIDTH2);
+		/* ACMD6 (SET_BUS_WIDTH) */
+		iowrite32(rbase+SDMMC_RINTSTS, ~0);
+		iowrite32(rbase+SDMMC_CMDARG, 0x00000002);
+		cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(6), false);
+		resp = ioread32(rbase+SDMMC_RESP0);
+	}
 
 	/* クロック設定 (25MHz) */
-	sdmmc_change_clock(sdmmc_obj_tbl[port].dev, 50000000);
+	sdmmc_change_clock(sdmmc_obj_tbl[port].dev, 24000000);
 
 	sdmmc_obj_tbl[port].dev_info.is_init = true;
 	sdmmc_obj_tbl[port].dev_info.rca = rca;
@@ -579,8 +585,7 @@ static void sdmmc_transfer_sector(uint32_t port, uint32_t sect_num, void* buff, 
 		/* CMD13 */
 		iowrite32(rbase+SDMMC_RINTSTS, ~0);
 		iowrite32(rbase+SDMMC_CMDARG, obj->dev_info.rca);
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(13));
-		wait_cmd_done(rbase);
+		cmd_run_wait(obj, SDMMC_CMD_START_CMD|SDMMC_CMD_RESPONSE_EXPECT|SDMMC_CMD_CMD_INDEX(13), false);
 		uint32_t resp = ioread32(rbase+SDMMC_RESP0);
 		if ( ((resp>>9) & 0xf) == 4 ) {
 			break;
@@ -599,21 +604,16 @@ static void sdmmc_transfer_sector(uint32_t port, uint32_t sect_num, void* buff, 
 	iowrite32(rbase+SDMMC_CMDARG, sect_num * obj->dev_info.addr_scale);
 	iowrite32(rbase+SDMMC_BLKSIZ, 512);
 	iowrite32(rbase+SDMMC_BYTCNT, 512);
+	uint32_t cmds;
 	if ( is_read ) {
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|
-				SDMMC_CMD_WAIT_PRVDATA_COMPLETE|SDMMC_CMD_CMD_INDEX(17));
+		cmds = SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|
+							SDMMC_CMD_WAIT_PRVDATA_COMPLETE|SDMMC_CMD_CMD_INDEX(17);
 	}
 	else {
-		iowrite32(rbase+SDMMC_CMD, SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|
-				SDMMC_CMD_WAIT_PRVDATA_COMPLETE|SDMMC_CMD_READ_WRITE|SDMMC_CMD_CMD_INDEX(24));
+		cmds = SDMMC_CMD_START_CMD|SDMMC_CMD_DATA_EXPECTED|SDMMC_CMD_RESPONSE_EXPECT|
+							SDMMC_CMD_WAIT_PRVDATA_COMPLETE|SDMMC_CMD_READ_WRITE|SDMMC_CMD_CMD_INDEX(24);
 	}
-	wait_cmd_done(rbase);
-
-	/* 転送完了待ち */
-	flag_clear(obj->ev_flag, 0);
-	irq_set_enable(obj->dev->irq, IRQ_ENABLE, CPU_SELF);
-	uint32_t ret_pattern;
-	int ret = flag_wait(obj->ev_flag, 0x0001, FLAG_OR|FLAG_CLR, &ret_pattern);
+	cmd_run_wait(obj, cmds, true);
 
 	if ( is_read ) {
 		cache_invalid(buff, 512);

@@ -68,9 +68,9 @@ static void task1(void* arg0, void* arg1)
 	}
 }
 
+LedTest led;
 static void task2(void* arg0, void* arg1)
 {
-	LedTest led;
 	for (;;) {
 		led.flush();
 		task_tsleep(SEC(1));
@@ -79,7 +79,7 @@ static void task2(void* arg0, void* arg1)
 
 TaskCreateInfo	task_info[] = {
 		{(uint8_t*)("TASK01"), CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 16000, 0, 5, (void*)0},
-		{(uint8_t*)("TASK02"), CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 1, (void*)0},
+		{(uint8_t*)("TASK02"), CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 10240, 0, 1, (void*)0},
 };
 
 extern "C" {
