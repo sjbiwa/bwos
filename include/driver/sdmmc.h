@@ -12,6 +12,10 @@
 #ifndef _SDMMC_H_
 #define SDMMC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef	struct {
 	uint32_t		io_addr;				/* ベースアドレス */
 	uint32_t		irq;					/* IRQ番号 */
@@ -19,5 +23,9 @@ typedef	struct {
 } SdmmcDeviceInfo;
 
 extern void sdmmc_register(SdmmcDeviceInfo* info, uint32_t info_num);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _SDMMC_H_ */

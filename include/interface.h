@@ -32,7 +32,7 @@ extern "C" {
 /* タスク生成パラメータ */
 typedef	void (*TaskEntry)(void* cre_param, void* sta_param);
 typedef	struct {
-	uint8_t*	name;				/* Task Name */
+	const char*	name;				/* Task Name */
 	uint32_t	task_attr;			/* Task属性 */
 	TaskEntry	entry;				/* Start Entry */
 	uint32_t	usr_stack_size;		/* Stack Size */

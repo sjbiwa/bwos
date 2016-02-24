@@ -14,6 +14,10 @@
 
 #include "bwos.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef	enum {
 	VIDEO_LAYER_0 = 0,
 	VIDEO_LAYER_1,
@@ -30,5 +34,9 @@ extern void video_init(void);
 extern void video_layer_init(VideoLayer layer, uint32_t addr);
 extern void video_layer_set(VideoLayer layer, uint32_t pos_x, uint32_t pos_y, uint32_t width, uint32_t height, uint32_t addr, uint32_t stride);
 extern void video_register_handler(void (*handler)(uint32_t event));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* VIDEO_H_ */

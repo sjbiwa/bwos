@@ -18,6 +18,7 @@ APPDIR  = .
 KERNDIR = $(TOPDIR)/kernel
 UTILDIR = $(TOPDIR)/util
 DRVDIR  = $(TOPDIR)/driver
+CONTRIBDIR = $(TOPDIR)/contrib
 
 INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
 VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
@@ -34,7 +35,6 @@ DEFS += -DMUTEX_MAX_NUM=100
 DEFS += -DMSGQ_MAX_NUM=100
 DEFS += -DFIXMB_MAX_NUM=100
 
-C_SRCS += ff.c diskio.c
 CXX_SRCS += target.cxx
 
 all: $(TARGET)
@@ -43,5 +43,6 @@ include $(ARCHDIR)/config.mk
 include $(KERNDIR)/config.mk
 include $(UTILDIR)/config.mk
 include $(DRVDIR)/config.mk
+include $(CONTRIBDIR)/config.mk
 include rule.mk
 

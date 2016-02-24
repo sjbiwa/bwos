@@ -46,7 +46,6 @@ DSTATUS disk_initialize (
 /* Read Sector(s)                                                        */
 /*-----------------------------------------------------------------------*/
 
-static BYTE temp_buff[512]  __attribute__((aligned(64)));
 DRESULT disk_read (
 	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
 	BYTE *buff,		/* Data buffer to store read data */
@@ -57,8 +56,7 @@ DRESULT disk_read (
 	DRESULT res;
 	int result;
 	for (UINT ix=0; ix < count; ix++, sector++, buff+=512 ) {
-		sdmmc_read_sector(0, sector, temp_buff);
-		memcpy(buff, temp_buff, 512);
+		sdmmc_read_sector(0, sector, buff);
 	}
 	return 0;
 }

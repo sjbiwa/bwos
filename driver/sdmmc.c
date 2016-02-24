@@ -572,13 +572,23 @@ void sdmmc_init(uint32_t port)
 
 static void sdmmc_transfer_sector(uint32_t port, uint32_t sect_num, void* buff, bool is_read)
 {
+static char temp_buff[512]  __attribute__((aligned(64)));
+	void* rbuff;
+	if ( (uintptr_t)buff & 0x3fu ) {
+		/* 64バイトアラインではない */
+		rbuff = temp_buff;
+	}
+	else {
+		/* 64バイトアライン */
+		rbuff = buff;
+	}
 	SdmmcObject* obj = &sdmmc_obj_tbl[port];
 	uint32_t rbase = obj->dev->io_addr;
 	if ( is_read ) {
-		cache_invalid_sync(buff, 512);
+		cache_invalid_sync(rbuff, 512);
 	}
 	else {
-		cache_clean_sync(buff, 512);
+		cache_clean_sync(rbuff, 512);
 	}
 
 	for (;;) {
@@ -595,7 +605,7 @@ static void sdmmc_transfer_sector(uint32_t port, uint32_t sect_num, void* buff, 
 	/* DMA Descriptor */
 	desc_entry.des0 = DES0_OWN|DES0_CH|DES0_FS|DES0_LR;
 	desc_entry.des1 = DES1_BS2(0)|DES1_BS1(512);
-	desc_entry.des2 = buff;
+	desc_entry.des2 = rbuff;
 	desc_entry.des3 = 0;
 	cache_clean_sync(&desc_entry, sizeof(desc_entry));
 	iowrite32(rbase+SDMMC_IDSTS, 0xffffffff);
@@ -616,11 +626,23 @@ static void sdmmc_transfer_sector(uint32_t port, uint32_t sect_num, void* buff, 
 	cmd_run_wait(obj, cmds, true);
 
 	if ( is_read ) {
-		cache_invalid(buff, 512);
+		cache_invalid(rbuff, 512);
 	}
-	cache_invalid(&desc_entry, 64);
-	if ( (desc_entry.des0 & DES0_OWN) || (desc_entry.des0 & DES0_CES) ) {
-		lprintf("DMAC error:%08X %08X\n", desc_entry.des0, ioread32(rbase+SDMMC_RINTSTS));
+	int ix;
+	for ( ix=10; 0 < ix; ix-- ) { /* 10回繰り返しても終了フラグに変化がない場合は強制終了する */
+		cache_invalid_sync(&desc_entry, 64);
+		/* OWN==hostまたはERR=1の時終了 */
+		if ( !(desc_entry.des0 & DES0_OWN) || (desc_entry.des0 & DES0_CES) ) {
+			break;
+		}
+	}
+	if ( ix == 0 ) {
+		lprintf("DMAC error:%08X\n", desc_entry.des0);
+	}
+
+	/* バッファが仮バッファの時は本来のバッファにデータをコピー */
+	if ( rbuff != buff ) {
+		memcpy(buff, rbuff, 512);
 	}
 }
 
