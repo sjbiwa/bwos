@@ -1,0 +1,64 @@
+#
+#
+#
+include config.mk
+export ARCH CPU BOARD APPLICATION TOPDIR
+
+PROJECT = bwos
+TARGET = $(PROJECT).bin
+TARGET_BIN = $(PROJECT).bin
+TARGET_ELF = $(PROJECT).elf
+
+MAKE = make
+RM = rm
+
+TOPDIR = ../..
+ARCHDIR = $(TOPDIR)/arch/$(ARCH)
+APPDIR  = .
+KERNDIR = $(TOPDIR)/kernel
+UTILDIR = $(TOPDIR)/util
+DRVDIR  = $(TOPDIR)/driver
+
+INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
+VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
+
+OBJS = $(C_SRCS:%.c=%.o) $(FPU_C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
+
+DEFS += -DTEST_MODE
+DEFS += -DOS_VER="0.01"
+
+DEFS += -DTASK_MAX_NUM=100
+DEFS += -DFLAG_MAX_NUM=100
+DEFS += -DSEM_MAX_NUM=100
+DEFS += -DMUTEX_MAX_NUM=100
+DEFS += -DMSGQ_MAX_NUM=100
+DEFS += -DFIXMB_MAX_NUM=100
+DEFS += -DTIMER_MAX_NUM=100
+
+# FPUを使わないコード
+C_SRCS +=
+# FPUを使うコード
+FPU_C_SRCS += target.c
+
+ifeq ($(USE_GICV2),1)
+GICOPT = --no-gicv3
+else
+GICOPT = --gicv3
+endif
+
+all: $(TARGET)
+
+# 最終的にはFPUの有無によるコンパイルオプション変更を実装すべき
+# この設定は暫定とする
+target.o: target.c
+	$(CC) -c $(CFLAGS) $(INC) $(DEFS) $<
+
+run:
+	Foundation_Platform --visualization --cores=$(SMP_CPU_NUM) $(GICOPT) --image=$(TARGET_ELF)
+#	Foundation_Platform --visualization --use-real-time --cores=$(SMP_CPU_NUM) --gicv3 --image=$(TARGET_ELF)
+
+include $(ARCHDIR)/config.mk
+include $(KERNDIR)/config.mk
+include $(UTILDIR)/config.mk
+include $(DRVDIR)/config.mk
+include rule.mk
