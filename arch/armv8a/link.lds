@@ -20,6 +20,14 @@ SECTIONS
 		*(.rodata1)
 		__text_end = . ;
 	}
+	.init_array     :
+	{
+		PROVIDE_HIDDEN (__init_array_start = .);
+		KEEP (*(SORT(.init_array.*)))
+		KEEP (*(.init_array ))
+		PROVIDE_HIDDEN (__init_array_end = .);
+		__text_end = . ;
+	}
 
 	.data ALIGN(0x10000) :
 	{

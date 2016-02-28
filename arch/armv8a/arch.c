@@ -326,6 +326,7 @@ void general_exception_handler(uint64_t* ptr)
 	uint64_t esr = ESR_EL1_get();
 	uint64_t far = FAR_EL1_get();
 	tprintf("ELR:%08X%08X SPSR:%08X  ESR:%08X FAR:%08X%08X\n", hword(ptr[12]),lword(ptr[12]), lword(ptr[13]), lword(esr), hword(far),lword(far));
+	tprintf("SP:%08X%08X\n", hword(ptr),lword(ptr));
 
 	tprintf("\n\n");
 	for (int ix=0; ix < CPU_NUM; ix++ ) {

@@ -151,19 +151,27 @@ svc_handler:
 	/* X0-X7までは引数なので使用しないこと */
 	/* x8:ESR_EL1 */
 
-	/* 呼び出し時のDAIFを継承する */
-	SPSR_EL1_get(x9)
-	lsr		w9, w9, #6
-	and		w9, w9, #0xf
-	DAIF_set(x9)
-
 	/* ベクタエントリ取得 */
 	and		x9, x8, #0xffff
 	lsl		x9, x9, #3
 	ldr		x10, =svc_entry_table
 	ldr		x10, [x10, x9]
 
+#define	ENAINT_IN_ISR
+#if defined(ENAINT_IN_ISR)
+	/* 呼び出し時のDAIFを継承する */
+	SPSR_EL1_get(x9)
+	lsr		w9, w9, #6
+	and		w9, w9, #0xf
+	DAIF_set(x9)
+#endif
+
 	blr		x10
+
+#if defined(ENAINT_IN_ISR)
+	/* 割り込み禁止 */
+	DAIFSet_seti(0xf)
+#endif
 
 	/* X0をスタック上のX0に格納 */
 	str		x0, [sp, #2*8]

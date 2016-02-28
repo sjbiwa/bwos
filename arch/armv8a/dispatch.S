@@ -134,7 +134,7 @@ _skip_save_context:
 	sub		x4, x4, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, x4
 
-#if 0
+#if 1
 	/* 割り込み許可して保留中の割り込みを受付     */
 	/* ※ディスパッチしないようにディスパッチ禁止 */
 	ldr		x4, =_dispatch_disable

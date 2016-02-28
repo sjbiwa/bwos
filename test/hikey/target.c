@@ -3,12 +3,14 @@
 #if USE_SMP != 1
 #define	task_set_affinity(...)
 #endif
-#define	task_set_affinity(...)
+//#define	task_set_affinity(...)
 
 void timer_handler(void* param)
 {
 //	task_wakeup(task_struct[0]);
 }
+
+//#define	CPUID_get()			0
 
 void timer_start(uint32_t arg0, uint32_t arg1)
 {
@@ -76,6 +78,7 @@ void task_msgq_1(void)
 		cmd.cmd = ix;
 		cmd.param1 = ix*10;
 		cmd.param2 = ix*100;
+		task_set_affinity(ix%CPU_NUM);
 		msgq_tsend(msgq1, &cmd, sizeof(cmd), SEC(1));
 		lprintf("CORE=%d:TASK1:MSGQ1:send:%d\n", CPUID_get(), ix);
 		task_tsleep(MSEC(100));
@@ -95,6 +98,7 @@ void task_msgq_2(void)
 		cmd2.param5 = cmd.param1;
 		cmd2.param6 = cmd.param2;
 		lprintf("CORE=%d:TASK2:CMD2:%d %d %d\n", CPUID_get(), cmd2.cmd, cmd2.param5, cmd2.param6);
+		task_set_affinity(ix%CPU_NUM);
 		task_tsleep(MSEC(5));
 	}
 }
@@ -107,24 +111,33 @@ void task_msgq_3(void)
 		msgq_recv(msgq1, &cmd, sizeof(cmd));
 		lprintf("CORE=%d:TASK3:MSG2:recv:%d\n", CPUID_get(), ix);
 		lprintf("CORE=%d:TASK3:CMD2:%d %d %d\n", CPUID_get(), cmd.cmd, cmd.param1, cmd.param2);
+		task_set_affinity(ix%CPU_NUM);
 	}
 }
 
+#if 0
+void _test_func(uint64_t arg)
+{
+	tprintf("P:%08X\n", lword(arg));
+}
+#endif
+
+#define	DEF_ATTR		TASK_ACT|TASK_FPU|TASK_SYS
 
 TaskCreateInfo	task_info[] = {
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 5024, 0, 5, (void*)0},
-		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 5024, 0, 6, (void*)1},
-		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 5024, 0, 7, (void*)2},
-		{"TASK14", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 5024, 0, 8, (void*)3},
+		{"TASK01", CPU_CORE0|DEF_ATTR, task_msgq_1, 5024, 0, 5, (void*)0},
+		{"TASK02", CPU_CORE1|DEF_ATTR, task_msgq_2, 5024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE2|DEF_ATTR, task_msgq_2, 5024, 0, 7, (void*)2},
+		{"TASK14", CPU_CORE3|DEF_ATTR, task_msgq_3, 5024, 0, 8, (void*)3},
 
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)10},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)20},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)30},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)40},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)50},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)60},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)70},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)80},
+		{"TASK01", CPU_CORE0|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)10},
+		{"TASK01", CPU_CORE1|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)20},
+		{"TASK01", CPU_CORE2|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)30},
+		{"TASK01", CPU_CORE3|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)40},
+		{"TASK01", CPU_CORE0|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)50},
+		{"TASK01", CPU_CORE1|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)60},
+		{"TASK01", CPU_CORE2|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)70},
+		{"TASK01", CPU_CORE3|DEF_ATTR, task_dummy, 5024, 0, 5, (void*)80},
 };
 
 void main_task(void)
