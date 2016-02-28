@@ -12,6 +12,7 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
+	.text
 #define	USE_WFE_SEV
 
 /****************************************/

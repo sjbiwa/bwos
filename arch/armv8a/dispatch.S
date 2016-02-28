@@ -5,8 +5,6 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
-#define	LED_ON(v)						ldr x8, =0x1C010008; mov w9, ##v; str w9, [x8]
-
 	.text
 	.balign 4
 
@@ -136,6 +134,7 @@ _skip_save_context:
 	sub		x4, x4, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, x4
 
+#if 0
 	/* 割り込み許可して保留中の割り込みを受付     */
 	/* ※ディスパッチしないようにディスパッチ禁止 */
 	ldr		x4, =_dispatch_disable
@@ -150,6 +149,7 @@ _skip_save_context:
 	/* 割り込み禁止/ディスパッチ許可 */
 	DAIFSet_seti(0x2)
 	strb	wzr, [x4]
+#endif
 
 	/* loadn and check _ntask */
 	ldr		x2, [x0, #CPUSTRUCT_NTASK]
@@ -236,6 +236,14 @@ _entry_stub:
 	ldp		x16, x17, [sp], #16
 	ldp		x18, x30, [sp], #16
 
+/*
+	ELR_EL1_get(x0)
+	SPSR_EL1_get(x1)
+	SPSel_get(x2)
+	CurrentEL_get(x3)
+	mov		x4, sp
+	bl		test_print
+*/
 	eret
 
 /*

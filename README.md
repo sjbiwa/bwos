@@ -10,6 +10,7 @@ Firefly RK3288 (Cortex-A17 x 4)
 CUBIETRUCK (cortex-A7 x 2)
 LPC4330-Xplorer Board (Cortex-M4F + Cortex-M0)
 FVP v8 Foundation Platform (ARMv8-A)
+Hikey 96board (Kirin6220 ARMv8-A/Cortex-A53 x 8)
 
 ビルド環境：
 cygwin
@@ -44,3 +45,9 @@ uVision + JTAG-ICE
 
 ○FVP v8 Foundation Platform
 make run で実行
+
+○Hikey 96board
+１．U-BOOTが起動すること (http://people.linaro.org/~peter.griffin/hikey/hikey-u-boot-release_r1/)
+２．loadb 0 実行
+３．kermitにてbwos.binをダウンロード
+４．go 0 実行

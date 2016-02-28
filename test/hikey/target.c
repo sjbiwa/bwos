@@ -112,19 +112,19 @@ void task_msgq_3(void)
 
 
 TaskCreateInfo	task_info[] = {
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 5, (void*)0},
-		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 6, (void*)1},
-		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)2},
-		{"TASK14", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 8, (void*)3},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 5024, 0, 5, (void*)0},
+		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 5024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 5024, 0, 7, (void*)2},
+		{"TASK14", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 5024, 0, 8, (void*)3},
 
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)10},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)20},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)30},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)40},
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)50},
-		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)60},
-		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)70},
-		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 1024, 0, 5, (void*)80},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)10},
+		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)20},
+		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)30},
+		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)40},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)50},
+		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)60},
+		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)70},
+		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_dummy, 5024, 0, 5, (void*)80},
 };
 
 void main_task(void)

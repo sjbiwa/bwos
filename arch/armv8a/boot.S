@@ -8,7 +8,6 @@
 #define	STACK_INIT(sp_base,cpuid)		ldr	x0, =(sp_base); \
 										sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
 										mov sp, x0
-#define	LED_ON(v)						ldr x8, =0x1C010008; mov w9, ##v; str w9, [x8]
 
 	.section .vector
 	.align	2
@@ -74,10 +73,35 @@ _start:
 	/* goto EL1 entry_el1 */
 	eret
 #endif
+#if defined(BOOT_FROM_EL2)
+	/* initialize EL3 stack */
+	STACK_INIT(stack_el3_base,x2)
+
+	/* EL2/EL3 vector */
+	adr		x0, _exc_vector
+	VBAR_EL2_set(x0)
+
+	/* HCR_EL2 */
+	ldr		x0, =0x80000000
+	HCR_EL2_set(x0)
+	CPTR_EL2_set(xzr)
+
+	/* ACTLR */
+	ldr		x0, =0x73
+	ACTLR_EL2_set(x0)
+
+	adr		x0, entry_el1
+	ELR_EL2_set(x0)
+	ldr		x0, =0x000003C5
+	SPSR_EL2_set(x0)
+	/* goto EL1 entry_el1 */
+	eret
+#endif
 
 /***************************************/
 /* EL1での起動エントリ                 */
 /***************************************/
+	.text
 entry_el1:
 	/* DAIF disable / SPsel==1 / X2 is CORE-ID */
 	/* initialize EL1 stack */

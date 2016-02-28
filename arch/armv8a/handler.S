@@ -53,6 +53,7 @@
 .endm
 
 	.section .text
+	.text
 	.global	_exc_vector
 	.type	_exc_vector, %function
 _exc_vector:
