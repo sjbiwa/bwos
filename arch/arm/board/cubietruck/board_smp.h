@@ -12,6 +12,10 @@
 #ifndef _BOARD_SMP_H_
 #define _BOARD_SMP_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void _start(void);
 
 static inline void smp_boot_slave_cpu(void)
@@ -22,5 +26,9 @@ static inline void smp_boot_slave_cpu(void)
 	iowrite32(0x01C25C00+0x80, 0x00000003);
 	__dsb();
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _BOARD_SMP_H_ */

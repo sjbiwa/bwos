@@ -12,6 +12,10 @@
 #ifndef _GRFREGS_H_
 #define _GRFREGS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	GRF_GPIO1D_IOMUX				(0x000Cu)		/* GPIO1D iomux control */
 #define	GRF_GPIO2A_IOMUX				(0x0010u)		/* GPIO2A iomux control */
 #define	GRF_GPIO2B_IOMUX				(0x0014u)		/* GPIO2B iomux control */
@@ -179,5 +183,9 @@
 #define	GRF_OS_REG3						(0x039Cu)		/* OS register 3 */
 #define	GRF_SOC_CON15					(0x03A4u)		/* SoC control register 15 */
 #define	GRF_SOC_CON16					(0x03A8u)		/* SoC control register 16 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GRFREGS_H_ */

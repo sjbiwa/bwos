@@ -4,6 +4,7 @@
 #include "armv8.h"
 #include "armv8reg.h"
 #include "gicv3reg.h"
+#include "getcpuid.h"
 
 #define	STACK_INIT(sp_base,cpuid)		ldr	x0, =(sp_base); \
 										sub x0, x0, cpuid, LSL #EXCEPTION_STACK_SIZE_SHIFT; \
@@ -101,7 +102,8 @@ _start:
 /***************************************/
 /* EL1での起動エントリ                 */
 /***************************************/
-	.text
+	.global	entry_el1
+	.type	entry_el1, %function
 entry_el1:
 	/* DAIF disable / SPsel==1 / X2 is CORE-ID */
 	/* initialize EL1 stack */

@@ -14,6 +14,10 @@
 
 #include "stdint.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	START_MEM_ADDR		(0x80000000u)
 #define	END_MEM_ADDR		(0x8FFFFFFFu)
 
@@ -44,5 +48,9 @@ typedef	uint32_t			TimeOut;		/* APIで指定するタイムアウト単位 */
 #define	MSEC(n)				((TimeOut)(n) * ((CNTFRQ_VALUE/1000)/TIME_UNIT_VALUE))
 #define	USEC(n)				((TimeOut)(n) * ((CNTFRQ_VALUE/1000000)/TIME_UNIT_VALUE))
 #define	NSEC(n)				((TimeOut)1)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MY_BOARD_H_ */

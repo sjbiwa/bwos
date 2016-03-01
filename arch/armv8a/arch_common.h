@@ -19,6 +19,10 @@
 #include "armv8.h"
 #include "armv8reg.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	irq_enable()		DAIFClr_seti(0x2)
 #define	irq_disable()		DAIFSet_seti(0x2)
 
@@ -29,5 +33,9 @@
 
 typedef	uint64_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint64_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ARCHV8_COMMON_H_ */

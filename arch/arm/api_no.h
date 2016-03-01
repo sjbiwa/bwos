@@ -12,6 +12,10 @@
 #ifndef API_NO_H_
 #define API_NO_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* API番号定義 */
 #define	TASK_CREATE_APINO					1
 #define	TASK_ACTIVE_APINO					2
@@ -53,6 +57,10 @@
 #define	TIMER_ENABLE_APINO					38
 #if USE_SMP == 1
 #define	TASK_SET_AFFINITY_APINO				39
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* API_NO_H_ */

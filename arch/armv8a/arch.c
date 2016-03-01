@@ -210,8 +210,8 @@ void arch_system_preinit(uint32_t cpuid)
 	/* 下位キャッシュ層から順番にinvalidate */
 	for (ix=6; 0 <= ix; ix--) {
 		if ( (0x07 << (ix*3)) & clid ) {
-			/* マスタCPU または 単体CPU内キャッシュのとき */
-			if ( (cpuid == MASTER_CPU_ID) || ((ix+1) <= louu_value) ) {
+			/* クラスタのマスタCPU または 単体CPU内キャッシュのとき */
+			if ( is_cluster_master() || ((ix+1) <= louu_value) ) {
 				CSSELR_EL1_set(ix<<1);
 				uint32_t ccsid = CCSIDR_EL1_get();
 				uint32_t sets = ((ccsid >> 13) & 0x7fff) + 1;
@@ -282,8 +282,20 @@ void _dispatch(void)
 	_switch_to(&cpu_struct[CPUID_get()]);
 }
 
+/* グローバルコンストラクタ初期化 */
+extern char __init_array_start;
+extern char __init_array_end;
+
+static void init_global_ctor(void)
+{
+	for ( void (**p)() = &__init_array_start; p < &__init_array_end; p++ ) {
+		(**p)();
+	}
+}
+
 void arch_init_task_depend(void)
 {
+	init_global_ctor();
 	board_init_task_depend();
 }
 

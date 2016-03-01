@@ -13,6 +13,10 @@
 #ifndef _API_CALLER_CALLEE_H_
 #define _API_CALLER_CALLEE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ARMは４つの引数までしかレジスタ渡しできないので５つ以上 */
 /* 引数があるAPIについては CALLER-CALLEEスタブを使う */
 
@@ -25,5 +29,9 @@ typedef	struct {
 	TimeOut tmout;
 } APIFlagTwaitParam;
 extern int __flag_twait_stub(APIFlagTwaitParam* param);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _API_CALLER_CALLEE_H_ */

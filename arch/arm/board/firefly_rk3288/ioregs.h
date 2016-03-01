@@ -12,6 +12,10 @@
 #ifndef IOREGS_H_
 #define IOREGS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* GPS */
 #define	GPS_REG_BASE			(0xFF000000u)
 #define	GPS_REG_SIZE			(0x80000u)
@@ -301,5 +305,9 @@
 /* CORE AXI bus */
 #define	COREAXI_REG_BASE		(0xFFD00000u)
 #define	COREAXI_REG_SIZE		(0x100000u)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* IOREGS_H_ */

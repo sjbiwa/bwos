@@ -5,6 +5,10 @@
 #ifndef _GICV3REG_H_
 #define	_GICV3REG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __ASM__
 
 #include "my_board.h" /* GIC base register define */
@@ -186,6 +190,10 @@
 #define ICC_SRE_EL2_set(v)						MSR S3_4_C12_C9_5, v        /* RW Interrupt Controller System Register Enable register (EL2) */
 #define ICC_SRE_EL3_get(v)						MRS v, S3_6_C12_C12_5       /* RW Interrupt Controller System Register Enable register (EL3) */
 #define ICC_SRE_EL3_set(v)						MSR S3_6_C12_C12_5, v       /* RW Interrupt Controller System Register Enable register (EL3) */
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

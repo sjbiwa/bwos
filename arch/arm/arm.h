@@ -14,6 +14,10 @@
 
 #include "cp15reg.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	MODE_USR		(0b10000)
 #define	MODE_FIQ		(0b10001)
 #define	MODE_IRQ		(0b10010)
@@ -94,6 +98,10 @@
 #define	CPUID_get(reg)		mov reg, #0
 #endif
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* ARM_H_ */

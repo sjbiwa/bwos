@@ -13,6 +13,7 @@ TARGET_ELF = $(PROJECT).elf
 TOOL_PREFIX =  aarch64-elf-
 
 CC = $(TOOL_PREFIX)gcc
+CXX = $(TOOL_PREFIX)g++
 AS = $(TOOL_PREFIX)gcc
 LD = $(TOOL_PREFIX)gcc
 OBJCOPY = $(TOOL_PREFIX)objcopy
@@ -43,9 +44,11 @@ DEFS += -DMASTER_CPU_ID=0 -DUSE_TICKLESS
 
 CPUFLAGS = -mcpu=$(CPU)
 
-CFLAGS  += -std=gnu11 $(CPUFLAGS) $(DEFS)
-CFLAGS  += -g -gdwarf-3 -O2 -fno-builtin
+CBASEFLAGS  += $(CPUFLAGS) $(DEFS)
+CBASEFLAGS  += -g -gdwarf-3 -O2 -fno-builtin
+CFLAGS   += -std=gnu11 $(CBASEFLAGS)
+CXXFLAGS += $(CBASEFLAGS)
 AFLAGS  += $(CFLAGS) -D__ASM__
 LDFLAGS += $(CPUFLAGS) -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none
-LDLIBS   = -lgcc
+LDLIBS   += -lgcc

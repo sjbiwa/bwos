@@ -12,6 +12,10 @@
 #ifndef IRQDEFS_H_
 #define IRQDEFS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	IRQ_DMAC_BUS0				(32)
 #define	IRQ_DMAC_BUS1				(33)
 #define	IRQ_DMAC_PERI0				(34)
@@ -128,6 +132,10 @@
 #define	IRQ_PMUIRQ1					(187)
 #define	IRQ_PMUIRQ2					(188)
 #define	IRQ_PMUIRQ3					(189)
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* IRQDEFS_H_ */

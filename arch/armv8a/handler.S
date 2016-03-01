@@ -11,6 +11,8 @@
 
 #define	LED_ON(v)						ldr x8, =0x1C010008; mov w9, ##v; str w9, [x8]
 
+#define	ENAINT_IN_ISR
+
 
 .macro VECTOR_ENTRY func
 	.align	7
@@ -157,7 +159,6 @@ svc_handler:
 	ldr		x10, =svc_entry_table
 	ldr		x10, [x10, x9]
 
-#define	ENAINT_IN_ISR
 #if defined(ENAINT_IN_ISR)
 	/* 呼び出し時のDAIFを継承する */
 	SPSR_EL1_get(x9)

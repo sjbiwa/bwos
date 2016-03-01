@@ -14,6 +14,14 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef	uint32_t	SpinLockObj;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ARCH_SMP_H_ */

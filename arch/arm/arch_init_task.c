@@ -14,7 +14,7 @@
 extern char __init_array_start;
 extern char __init_array_end;
 
-void init_global_ctor(void)
+static void init_global_ctor(void)
 {
 	for ( void (**p)() = &__init_array_start; p < &__init_array_end; p++ ) {
 		(**p)();

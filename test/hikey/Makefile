@@ -22,7 +22,7 @@ DRVDIR  = $(TOPDIR)/driver
 INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
 VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
 
-OBJS = $(C_SRCS:%.c=%.o) $(FPU_C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
+OBJS = $(C_SRCS:%.c=%.o) $(FPU_C_SRCS:%.c=%.o) $(CXX_SRCS:%.cxx=%.o) $(FPU_CXX_SRCS:%.cxx=%.o) $(A_SRCS:%.S=%.o)
 
 DEFS += -DTEST_MODE
 DEFS += -DOS_VER="0.01"
@@ -37,8 +37,11 @@ DEFS += -DTIMER_MAX_NUM=100
 
 # FPUを使わないコード
 C_SRCS +=
+CXX_SRCS +=
+
 # FPUを使うコード
-FPU_C_SRCS += target.c
+FPU_C_SRCS +=
+FPU_CXX_SRCS += target.cxx
 
 ifeq ($(USE_GICV2),1)
 GICOPT = --no-gicv3
@@ -50,8 +53,8 @@ all: $(TARGET)
 
 # 最終的にはFPUの有無によるコンパイルオプション変更を実装すべき
 # この設定は暫定とする
-target.o: target.c
-	$(CC) -c $(CFLAGS) $(INC) $(DEFS) $<
+target.o: target.cxx
+	$(CXX) -c $(CXXFLAGS) $(INC) $(DEFS) $<
 
 run:
 	Foundation_Platform --visualization --cores=$(SMP_CPU_NUM) $(GICOPT) --image=$(TARGET_ELF)

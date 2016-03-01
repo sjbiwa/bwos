@@ -4,6 +4,10 @@
 #ifndef _ARMV8REG_H_
 #define	_ARMV8REG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __ASM__
 #define DLR_EL0_get(v)                              MRS v,DLR_EL0
 #define DLR_EL0_set(v)                              MSR DLR_EL0,v
@@ -792,6 +796,10 @@
 #define L2MERRSR_EL1_get()							({uint64_t _reg_;__asm__ volatile ("MRS %0, S3_1_C15_C2_3":"=r"(_reg_)::"memory");_reg_;})
 #define L2MERRSR_EL1_set(v)							__asm__ volatile ("MSR S3_1_C15_C2_3, %0"::"r"((uint64_t)(v)):"memory")
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _ARMV8REG_H_ */

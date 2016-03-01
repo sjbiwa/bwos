@@ -74,6 +74,9 @@ static void startup_master(uint32_t cpuid)
 			cpu_boot_sync_flag[ix] = 0;
 		}
 
+		/* 他クラスタのマスタを起動 */
+		smp_boot_cluster_master_cpu();
+		/* 自クラスタの他コアを起動 */
 		smp_boot_slave_cpu();
 	}
 
@@ -85,6 +88,12 @@ static void startup_slave(uint32_t cpuid)
 	arch_system_preinit(cpuid);
 	arch_timer_init(cpuid);
 	arch_system_postinit(cpuid);
+
+	if ( is_cluster_master() ) {
+		/* 自身がクラスタのマスタなら */
+		/* 自クラスタの他コアを起動 */
+		smp_boot_slave_cpu();
+	}
 
 	boot_each_core(cpuid);
 }

@@ -18,6 +18,10 @@
 #include "cruregs.h"
 #include "grfregs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void _start(void);
 
 static inline void smp_boot_slave_cpu(void)
@@ -28,5 +32,9 @@ static inline void smp_boot_slave_cpu(void)
 	__dsb();
 	__sev();
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _BOARD_SMP_H_ */

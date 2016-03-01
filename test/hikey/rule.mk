@@ -1,9 +1,16 @@
 #
 #
 #
+.SUFFIXES: .cxx
+
 KBUILD_CFLAGS = $(CFLAGS) -mgeneral-regs-only
+KBUILD_CXXFLAGS = $(CXXFLAGS) -mgeneral-regs-only
+
 .c.o:
 	$(CC) -c $(KBUILD_CFLAGS) $(INC) $(DEFS) $<
+
+.cxx.o:
+	$(CXX) -c $(KBUILD_CXXFLAGS) $(INC) $(DEFS) $<
 
 .S.o:
 	$(AS) -c $(AFLAGS) $(INC) $(DEFS) $<

@@ -5,6 +5,10 @@
 #ifndef _CP15REG_H_
 #define	_CP15REG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __ASM__
 #define MIDR_get(reg)     mrc p15,0,reg,c0,c0,0
 #define CTR_get(reg)     mrc p15,0,reg,c0,c0,1
@@ -394,5 +398,9 @@
 
 /* ACTLRの各ビット */
 #define	ACTLR_SMP	(0x01<<6)		/* SMP eanble (cortex-A7/A15/A17 only?) */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -12,6 +12,12 @@
 #ifndef ARMV8_H_
 #define ARMV8_H_
 
+#include "getcpuid.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* DAIF register */
 #define	FLAG_D			(0x1u<<9)
 #define	FLAG_A			(0x1u<<8)
@@ -92,26 +98,13 @@
 #define	order_barrier()		__dmb()
 #define	optimize_barrier()	__asm__ volatile ("":::"memory")
 
-
-/* コアID取得 */
-#if USE_SMP==1
-#define	CPUID_get()			(MPIDR_EL1_get() & 0xff)
-#else
-#define	CPUID_get()			(0)
-#endif
-
 #define	hword(v)		((uint32_t)((uint64_t)(v)>>32))
 #define	lword(v)		((uint32_t)(v))
 
-#else /* __ASM__ */
-
-/* コアID取得 */
-#if USE_SMP==1
-#define	CPUID_get(reg)		MPIDR_EL1_get(reg);and reg, reg, #0xff
-#else
-#define	CPUID_get(reg)		mov reg, #0
 #endif
 
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* ARMV8_H_ */

@@ -12,6 +12,10 @@
 #ifndef _CRUREGS_H_
 #define _CRUREGS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	CRU_APLL_CON0				(0x0000u)					/* ARM PLL configuration register0 */
 #define	CRU_APLL_CON1				(0x0004u)					/* ARM PLL configuration register1 */
 #define	CRU_APLL_CON2				(0x0008u)					/* ARM PLL configuration register2 */
@@ -121,5 +125,9 @@
 #define	CRU_SDIO1_CON1				(0x0214u)					/* sdio1 control1 */
 #define	CRU_EMMC_CON0				(0x0218u)					/* emmc control0 */
 #define	CRU_EMMC_CON1				(0x021Cu)					/* emmc control1 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CRUREGS_H_ */

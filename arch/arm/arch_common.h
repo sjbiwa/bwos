@@ -19,6 +19,10 @@
 #include "board_common.h"
 #include "cache.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	NORMAL_ALIGN		(8)
 
 #define	irq_enable()		__asm__ volatile ("cpsie i":::"memory")
@@ -28,8 +32,11 @@
 #define	irq_restore(reg)	do { if ( !((reg) & FLAG_I) ) __asm__ volatile ("cpsie i":::"memory"); } while(0)
 
 
-
 typedef	uint32_t			MemSize_t;	/* メモリサイズを表す型 */
 typedef	uint32_t			PtrInt_t;	/* ポインタ型を整数型に変換するときの型 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ARCH_COMMON_H_ */

@@ -14,6 +14,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	MPCORE_SCU_BASE			(MPCORE_BASE)
 #define	MPCORE_GICD_BASE		(MPCORE_BASE+0x1000)
 #if defined(CORTEXA9)
@@ -81,6 +85,10 @@
 #define	GTM_COMPAREL			(MPCORE_GTM_BASE+0x10)			/* Comparator Value Registers LOW */
 #define	GTM_COMPAREH			(MPCORE_GTM_BASE+0x14)			/* Comparator Value Registers HIGH */
 #define	GTM_AUTOINC				(MPCORE_GTM_BASE+0x18)			/* Auto-increment Register */
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* MPCORE_H_ */

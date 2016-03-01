@@ -14,6 +14,10 @@
 
 #include "my_board.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	MPCORE_SCU_BASE			(MPCORE_BASE)
 #define	MPCORE_GICD_BASE		(MPCORE_BASE+0x1000)
 #define	MPCORE_GICC_BASE		(MPCORE_BASE+0x2000)
@@ -52,5 +56,9 @@
 #define	GICC_APR				(MPCORE_GICC_BASE+0x00D0)		/* Active Priorities Registers */
 #define	GICC_NSAPR				(MPCORE_GICC_BASE+0x00E0)		/* Non-secure Active Priorities Registers */
 #define	GICC_DIR				(MPCORE_GICC_BASE+0x1000)		/* Deactivate Interrupt Register */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GICV2REG_H_ */
