@@ -22,7 +22,7 @@ void cache_invalid(void* addr, uint32_t size)
 	PtrInt_t saddr = (PtrInt_t)addr;
 	PtrInt_t eaddr = (PtrInt_t)addr + size;
 	for (; saddr < eaddr; saddr += CACHE_LINE_SIZE ) {
-		DCIMVAC_set(saddr);
+		DC_IVAC_set(saddr);
 	}
 }
 
@@ -34,7 +34,7 @@ void cache_invalid_unalign(void* addr, uint32_t size)
 	/* キャッシュアラインかチェック */
 	if ( saddr & (CACHE_LINE_SIZE - 1) ) {
 		/* 非アライン */
-		DCCIMVAC_set(saddr);
+		DC_CIVAC_set(saddr);
 		/* saddrを次のキャッシュアラインに調整 */
 		saddr &= ~(PtrInt_t)(CACHE_LINE_SIZE - 1);
 		saddr += CACHE_LINE_SIZE;
@@ -44,13 +44,13 @@ void cache_invalid_unalign(void* addr, uint32_t size)
 		/* キャッシュアラインかチェック */
 		if ( eaddr & (CACHE_LINE_SIZE - 1) ) {
 			/* 非アライン */
-			DCCIMVAC_set(eaddr);
+			DC_CIVAC_set(eaddr);
 			/* eaddrを前のキャッシュアラインに調整 */
 			eaddr &= ~(PtrInt_t)(CACHE_LINE_SIZE - 1);
 		}
 
 		for (; saddr < eaddr; saddr += CACHE_LINE_SIZE ) {
-			DCIMVAC_set(saddr);
+			DC_IVAC_set(saddr);
 		}
 	}
 }
@@ -60,7 +60,7 @@ void cache_clean(void* addr, uint32_t size)
 	PtrInt_t saddr = (PtrInt_t)addr;
 	PtrInt_t eaddr = (PtrInt_t)addr + size;
 	for (; saddr < eaddr; saddr += CACHE_LINE_SIZE ) {
-		DCCMVAC_set(saddr);
+		DC_CVAC_set(saddr);
 	}
 }
 
@@ -75,7 +75,7 @@ void cache_clean_invalid(void* addr, uint32_t size)
 	PtrInt_t saddr = (PtrInt_t)addr;
 	PtrInt_t eaddr = (PtrInt_t)addr + size;
 	for (; saddr < eaddr; saddr += CACHE_LINE_SIZE ) {
-		DCCIMVAC_set(saddr);
+		DC_CIVAC_set(saddr);
 	}
 }
 

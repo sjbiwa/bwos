@@ -29,13 +29,6 @@ extern "C" {
 #define	CPUID_get()			(0)
 #endif
 
-static inline bool is_cluster_master() {
-	if ( MPIDR_EL1_get() & 0xff ) {
-		return false;
-	}
-	return true;
-}
-
 #else
 
 /* コアID取得 */

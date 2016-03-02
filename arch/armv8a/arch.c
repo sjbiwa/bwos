@@ -185,6 +185,13 @@ smp0_handler(uint32_t irqno, void* info)
 	//tprintf("smp handler:%d\n", CPUID_get());
 }
 
+static bool is_cluster_master() {
+	if ( MPIDR_EL1_get() & 0xff ) {
+		return false;
+	}
+	return true;
+}
+
 void arch_system_preinit(uint32_t cpuid)
 {
 	if ( cpuid == MASTER_CPU_ID ) {
@@ -246,6 +253,37 @@ void arch_system_preinit(uint32_t cpuid)
 	__irq_set_enable(0, IRQ_ENABLE, CPU_SELF);
 	__irq_set_enable(1, IRQ_ENABLE, CPU_SELF);
 
+}
+
+static uint32_t get_slave_cpu_num(uint32_t cluster)
+{
+	uint32_t cpu_num = CPU_PER_CLUSTER;
+	if ( CPU_NUM < ((cluster * CPU_PER_CLUSTER) + CPU_PER_CLUSTER) ) {
+		cpu_num = CPU_NUM - (cluster * CPU_PER_CLUSTER); /* クラスタ内で起動するコア数(マスタを含む) */
+	}
+	return cpu_num;
+}
+
+/* 関連するスレーブコアの起動 */
+void smp_boot_relayed_cpu(uint32_t cpuid)
+{
+	__dsb();
+	if ( (cpuid == MASTER_CPU_ID) || is_cluster_master() ) {
+		/* 初期起動コア */
+		uint32_t my_cluster = (MPIDR_EL1_get() >> 8) & 0xff;
+		/* 自クラスタのスレーブコアを起動 */
+		smp_boot_slave_cpu(my_cluster, get_slave_cpu_num(my_cluster));
+
+		if ( cpuid == MASTER_CPU_ID ) {
+			/* 他クラスタのマスタコアを起動 */
+			uint32_t cluster_num = (CPU_NUM - 1) / CPU_PER_CLUSTER + 1;
+			for ( uint32_t cluster = 0; cluster < cluster_num; cluster++ ) {
+				if ( cluster != my_cluster ) {
+					smp_boot_cluster_master_cpu(cluster);
+				}
+			}
+		}
+	}
 }
 
 void arch_register_st_memory()
