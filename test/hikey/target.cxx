@@ -78,7 +78,7 @@ void task2(void* arg0, void* arg1)
 	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
 		lprintf("CORE=%d:task2:%d\n", CPUID_get(), ix);
 		task_set_affinity(ix%CPU_NUM);
-		task_tsleep(MSEC(200));
+		task_tsleep(SEC(1));
 	}
 }
 
@@ -247,6 +247,15 @@ void task_msgq_3(void* arg0, void* arg1)
 
 
 TaskCreateInfo	task_info[] = {
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)0},
+		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK02", CPU_CORE4|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE5|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE6|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE7|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 7, (void*)0},
+#if 0
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
@@ -312,6 +321,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE6|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE7|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+#endif
 };
 
 void main_task(void)
