@@ -14,10 +14,11 @@
 #if USE_SMP==1
 #include "arch_smp.h"
 
-void spin_init(SpinLockObj* ptr);
-void spin_lock(SpinLockObj* ptr);
-void spin_unlock(SpinLockObj* ptr);
-int spin_trylock(SpinLockObj* ptr);
+extern void spin_init(SpinLockObj* lock);
+extern void spin_lock(SpinLockObj* lock);
+extern void spin_unlock(SpinLockObj* lock);
+extern int spin_trylock(SpinLockObj* lock);
+
 #else
 typedef	int		SpinLockObj;
 
@@ -25,6 +26,7 @@ typedef	int		SpinLockObj;
 #define	spin_lock(a)
 #define	spin_unlock(a)
 #define	spin_trylock(a)		(1)
+
 #endif
 
 #endif

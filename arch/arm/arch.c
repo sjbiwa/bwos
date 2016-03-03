@@ -214,10 +214,12 @@ void arch_system_preinit(uint32_t cpuid)
 /* 関連するスレーブコアの起動 */
 void smp_boot_relayed_cpu(uint32_t cpuid)
 {
+#if USE_SMP==1
 	__dsb();
 	if ( cpuid == MASTER_CPU_ID ) {
 		smp_boot_slave_cpu();
 	}
+#endif
 }
 
 void arch_register_st_memory()
