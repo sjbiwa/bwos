@@ -211,6 +211,15 @@ void arch_system_preinit(uint32_t cpuid)
 	__irq_set_enable(1, IRQ_ENABLE, CPU_SELF);
 }
 
+/* 関連するスレーブコアの起動 */
+void smp_boot_relayed_cpu(uint32_t cpuid)
+{
+	__dsb();
+	if ( cpuid == MASTER_CPU_ID ) {
+		smp_boot_slave_cpu();
+	}
+}
+
 void arch_register_st_memory()
 {
 	/* 起動時メモリ登録 */
