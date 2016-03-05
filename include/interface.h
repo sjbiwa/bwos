@@ -60,6 +60,10 @@ typedef	struct {
 #define	CPU_CORE1			(0x00u<<24)
 #define	CPU_CORE2			(0x00u<<24)
 #define	CPU_CORE3			(0x00u<<24)
+#define	CPU_CORE4			(0x00u<<24)
+#define	CPU_CORE5			(0x00u<<24)
+#define	CPU_CORE6			(0x00u<<24)
+#define	CPU_CORE7			(0x00u<<24)
 #endif
 #define	CPU_GET(f)			(((f)&CPU_MASK)>>24)
 

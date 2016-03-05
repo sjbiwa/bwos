@@ -48,6 +48,6 @@ make run で実行
 
 ○Hikey 96board
 １．U-BOOTが起動すること (http://people.linaro.org/~peter.griffin/hikey/hikey-u-boot-release_r1/)
-２．loadb 0 実行
+２．loadb 10000 実行
 ３．kermitにてbwos.binをダウンロード
-４．go 0 実行
+４．go 10000 実行

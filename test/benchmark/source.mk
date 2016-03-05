@@ -4,5 +4,5 @@ CXX_SRCS +=
 
 
 # use FPU
-FPU_C_SRCS +=
+FPU_C_SRCS += benchmark.c
 FPU_CXX_SRCS += target.cxx

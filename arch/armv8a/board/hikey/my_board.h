@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define	START_MEM_ADDR		(0x00000000u)
+#define	START_MEM_ADDR		(0x00010000u)
 #define	END_MEM_ADDR		(0x3FFFFFFFu)
 
 #define	UART_BASE			(0xF8015000u)

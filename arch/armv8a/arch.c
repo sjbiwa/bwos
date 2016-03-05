@@ -267,6 +267,7 @@ static uint32_t get_slave_cpu_num(uint32_t cluster)
 /* 関連するスレーブコアの起動 */
 void smp_boot_relayed_cpu(uint32_t cpuid)
 {
+#if USE_SMP == 1
 	__dsb();
 	if ( (cpuid == MASTER_CPU_ID) || is_cluster_master() ) {
 		/* 初期起動コア */
@@ -284,6 +285,7 @@ void smp_boot_relayed_cpu(uint32_t cpuid)
 			}
 		}
 	}
+#endif
 }
 
 void arch_register_st_memory()

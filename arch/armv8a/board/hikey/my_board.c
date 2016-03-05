@@ -15,7 +15,7 @@ extern void _start(void);
 
 void smp_boot_slave_cpu(uint32_t cluster, uint32_t slave_cpu_num)
 {
-	slave_cpu_num = 4;
+	slave_cpu_num = CPU_PER_CLUSTER;
 	for ( uint32_t slave_cpu = 1; slave_cpu < slave_cpu_num; slave_cpu++ ) {
 		_smp_boot(0xC4000003, (cluster << 8) | slave_cpu, _start, 0);
 	}
