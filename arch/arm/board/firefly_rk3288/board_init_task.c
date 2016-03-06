@@ -196,15 +196,15 @@ void board_init_task_depend(void)
 	iowrite32(grf+GRF_GPIO6C_IOMUX, 0x17ff1555);
 	iowrite32(grf+GRF_SOC_CON0, 0x10001000);
 
-	/* setup GPIO */
-	gpio_set_direction(8, 0x00000006, 0x00000006); /* LED */
-	gpio_set_direction(0, 0x00020000, 0x00020000); /* SDA7123 */
-	gpio_set_bit(0, 17, 1);
-
 	/* register device */
 	uart_register(&uart_info, arrayof(uart_info));
 	gpio_register(&gpio_info, arrayof(gpio_info));
 	spi_register(&spi_info, arrayof(spi_info));
 	i2c_register(&i2c_info, arrayof(i2c_info));
 	sdmmc_register(&sdmmc_info, arrayof(sdmmc_info));
+
+	/* setup GPIO */
+	gpio_set_direction(8, 0x00000006, 0x00000006); /* LED */
+	gpio_set_direction(0, 0x00020000, 0x00020000); /* SDA7123 */
+	gpio_set_bit(0, 17, 1);
 }
