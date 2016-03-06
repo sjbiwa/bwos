@@ -53,7 +53,7 @@ void board_mmgr_init(void)
 	mmgr_add_entry((void*)(PMU_REG_BASE), PMU_REG_SIZE, ATTR_DEV);
 
 	/* FRAME BUFFER */
-	mmgr_add_entry((void*)(FRAME_BUFFER_ADDR), FRAME_BUFFER_SIZE, ATTR_DEV);
+	mmgr_add_entry((void*)(FRAME_BUFFER_ADDR), FRAME_BUFFER_SIZE, ATTR_NONCACHE);
 
 	/* SPI (SPI1 not use) */
 	mmgr_add_entry((void*)(SPI0_REG_BASE), SPI0_REG_SIZE, ATTR_DEV);

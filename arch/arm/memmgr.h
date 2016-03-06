@@ -23,11 +23,14 @@ extern "C" {
 enum {
 	ATTRL_SECT = 0,
 	ATTRL_PAGE,
+	ATTRL_E_NUM,
 };
 enum {
 	ATTR_TEXT = 0,
 	ATTR_DATA,
 	ATTR_DEV,
+	ATTR_NONCACHE,
+	ATTR_E_NUM,
 };
 
 extern void arch_ptbl_init(void);
