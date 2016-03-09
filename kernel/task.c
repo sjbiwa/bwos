@@ -268,6 +268,7 @@ void task_tick(void)
 bool schedule(CpuStruct* cpu)
 {
 	RunQueue* run_queue = &(cpu->run_queue);
+	TaskStruct* ntask = cpu->ntask;
 	if ( run_queue->pri_bits != 0 ) {
 		uint32_t bits = lowest_bit(run_queue->pri_bits);
 		cpu->ntask = (TaskStruct*)(run_queue->task[bits].next);
@@ -275,8 +276,7 @@ bool schedule(CpuStruct* cpu)
 	else {
 		cpu->ntask = NULL;
 	}
-	bool ret = (cpu->ctask != cpu->ntask) ? true : false;
-	return ret;
+	return ((ntask != cpu->ntask) ? true : false);
 }
 
 uint32_t schedule_any(uint32_t wakeup_cpu_list)
