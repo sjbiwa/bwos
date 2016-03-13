@@ -5,7 +5,7 @@
 /*
  * my_board.h
  *
- *  Created on: 2016/02/27
+ *  Created on: 2016/03/13
  *      Author: biwa
  */
 
@@ -18,15 +18,14 @@
 extern "C" {
 #endif
 
-#define	START_MEM_ADDR		(0x00010000u)
-#define	END_MEM_ADDR		(0x3FFFFFFFu)
+#define	START_MEM_ADDR		(0x80000000u)
+#define	END_MEM_ADDR		(0x8FFFFFFFu)
 
-#define	UART_BASE			(0xF8015000u)
+#define	UART_BASE			(0x078B0000u)
 
-/* GICv3 */
-#define	GIC_GICD_BASE		(0xF6801000u)
-#define	GIC_GICR_BASE		(GIC_GICD_BASE+0x100000)
-#define	GIC_GICC_BASE		(0xF6802000u)
+/* GIC */
+#define	GIC_GICD_BASE		(0x0B000000u)
+#define	GIC_GICC_BASE		(0x0B002000u)
 
 #define	IRQ_NUM				(128)
 
@@ -34,10 +33,10 @@ extern "C" {
 
 #define	CPU_PER_CLUSTER		(4)				/* 1クラスタあたり4コア */
 
-#define	GENERIC_TIMER_INTR	(30)			/* genericTimerの割り込み番号 */
+#define	GENERIC_TIMER_INTR	(29)			/* genericTimerの割り込み番号 */
 
 #define	CPU_CLOCK			(1000000000)	/* CPUクロック(未使用) */
-#define	CNTFRQ_VALUE		(1200000)		/* GenericTimerのクロック */
+#define	CNTFRQ_VALUE		(19200000)		/* GenericTimerのクロック */
 #define	TIME_UNIT_VALUE		(1)				/* 1TIME-UNITのクロック数 */
 
 /*** Tick管理パラメータ ***/

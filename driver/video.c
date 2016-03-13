@@ -318,7 +318,7 @@ void video_init(void)
 	ioset32(regbase+VOP_SYS_CTRL1, 0x00000000);
 	iowrite32(regbase+VOP_DSP_CTRL0, 0x00000030);
 	iowrite32(regbase+VOP_DSP_CTRL1, 0x0000e400);
-	iowrite32(regbase+VOP_DSP_BG, 0xFFFFFFFF);
+	iowrite32(regbase+VOP_DSP_BG, 0x00000000); /* BackGround */
 	iowrite32(regbase+VOP_MCU_CTRL, 0x00711c08);
 	iowrite32(regbase+VOP_DSP_HTOTAL_HS_END, 0x05C80088);
 	iowrite32(regbase+VOP_DSP_HACT_ST_END, 0x01B005B0);

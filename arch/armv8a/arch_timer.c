@@ -57,7 +57,7 @@ void arch_timer_init(uint32_t cpuid)
 	CNTP_CTL_EL0_set(0x00000001);
 
 	if ( cpuid == MASTER_CPU_ID ) {
-		__irq_add_handler(30, timer_handler, NULL);
+		__irq_add_handler(GENERIC_TIMER_INTR, timer_handler, NULL);
 	}
-	__irq_set_enable(30, IRQ_ENABLE, CPU_SELF);
+	__irq_set_enable(GENERIC_TIMER_INTR, IRQ_ENABLE, CPU_SELF);
 }

@@ -27,7 +27,7 @@ void c_handler(uint64_t sp, uint64_t pc, uint64_t sr)
 	/* Get Acknowledge */
 	ack = ioread32(GICC_IAR);
 	irqno = ack & 0x3ff;
-	//tprintf("c_handler:%d:SP=%08X PC=%08X SR=%08X IRQ=%d\n", CPUID_get(), lword(sp), lword(pc), lword(sr), irqno);
+	// tprintf("c_handler:%d:SP=%08X PC=%08X SR=%08X IRQ=%d\n", CPUID_get(), lword(sp), lword(pc), lword(sr), irqno);
 
 	if ( (irqno < IRQ_NUM) && irq_action[irqno].handler ) {
 		(*irq_action[irqno].handler)(irqno, irq_action[irqno].info);

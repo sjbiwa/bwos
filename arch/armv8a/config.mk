@@ -23,8 +23,10 @@ A_SRCS += boot.S handler.S arch_api.S dispatch.S
 C_SRCS += api_table.c arch.c idle.c arch_timer.c memmgr.c arch_ptbl.c arch_cache.c
 ifeq ($(USE_GICV2),1)
 C_SRCS += gicv2.c
+DEFS   += -DUSE_GICV2
 else
 C_SRCS += gicv3.c
+DEFS   += -DUSE_GICV3
 endif
 
 LDSCRIPT = $(ARCHDIR)/link.lds

@@ -25,11 +25,15 @@ extern "C" {
 #define	UART_BASE			(0x1C090000u)
 
 /* GICv3 */
+#if defined(USE_GICV3)
 #define	GIC_GICD_BASE		(0x002F000000)
 #define	GIC_GICR_BASE		(0x002F100000)
 #define	GIC_GICC_BASE		(0x002C002000)
+#else
 /* GICv2 */
-#define	MPCORE_BASE			(0x002C000000)
+#define	GIC_GICD_BASE		(0x002C001000)
+#define	GIC_GICC_BASE		(0x002C002000)
+#endif
 
 #define	IRQ_NUM				(256)
 

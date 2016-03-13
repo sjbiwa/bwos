@@ -11,7 +11,6 @@
 #include "kernel.h"
 #include "armv8.h"
 #include "armv8reg.h"
-#include "gicv3reg.h"
 
 /*
  * 	idle_task
@@ -19,10 +18,13 @@
  */
 void idle_task(void)
 {
+	irq_enable();
 	for (;;) {
+#if !defined(NO_WFI_WAIT)
 		irq_disable();
 		__wfi();
 		irq_enable();
+#endif
 	}
 }
 

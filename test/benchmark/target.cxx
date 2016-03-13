@@ -37,6 +37,7 @@ void task_benchmark(void* arg0, void* arg1)
 
 TaskCreateInfo	task_info[] = {
 		{"TASK1", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)1},
+#if defined(USE_SMP)
 		{"TASK2", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)2},
 		{"TASK3", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)3},
 		{"TASK4", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)4},
@@ -44,6 +45,7 @@ TaskCreateInfo	task_info[] = {
 		{"TASK6", CPU_CORE5|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)6},
 		{"TASK7", CPU_CORE6|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)7},
 		{"TASK8", CPU_CORE7|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 65536, 0, 5, (void*)8},
+#endif
 };
 
 void main_task(void)
