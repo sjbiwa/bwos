@@ -39,8 +39,13 @@ extern "C" {
 
 #define	CACHE_LINE_SIZE		(64)
 
+#define	CPU_PER_CLUSTER		(4)				/* 1クラスタあたり4コア */
+
+#define	GENERIC_TIMER_INTR	(30)			/* genericTimerの割り込み番号 */
+
+
 #define	CPU_CLOCK			(1000000000)	/* CPUクロック(未使用) */
-#define	CNTFRQ_VALUE		(10000000)		/* GenericTimerのクロック */
+#define	CNTFRQ_VALUE		(100000000)		/* GenericTimerのクロック */
 #define	TIME_UNIT_VALUE		(1)				/* 1TIME-UNITのクロック数 */
 
 /*** Tick管理パラメータ ***/

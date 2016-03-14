@@ -1,5 +1,10 @@
 #include "bwos.h"
 
+#if USE_SMP == 1
+#else
+#define	task_set_affinity(...)
+#endif
+
 void wait(uint32_t t)
 {
 	volatile uint32_t count = t;
@@ -48,7 +53,7 @@ void task1(uint32_t arg0, uint32_t arg1)
 	for (;;ix++ ) {
 		lprintf("CORE=%d:task%d:%d\n", CPUID_get(), arg0, ix);
 		task_set_affinity(ix%CPU_NUM);
-		task_tsleep(SEC(50));
+		task_tsleep(SEC(1));
 	}
 }
 
@@ -57,7 +62,7 @@ void task2(uint32_t arg0, uint32_t arg1)
 	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
 		lprintf("CORE=%d:task2:%d\n", CPUID_get(), ix);
 		task_set_affinity(ix%CPU_NUM);
-		task_tsleep(SEC(20));
+		task_tsleep(SEC(2));
 	}
 }
 
@@ -99,7 +104,7 @@ void task4(uint32_t arg0, uint32_t arg1)
 	task_tsleep(SEC(70));
 	for (ix--; 0 <= ix; ix--) {
 		fixmb_release(fixmb, ptr[ix]);
-		task_tsleep(SEC(50));
+		task_tsleep(SEC(5));
 	}
 }
 

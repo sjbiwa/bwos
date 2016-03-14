@@ -12,13 +12,17 @@
 #if USE_SMP == 1
 volatile uint32_t smp_boot_flag = 1;
 
-void smp_boot_slave_cpu(void)
+void smp_boot_slave_cpu(uint32_t cluster, uint32_t slave_cpu_num)
 {
 	__dsb();
 	smp_boot_flag = 0;
 	DC_CVAC_set(&smp_boot_flag);
 	__dsb();
 	__sev();
+}
+
+void smp_boot_cluster_master_cpu(uint32_t cluster)
+{
 }
 
 #endif
