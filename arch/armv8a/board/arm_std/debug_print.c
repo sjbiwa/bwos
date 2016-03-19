@@ -40,8 +40,8 @@
 
 static inline void debug_putc(uint8_t c)
 {
-	while (ioread32(UART_BASE+UARTFR) & (0x1<<5));
-	iowrite32(UART_BASE+UARTDR, c);
+	while (ioread32(UART_REG_BASE+UARTFR) & (0x1<<5));
+	iowrite32(UART_REG_BASE+UARTDR, c);
 }
 
 void debug_print(uint8_t* str)
@@ -57,14 +57,14 @@ void debug_print(uint8_t* str)
 
 void debug_print_init(void)
 {
-	iowrite32(UART_BASE+UARTIBRD, 0x6);
-	iowrite32(UART_BASE+UARTFBRD, 0x21);
-	iowrite32(UART_BASE+UARTLCR_H, 0x70);
-	iowrite32(UART_BASE+UARTCR, 0x301);
+	iowrite32(UART_REG_BASE+UARTIBRD, 0x6);
+	iowrite32(UART_REG_BASE+UARTFBRD, 0x21);
+	iowrite32(UART_REG_BASE+UARTLCR_H, 0x70);
+	iowrite32(UART_REG_BASE+UARTCR, 0x301);
 }
 
 void led_on(uint32_t led)
 {
-	iowrite32(SYSTEM_BASE+0x0008,  led);
+	iowrite32(SYSTEM_REG_BASE+0x0008,  led);
 }
 

@@ -7,4 +7,6 @@ CPU  = cortex-a7
 BOARD = firefly_rk3288
 APPLICATION = application
 SMP_CPU_NUM=4
+USE_FATFSLIB_MODULE=1
+USE_JPEGLIB_MODULE=1
 

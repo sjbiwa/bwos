@@ -16,12 +16,14 @@
 
 void board_mmgr_init(void)
 {
-	mmgr_add_entry((void*)(SYSTEM_BASE), (uint64_t)(0x10000LL), ATTR_DEV);
-	mmgr_add_entry((void*)(UART_BASE), (uint64_t)(0x10000LL), ATTR_DEV);
-	mmgr_add_entry((void*)(0x0880000000uLL), (uint64_t)(0x180000000uLL), ATTR_DATA);
+	mmgr_add_entry((void*)(SYSTEM_REG_BASE), (uint64_t)(SYSTEM_REG_SIZE), ATTR_DEV);
+	mmgr_add_entry((void*)(UART_REG_BASE), (uint64_t)(UART_REG_SIZE), ATTR_DEV);
+	mmgr_add_entry((void*)(CLCD_REG_BASE), (uint64_t)(CLCD_REG_SIZE), ATTR_DEV);
+	mmgr_add_entry((void*)(FRAME_BUFFER_BASE), (uint64_t)(FRAME_BUFFER_SIZE), ATTR_NONCACHE);
+	mmgr_add_entry((void*)(SDMMC_MAP_BASE), (uint64_t)(SDMMC_MAP_SIZE), ATTR_DATA);
 }
 
 void board_register_normal_memory(void)
 {
-	__sys_malloc_add_block((void*)(0x0880000000uLL), (MemSize_t)(0x180000000uLL));
+	//__sys_malloc_add_block((void*)(0x0880000000uLL), (MemSize_t)(0x180000000uLL));
 }

@@ -18,6 +18,7 @@ APPDIR  = .
 KERNDIR = $(TOPDIR)/kernel
 UTILDIR = $(TOPDIR)/util
 DRVDIR  = $(TOPDIR)/driver
+CONTRIBDIR = $(TOPDIR)/contrib
 
 INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
 VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
@@ -38,6 +39,8 @@ DEFS += -DMSGQ_MAX_NUM=100
 DEFS += -DFIXMB_MAX_NUM=100
 DEFS += -DTIMER_MAX_NUM=100
 
+DEFS += -DINIT_TASK_STACK_SIZE=16000
+
 ifeq ($(USE_GICV2),1)
 GICOPT = --no-gicv3
 else
@@ -55,12 +58,17 @@ all:
 	make $(TARGET)
 
 run:
-	Foundation_Platform --arm-v8.0 --use-real-time --rate-limit --visualization --cores=$(SMP_CPU_NUM) $(GICOPT) --image=$(TARGET_ELF)
+	Foundation_Platform --arm-v8.0 --rate-limit --visualization --cores=$(SMP_CPU_NUM) $(GICOPT) --image=$(TARGET_ELF)
 #	Foundation_Platform --visualization --use-real-time --cores=$(SMP_CPU_NUM) --gicv3 --image=$(TARGET_ELF)
+
+runm:
+	Foundation_Platform --arm-v8.0 --rate-limit --visualization --cores=$(SMP_CPU_NUM) $(GICOPT) --data=image.dat@0x880000000 --image=$(TARGET_ELF)
+--data=file@address
 
 include $(ARCHDIR)/config.mk
 include $(KERNDIR)/config.mk
 include $(UTILDIR)/config.mk
 include $(DRVDIR)/config.mk
+include $(CONTRIBDIR)/config.mk
 include source.mk
 include rule.mk

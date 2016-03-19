@@ -2,7 +2,8 @@
 C_SRCS +=
 CXX_SRCS +=
 
-
 # use FPU
-FPU_C_SRCS += target.c
-FPU_CXX_SRCS +=
+FPU_C_SRCS += decjpeg.c
+FPU_CXX_SRCS += target.cxx
+
+DEFS += -DNO_GETENV

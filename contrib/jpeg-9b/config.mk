@@ -15,4 +15,8 @@ JPEG_COMMON_SRC = jcomapi.c jcparam.c jaricom.c jerror_local.c jmemmgr.c jutils.
 
 JPEG_MEMMAN_SRC = jmemnobs.c
 
+ifeq ($(ARCH),armv8a)
+FPU_C_SRCS += $(JPEG_DECOMPRESS_SRC) $(JPEG_COMMON_SRC) $(JPEG_MEMMAN_SRC)
+else
 C_SRCS += $(JPEG_DECOMPRESS_SRC) $(JPEG_COMMON_SRC) $(JPEG_MEMMAN_SRC)
+endif

@@ -19,10 +19,19 @@ extern "C" {
 #endif
 
 #define	START_MEM_ADDR		(0x80000000u)
-#define	END_MEM_ADDR		(0x8FFFFFFFu)
+#define	END_MEM_ADDR		(0xEFFFFFFFu)
+#define	FRAME_BUFFER_BASE	(0xF0000000u)
+#define	FRAME_BUFFER_SIZE	(0x10000000u)
+#define	SDMMC_MAP_BASE		(0x0880000000uLL)
+#define	SDMMC_MAP_SIZE		(0x180000000uLL)
 
-#define	SYSTEM_BASE			(0x1C010000u)
-#define	UART_BASE			(0x1C090000u)
+/* IO register */
+#define	SYSTEM_REG_BASE		(0x1C010000u)
+#define	SYSTEM_REG_SIZE		(0x10000LL)
+#define	UART_REG_BASE		(0x1C090000u)
+#define	UART_REG_SIZE		(0x10000LL)
+#define	CLCD_REG_BASE		(0x1C1F0000u)
+#define	CLCD_REG_SIZE		(0x10000LL)
 
 /* GICv3 */
 #if defined(USE_GICV3)

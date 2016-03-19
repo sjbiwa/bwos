@@ -19,10 +19,9 @@ KERNDIR = $(TOPDIR)/kernel
 UTILDIR = $(TOPDIR)/util
 DRVDIR  = $(TOPDIR)/driver
 CONTRIBDIR = $(TOPDIR)/contrib
-JPEGDIR = ./jpeg-9b
 
-INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include -I$(JPEGDIR)
-VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR) $(JPEGDIR)
+INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
+VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
 
 OBJS = $(C_SRCS:%.c=%.o) $(CXX_SRCS:%.cxx=%.o) $(A_SRCS:%.S=%.o)
 

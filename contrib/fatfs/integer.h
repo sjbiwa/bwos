@@ -11,6 +11,7 @@
 #include <tchar.h>
 
 #else			/* Embedded platform */
+#include "stdint.h"
 
 /* This type MUST be 8-bit */
 typedef unsigned char	BYTE;
@@ -25,8 +26,10 @@ typedef int				INT;
 typedef unsigned int	UINT;
 
 /* These types MUST be 32-bit */
-typedef long			LONG;
-typedef unsigned long	DWORD;
+//typedef long			LONG;
+//typedef unsigned long	DWORD;
+typedef int32_t			LONG;
+typedef uint32_t		DWORD;
 
 #endif
 

@@ -10,3 +10,4 @@ build/bwos.elf
 arch/arm_cm/board/nrf51822/nRF51_SDK_8.0.0/
 arch/arm_cm/board/nrf51822/nRF51_SDK_9.0.0/
 test/cm4/ExtDll.iex
+test/armv8/image.dat

@@ -28,8 +28,11 @@ uint32_t _irq_level[CPU_NUM]; /* 多重割り込みレベル */
 uint8_t _dispatch_disable[CPU_NUM] = {0}; /* ディスパッチ禁止フラグ */
 
 /* 初期タスクの生成パラメータ */
+#if !defined(INIT_TASK_STACK_SIZE)
+#define	INIT_TASK_STACK_SIZE	2048
+#endif
 TaskCreateInfo	_init_task_create_param = {
-	NULL, CPU_CORE0|TASK_ACT|TASK_SYS, NULL, 2048, 0, 0, (void*)0
+	NULL, CPU_CORE0|TASK_ACT|TASK_SYS, NULL, INIT_TASK_STACK_SIZE, 0, 0, (void*)0
 };
 
 
