@@ -13,8 +13,11 @@ extern "C" {
 
 #include "my_board.h" /* GIC base register define */
 
-#define	GIC_VLPI_BASE			(GIC_GICR_BASE+0x10000u)
-#define	GIC_SGI_BASE			(GIC_GICR_BASE+0x10000u)
+#define	GIC_PER_REDIST_SIZE		(0x20000u)
+
+#define	GIC_RD_BASE(cpu)		(GIC_GICR_BASE+GIC_PER_REDIST_SIZE*(cpu)+0x00000u)
+#define	GIC_VLPI_BASE(cpu)		(GIC_GICR_BASE+GIC_PER_REDIST_SIZE*(cpu)+0x10000u)
+#define	GIC_SGI_BASE(cpu)		(GIC_GICR_BASE+GIC_PER_REDIST_SIZE*(cpu)+0x10000u)
 
 #define	GICD_CTLR				(GIC_GICD_BASE+0x0000u)					/* RW See the register description Distributor Control Register */
 #define	GICD_TYPER				(GIC_GICD_BASE+0x0004u)					/* RO IMPLEMENTATION DEFINED Interrupt Controller Type Register */
@@ -41,34 +44,34 @@ extern "C" {
 #define	GICD_SPENDSGIR			(GIC_GICD_BASE+0x0F20u)					/* RW 0x0000 0000 SGI Set-Pending Registers */
 #define	GICD_IROUTER			(GIC_GICD_BASE+0x6000u)					/* RW 0x0000 0000 Interrupt Routing Registers */
 
-#define	GICR_CTLR				(GIC_GICR_BASE+0x0000u)					/* RW See the register description Redistributor Control Register */
-#define	GICR_IIDR				(GIC_GICR_BASE+0x0004u)					/* RO IMPLEMENTATION DEFINED Implementer Identification Register */
-#define	GICR_TYPER				(GIC_GICR_BASE+0x0008u)					/* RO IMPLEMENTATION DEFINED Redistributor Type Register */
-#define	GICR_STATUSR			(GIC_GICR_BASE+0x0010u)					/* RW 0x0000 0000 Error Reporting Status Register, optional */
-#define	GICR_WAKER				(GIC_GICR_BASE+0x0014u)					/* RW See the register description Redistributor Wake Register */
-#define	GICR_SETLPIR			(GIC_GICR_BASE+0x0040u)					/* WO - Set LPI Pending Register */
-#define	GICR_CLRLPIR			(GIC_GICR_BASE+0x0048u)					/* WO - Clear LPI Pending Register */
-#define	GICR_PROPBASER			(GIC_GICR_BASE+0x0070u)					/* RW - Redistributor Properties Base Address Register */
-#define	GICR_PENDBASER			(GIC_GICR_BASE+0x0078u)					/* RW - Redistributor LPI Pending Table Base Address Register */
-#define	GICR_INVLPIR			(GIC_GICR_BASE+0x00A0u)					/* WO - Redistributor Invalidate LPI Register */
-#define	GICR_INVALLR			(GIC_GICR_BASE+0x00B0u)					/* WO - Redistributor Invalidate All Register */
-#define	GICR_SYNCR				(GIC_GICR_BASE+0x00C0u)					/* RO - Redistributor Synchronize Register */
+#define	GICR_CTLR(cpu)			(GIC_RD_BASE(cpu)+0x0000u)				/* RW See the register description Redistributor Control Register */
+#define	GICR_IIDR(cpu)			(GIC_RD_BASE(cpu)+0x0004u)				/* RO IMPLEMENTATION DEFINED Implementer Identification Register */
+#define	GICR_TYPER(cpu)			(GIC_RD_BASE(cpu)+0x0008u)				/* RO IMPLEMENTATION DEFINED Redistributor Type Register */
+#define	GICR_STATUSR(cpu)		(GIC_RD_BASE(cpu)+0x0010u)				/* RW 0x0000 0000 Error Reporting Status Register, optional */
+#define	GICR_WAKER(cpu)			(GIC_RD_BASE(cpu)+0x0014u)				/* RW See the register description Redistributor Wake Register */
+#define	GICR_SETLPIR(cpu)		(GIC_RD_BASE(cpu)+0x0040u)				/* WO - Set LPI Pending Register */
+#define	GICR_CLRLPIR(cpu)		(GIC_RD_BASE(cpu)+0x0048u)				/* WO - Clear LPI Pending Register */
+#define	GICR_PROPBASER(cpu)		(GIC_RD_BASE(cpu)+0x0070u)				/* RW - Redistributor Properties Base Address Register */
+#define	GICR_PENDBASER(cpu)		(GIC_RD_BASE(cpu)+0x0078u)				/* RW - Redistributor LPI Pending Table Base Address Register */
+#define	GICR_INVLPIR(cpu)		(GIC_RD_BASE(cpu)+0x00A0u)				/* WO - Redistributor Invalidate LPI Register */
+#define	GICR_INVALLR(cpu)		(GIC_RD_BASE(cpu)+0x00B0u)				/* WO - Redistributor Invalidate All Register */
+#define	GICR_SYNCR(cpu)			(GIC_RD_BASE(cpu)+0x00C0u)				/* RO - Redistributor Synchronize Register */
 
-#define	GICR_VPROPBASER			(GIC_VLPI_BASE+0x0070u)					/* RW - Virtual Redistributor Properties Base Address Register */
-#define	GICR_VPENDBASER			(GIC_VLPI_BASE+0x0078u)					/* RW - Virtual Pending Table Base Address Register */
+#define	GICR_IGROUPR0(cpu)		(GIC_SGI_BASE(cpu)+0x0080u)				/* RW - Interrupt Group Register 0 */
+#define	GICR_ISENABLER0(cpu)	(GIC_SGI_BASE(cpu)+0x0100u)				/* RW IMPLEMENTATION DEFINED Interrupt Set-Enable Register 0 */
+#define	GICR_ICENABLER0(cpu)	(GIC_SGI_BASE(cpu)+0x0180u)				/* RW IMPLEMENTATION DEFINED Interrupt Clear-Enable Register 0 */
+#define	GICR_ISPENDR0(cpu)		(GIC_SGI_BASE(cpu)+0x0200u)				/* RW 0x0000 0000 Interrupt Set-Pend Register 0 */
+#define	GICR_ICPENDR0(cpu)		(GIC_SGI_BASE(cpu)+0x0280u)				/* RW 0x0000 0000 Interrupt Clear-Pend Register 0 */
+#define	GICR_ISACTIVER0(cpu)	(GIC_SGI_BASE(cpu)+0x0300u)				/* RW 0x0000 0000 Interrupt Set-Active Register 0 */
+#define	GICR_ICACTIVER0(cpu)	(GIC_SGI_BASE(cpu)+0x0380u)				/* RW 0x0000 0000 Interrupt Clear-Active Register 0 */
+#define	GICR_IPRIORITYR(cpu)	(GIC_SGI_BASE(cpu)+0x0400u)				/* RW 0x0000 0000 Interrupt Priority Registers */
+#define	GICR_ICFGR0(cpu)		(GIC_SGI_BASE(cpu)+0x0C00u)				/* RW IMPLEMENTATION DEFINED SGI Configuration Register */
+#define	GICR_ICFGR1(cpu)		(GIC_SGI_BASE(cpu)+0x0C04u)				/* RW IMPLEMENTATION DEFINED PPI Configuration Register */
+#define	GICR_IGRPMODR0(cpu)		(GIC_SGI_BASE(cpu)+0x0D00u)				/* RW - Interrupt Group Modifier Register 0 */
+#define	GICR_NSACR(cpu)			(GIC_SGI_BASE(cpu)+0x0E00u)				/* RW 0x0000 0000 Non-Secure Access Control Register */
 
-#define	GICR_IGROUPR0			(GIC_SGI_BASE+0x0080u)					/* RW - Interrupt Group Register 0 */
-#define	GICR_ISENABLER0			(GIC_SGI_BASE+0x0100u)					/* RW IMPLEMENTATION DEFINED Interrupt Set-Enable Register 0 */
-#define	GICR_ICENABLER0			(GIC_SGI_BASE+0x0180u)					/* RW IMPLEMENTATION DEFINED Interrupt Clear-Enable Register 0 */
-#define	GICR_ISPENDR0			(GIC_SGI_BASE+0x0200u)					/* RW 0x0000 0000 Interrupt Set-Pend Register 0 */
-#define	GICR_ICPENDR0			(GIC_SGI_BASE+0x0280u)					/* RW 0x0000 0000 Interrupt Clear-Pend Register 0 */
-#define	GICR_ISACTIVER0			(GIC_SGI_BASE+0x0300u)					/* RW 0x0000 0000 Interrupt Set-Active Register 0 */
-#define	GICR_ICACTIVER0			(GIC_SGI_BASE+0x0380u)					/* RW 0x0000 0000 Interrupt Clear-Active Register 0 */
-#define	GICR_IPRIORITYR			(GIC_SGI_BASE+0x0400u)					/* RW 0x0000 0000 Interrupt Priority Registers */
-#define	GICR_ICFGR0				(GIC_SGI_BASE+0x0C00u)					/* RW IMPLEMENTATION DEFINED SGI Configuration Register */
-#define	GICR_ICFGR1				(GIC_SGI_BASE+0x0C04u)					/* RW IMPLEMENTATION DEFINED PPI Configuration Register */
-#define	GICR_IGRPMODR0			(GIC_SGI_BASE+0x0D00u)					/* RW - Interrupt Group Modifier Register 0 */
-#define	GICR_NSACR				(GIC_SGI_BASE+0x0E00u)					/* RW 0x0000 0000 Non-Secure Access Control Register */
+#define	GICR_VPROPBASER(cpu)	(GIC_VLPI_BASE(cpu)+0x0070u)			/* RW - Virtual Redistributor Properties Base Address Register */
+#define	GICR_VPENDBASER(cpu)	(GIC_VLPI_BASE(cpu)+0x0078u)			/* RW - Virtual Pending Table Base Address Register */
 
 
 

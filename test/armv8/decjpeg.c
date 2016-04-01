@@ -21,8 +21,8 @@ static void parse_switches(j_decompress_ptr cinfo)
 	cinfo->err->trace_level = 0;
 	cinfo->quantize_colors = FALSE;
 	//cinfo->dct_method = JDCT_ISLOW;
-	//cinfo->dct_method = JDCT_IFAST;
-	cinfo->dct_method = JDCT_FLOAT;
+	cinfo->dct_method = JDCT_IFAST;
+	//cinfo->dct_method = JDCT_FLOAT;
 	//cinfo->dither_mode = JDITHER_FS;
 	cinfo->dither_mode = JDITHER_NONE;
 	//cinfo->dither_mode = JDITHER_ORDERED;

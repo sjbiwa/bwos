@@ -48,6 +48,7 @@ _start:
 	ldr		x0, =24000000
 	CNTFRQ_EL0_set(x0)
 
+#if defined(USE_GICV3)
 	/* init GIC */
 	mov		x0, #0x0000000f
 	ICC_SRE_EL3_set(x0)
@@ -66,6 +67,7 @@ _start:
 	mov		x0, #0x3
 	ICC_IGRPEN1_EL3_get(x0)
 	/* init GIC end */
+#endif
 
 	adr		x0, entry_el1
 	ELR_EL3_set(x0)

@@ -12,6 +12,10 @@
 #ifndef SPI_H_
 #define SPI_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	SPI_FIRSTBIT_MSB				(0)
 #define	SPI_FIRSTBIT_LSB				(1)
 #define	SPI_ENDIAN_LITTLE				(0)
@@ -53,5 +57,9 @@ extern void spi_register(SpiDeviceInfo* info, uint32_t info_num);
 extern int spi_set_port_config(uint32_t port_no, SpiPortConfig* config);
 extern int spi_set_channel_config(uint32_t port_no, SpiChannelConfig* config);
 extern int spi_transfer(uint32_t port_no, SpiTransferParam* param);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SPI_H_ */

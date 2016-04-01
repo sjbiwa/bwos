@@ -42,7 +42,7 @@ extern char __data_start;
 		mmgr_add_entry((void*)(GIC_GICD_BASE), (uint64_t)(0x10000LL), ATTR_DEV);
 		mmgr_add_entry((void*)(GIC_GICC_BASE), (uint64_t)(0x1000LL), ATTR_DEV);
 #if defined(USE_GICV3)
-		mmgr_add_entry((void*)(GIC_GICR_BASE), (uint64_t)(0x20000LL), ATTR_DEV);
+		mmgr_add_entry((void*)(GIC_GICR_BASE), (uint64_t)(0x100000LL), ATTR_DEV);
 #endif
 
 		/* ボード固有領域 */

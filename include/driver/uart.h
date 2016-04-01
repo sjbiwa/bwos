@@ -14,6 +14,10 @@
 
 #include "bwos.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* BaudRate */
 #define	UART_BAUD460800					(460800)
 #define	UART_BAUD230400					(230400)
@@ -77,5 +81,9 @@ extern void uart_close(uint32_t port_no);
 extern int uart_send(uint32_t port_no, void* buff, int length, TimeOut tmout);
 extern int uart_recv(uint32_t port_no, void* buff, int length, TimeOut tmout);
 extern int uart_error(uint32_t port_no, uint32_t* err_bits, TimeOut tmout);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UART_H_ */

@@ -67,11 +67,28 @@ static void jpeg_test(void* arg0, void* arg1)
 	}
 }
 
+static void test(void* arg0, void* arg1)
+{
+	uint32_t cpuid = CPUID_get();
+	for (;;) {
+		lprintf("task:%d\n", cpuid);
+		task_tsleep(SEC(1));
+	}
+}
+
+
 TaskCreateInfo	task_info[] = {
+#if 1
 		{"TASK1",  CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK2",  CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK3",  CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK4",  CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
+#else
+		{"TASK1",  CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, test, 65536, 0, 5, (void*)0},
+		{"TASK2",  CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, test, 65536, 0, 5, (void*)0},
+		{"TASK3",  CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, test, 65536, 0, 5, (void*)0},
+		{"TASK4",  CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, test, 65536, 0, 5, (void*)0},
+#endif
 };
 
 void main_task(void)

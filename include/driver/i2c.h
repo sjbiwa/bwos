@@ -12,6 +12,10 @@
 #ifndef I2C_H_
 #define I2C_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef	struct {
 	uint32_t		io_addr;				/* ベースアドレス */
 	uint32_t		irq;					/* IRQ番号 */
@@ -48,5 +52,9 @@ typedef	struct {
 extern void i2c_register(I2cDeviceInfo* info, uint32_t info_num);
 extern int i2c_set_port_config(uint32_t port_no, I2cPortConfig* config);
 extern int i2c_transfer(uint32_t port_no, I2cTransferParam* param, TimeOut tmout);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* I2C_H_ */

@@ -16,14 +16,15 @@ static void gicd_wait_rwp(void)
 	while (ioread32(GICD_CTLR) & (0x01<<31));
 }
 
-static void gicr_wait_rwp(void)
+static void gicr_wait_rwp(uint32_t cpuid)
 {
-	while (ioread32(GICD_CTLR) & (0x01<<3));
+	while (ioread32(GICR_CTLR(cpuid)) & (0x01<<3));
 }
 
 void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 {
 	uint32_t intid = ICC_IAR1_EL1_get() & 0x00FFFFFF;
+	tprintf("c_handler:%d: IRQ=%d\n", CPUID_get(), intid);
 	if ( (intid < IRQ_NUM) && irq_action[intid].handler ) {
 		(*irq_action[intid].handler)(intid, irq_action[intid].info);
 	}
@@ -71,13 +72,14 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 		}
 	}
 	else {
+		uint32_t cpuid = CPUID_get();
 		if ( setting == IRQ_ENABLE ) {
 			order_barrier(); /* 割り込み許可前後のメモリオーダー確定 */
-			iowrite32(GICR_ISENABLER0+off*4, 0x01<<bit);
+			iowrite32(GICR_ISENABLER0(cpuid), 0x01u << bit);
 		}
 		else {
-			iowrite32(GICR_ICENABLER0+off*4, 0x01<<bit);
-			gicr_wait_rwp();
+			iowrite32(GICR_ICENABLER0(cpuid), 0x01u << bit);
+			gicr_wait_rwp(cpuid);
 		}
 	}
 	__dsb(); /* 割り込み禁止/許可設定の同期化 */
@@ -100,7 +102,8 @@ OSAPISTUB int __irq_get_enable(uint32_t irqno)
 		ret = (ioread32(GICD_ICENABLER+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
 	}
 	else {
-		ret = (ioread32(GICR_ICENABLER0+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
+		uint32_t cpuid = CPUID_get();
+		ret = (ioread32(GICR_ICENABLER0(cpuid)+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
 	}
 	return ret;
 }
@@ -120,7 +123,6 @@ void arch_irq_init(uint32_t cpuid)
 		}
 		tprintf("INTR_LINES=%d\n", intr_lines);
 
-		tprintf("GICR_TYPER=%08X\n", ioread32(GICR_TYPER));
 		/************************************************/
 		/*	GIC distributor setting	 (Main Core only)	*/
 		/************************************************/
@@ -169,27 +171,30 @@ void arch_irq_init(uint32_t cpuid)
 	/************************************************/
 	/*	GIC Redistributor setting (All Core)		*/
 	/************************************************/
-	iowrite32(GICR_STATUSR, 0xf);
+	tprintf("GICR_TYPER=%08X\n", ioread32(GICR_TYPER(cpuid)));
 
-	iowrite32(GICR_WAKER, ioread32(GICR_WAKER) & ~(0x01<<1));
-	while (ioread32(GICR_WAKER) & (0x01<<2));
+	iowrite32(GICR_STATUSR(cpuid), 0xf);
+
+	iowrite32(GICR_WAKER(cpuid), ioread32(GICR_WAKER(cpuid)) & ~(0x01<<1));
+	while (ioread32(GICR_WAKER(cpuid)) & (0x01<<2));
 	tprintf("GICR WAKEUP\n");
 
-	iowrite32(GICR_CTLR, 0x00000000);
-	gicr_wait_rwp();
-	iowrite32(GICR_IGROUPR0, 0x00000000);
-	iowrite32(GICR_IGRPMODR0, 0xffffffff);
+	iowrite32(GICR_CTLR(cpuid), 0x00000000);
+	gicr_wait_rwp(cpuid);
+	iowrite32(GICR_IGROUPR0(cpuid), 0x00000000);
+	iowrite32(GICR_IGRPMODR0(cpuid), 0xffffffff);
 
-	iowrite32(GICR_ICENABLER0, 0xffffffff);
-	gicr_wait_rwp();
-	iowrite32(GICR_ICPENDR0, 0xffffffff);
-	iowrite32(GICR_ICACTIVER0, 0xffffffff);
+	iowrite32(GICR_ICENABLER0(cpuid), 0xffffffff);
+	gicr_wait_rwp(cpuid);
+	iowrite32(GICR_ICPENDR0(cpuid), 0xffffffff);
+	iowrite32(GICR_ICACTIVER0(cpuid), 0xffffffff);
 	for ( ix = 0; ix < 8; ix++ ) {
-		iowrite32n(GICR_IPRIORITYR, ix, 0x00000000);
+		iowrite32n(GICR_IPRIORITYR(cpuid), ix, 0x00000000);
 	}
-	iowrite32(GICR_ICFGR0, 0x00000000);
-	iowrite32(GICR_ICFGR1, 0x00000000);
-	iowrite32(GICR_NSACR, 0x00000000);
+	iowrite32(GICR_ICFGR0(cpuid), 0x00000000);
+	iowrite32(GICR_ICFGR1(cpuid), 0x00000000);
+	iowrite32(GICR_NSACR(cpuid), 0x00000000);
+
 
 	/************************************************/
 	/*	GIC CPU interface setting (All Core)		*/
