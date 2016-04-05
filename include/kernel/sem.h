@@ -26,5 +26,10 @@ typedef	struct tagSemStruct {
 	uint32_t		remain;			/* リソース残数 */
 } SemStruct;
 
+/* Sem待ちオブジェクト */
+typedef	struct {
+	SemStruct*		sem;	/* セマフォオブジェクト */
+	uint32_t		count;	/* セマフォ要求カウント */
+} SemInfoStruct;
 
 #endif /* _SEM_H_ */

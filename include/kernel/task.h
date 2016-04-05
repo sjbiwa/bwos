@@ -15,6 +15,11 @@
 #include "common.h"
 #include "link.h"
 #include "smp.h"
+#include "fixmb.h"
+#include "flag.h"
+#include "msgq.h"
+#include "mutex.h"
+#include "sem.h"
 
 #define	TASK_PRIORITY_NUM		(32)	/* タスク優先度レベル数 */
 
@@ -26,36 +31,45 @@
 
 struct tagCpuStruct;
 
+/* 待ちオブジェクト情報 */
+typedef	union {
+	FixmbInfoStruct	fixmb_info;
+	FlagInfoStruct	flag_info;
+	MsgqInfoStruct	msgq_info;
+	MutexInfoStruct	mutex_info;
+	SemInfoStruct	sem_info;
+} TaskWaitInfo;
+
 typedef	enum { TASK_STANDBY, TASK_READY, TASK_WAIT, TASK_DORMANT } TaskState;
 typedef	struct tagTaskStruct {
 	/* Fixed Position */
-	Link		link;				/* ReadQueue/EventQueue LinkList */
-	void*		save_sp;			/* Current SP (This is Arch depend ?) */
-	void*		arch_tls;			/* ARCH依存 TaskLocalStorage */
+	Link			link;				/* ReadQueue/EventQueue LinkList */
+	void*			save_sp;			/* Current SP (This is Arch depend ?) */
+	void*			arch_tls;			/* ARCH依存 TaskLocalStorage */
 	/******************/
 	/* ユーザー定義領域 */
-	uint8_t		name[32];			/* Task Name */
-	uint32_t	task_attr;			/* Task属性 */
-	TaskEntry	entry;				/* Start Entry */
+	uint8_t			name[32];			/* Task Name */
+	uint32_t		task_attr;			/* Task属性 */
+	TaskEntry		entry;				/* Start Entry */
 #if !defined(NO_USE_SEPARATE_STACK)
-	void*		init_sp;			/* Initialize SP (SVC) */
-	MemSize_t	stack_size;			/* Stack Size (SVC) */
+	void*			init_sp;			/* Initialize SP (SVC) */
+	MemSize_t		stack_size;			/* Stack Size (SVC) */
 #endif
-	void*		usr_init_sp;		/* Initial USER SP (USR or SYS) */
-	MemSize_t	usr_stack_size;		/* Initial Stack Size (USR or SYS) */
-	uint32_t	priority;			/* Task Priority */
-	void*		tls;				/* TaskLocalStorage */
-	MemSize_t	tls_size;			/* TLS size */
+	void*			usr_init_sp;		/* Initial USER SP (USR or SYS) */
+	MemSize_t		usr_stack_size;		/* Initial Stack Size (USR or SYS) */
+	uint32_t		priority;			/* Task Priority */
+	void*			tls;				/* TaskLocalStorage */
+	MemSize_t		tls_size;			/* TLS size */
 	/******************/
 	/* カーネル使用領域 */
-	TaskState	task_state;			/* Task State */
-	Link		tlink;				/* TimeOut LinkList */
-	TimeSpec	timeout;			/* TimeOut Time */
-	void*		wait_obj;			/* 待ち状態となった対象オブジェクト */
-	void		(*wait_func)(struct tagTaskStruct* task, void* wait_obj); /* 待ち状態解除時コールバック */
-	int32_t		result_code;		/* API完了コード */
-	bool		id_initialized;		/* 初期完了フラグ */
-	struct tagCpuStruct* cpu_struct;
+	TaskState		task_state;			/* Task State */
+	Link			tlink;				/* TimeOut LinkList */
+	TimeSpec		timeout;			/* TimeOut Time */
+	TaskWaitInfo	wait_obj;			/* 待ち状態となった対象オブジェクト情報 */
+	void			(*wait_func)(struct tagTaskStruct* task); /* 待ち状態解除時コールバック */
+	int32_t			result_code;		/* API完了コード */
+	bool			id_initialized;		/* 初期完了フラグ */
+	struct tagCpuStruct* cpu_struct;	/* CPU情報 */
 } TaskStruct;
 
 typedef struct tagRunQueue {
@@ -98,9 +112,8 @@ extern void task_init_task_create(void);
 extern void init_task(void* cre_param, void* sta_param);
 
 
-static inline void task_set_wait(TaskStruct* task, void* wait_obj, void (*wait_func)(struct tagTaskStruct* task, void* wait_obj))
+static inline void task_set_wait(TaskStruct* task, void (*wait_func)(struct tagTaskStruct* task))
 {
-	task->wait_obj = wait_obj;
 	task->wait_func = wait_func;
 	task->task_state = TASK_WAIT;
 }

@@ -41,5 +41,10 @@ typedef struct tagFixmbStruct {
 	uint32_t*		use_bitmap;		/* 使用中/空き識別ビットマップ */
 } FixmbStruct;
 
+/* fixmb待ちオブジェクト */
+typedef	struct {
+	FixmbStruct*	fixmb;			/* MBオブジェクト */
+	void**			ptr;			/* 確保したMBアドレス格納エリアへのポインタ */
+} FixmbInfoStruct;
 
 #endif /* FIXMB_H_ */

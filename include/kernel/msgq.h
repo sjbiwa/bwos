@@ -28,4 +28,11 @@ typedef	struct tagMsgqStruct {
 	uint32_t		data_num;
 } MsgqStruct;
 
+/* Msgq待ちオブジェクト */
+typedef	struct {
+	MsgqStruct*		msgq;		/* 要求オブジェクト */
+	void*			req_ptr;	/* 要求エリア */
+	uint32_t		req_length;	/* 要求バイト数 */
+} MsgqInfoStruct;
+
 #endif /* MSGQ_H_ */

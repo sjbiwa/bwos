@@ -8,6 +8,8 @@
 #include "driver/gpio.h"
 #include "driver/video.h"
 
+#define	task_set_affinity(...)
+
 /* configuration task */
 static int		task_struct[1000];
 static int		sync_flag;

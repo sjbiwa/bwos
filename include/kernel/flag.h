@@ -25,5 +25,13 @@ typedef	struct tagFlagStruct {
 	uint32_t		value;
 } FlagStruct;
 
+/* Flag待ちオブジェクト */
+typedef	struct {
+	FlagStruct*		flag;			/* フラグオブジェクト */
+	uint32_t		pattern;		/* waitパターン */
+	uint32_t		wait_mode;		/* waitモード */
+	uint32_t*		ret_pattern;	/* completeフラグ値 */
+} FlagInfoStruct;
+
 
 #endif /* FLAG_H_ */

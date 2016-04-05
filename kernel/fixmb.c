@@ -10,11 +10,6 @@
  */
 #include "kernel.h"
 
-typedef	struct {
-	FixmbStruct*	obj;			/* MBオブジェクト */
-	void**			ptr;			/* 確保したMBアドレス格納エリアへのポインタ */
-} FixmbInfoStruct;
-
 #define	NO_ENTRY	(0xfffffffu)
 
 /* オブジェクト<->インデックス変換用 */
@@ -58,10 +53,14 @@ static uint32_t fixmb_ptr2idx(FixmbStruct* fixmb, void* ptr)
 }
 
 /* タスクがタイムアウトした場合 */
-static void fixmb_wait_func(TaskStruct* task, void* wait_obj)
+static void fixmb_wait_func(TaskStruct* task)
 {
-	FixmbStruct* fixmb = ((FixmbInfoStruct*)wait_obj)->obj;
-
+	FixmbStruct* fixmb = task->wait_obj.fixmb_info.fixmb;
+	/* mutexはtaskがwaitする時に存在していたオブジェクトなのでnullではない */
+	/* また、オブジェクトは削除されないので、結果としてかならず存在することになる */
+	/* -------------------------------------------------------------------------- */
+	/* ここに到達するまでにtaskが起床していることが考えられるが、その場合は       */
+	/* task_wakeup_stubは特に処理はしないので問題ない                             */
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	fixmb_spinlock(fixmb);
 	CpuStruct* cpu = task->cpu_struct;
@@ -117,7 +116,6 @@ ERR_RET2:
 
 KERNAPI int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout)
 {
-	FixmbInfoStruct fixmb_info;
 	uint32_t alloc_index;
 	uint32_t irq_state;
 	bool req_dispatch = false;
@@ -166,9 +164,9 @@ retry_lock:
 		}
 		/* fixmb + cpu をlock完了 */
 
-		fixmb_info.obj = fixmb;
-		fixmb_info.ptr = ptr;
-		task_set_wait(task, (void*)(&fixmb_info), fixmb_wait_func);
+		task->wait_obj.fixmb_info.fixmb = fixmb;
+		task->wait_obj.fixmb_info.ptr = ptr;
+		task_set_wait(task, fixmb_wait_func);
 		task_remove_queue(task);
 		link_add_last(&(fixmb->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {
@@ -228,7 +226,7 @@ retry_lock:
 
 			FixmbInfoStruct* fixmb_info;
 			link_remove(link);
-			fixmb_info = (FixmbInfoStruct*)(task->wait_obj);
+			fixmb_info = (FixmbInfoStruct*)(task->wait_obj.fixmb_info.fixmb);
 			*(fixmb_info->ptr) = ptr;
 			task_wakeup_stub(task, RT_OK);
 			if ( schedule(cpu) ) {

@@ -11,11 +11,6 @@
 
 #include "kernel.h"
 
-typedef	struct {
-	SemStruct*		sem;	/* セマフォオブジェクト */
-	uint32_t		count;	/* セマフォ要求カウント */
-} SemInfoStruct;
-
 /* オブジェクト<->インデックス変換用 */
 static void sem_sub_init(void) {}
 OBJECT_INDEX_FUNC(sem,SemStruct,SEM_MAX_NUM);
@@ -62,7 +57,7 @@ retry_lock:
 		}
 		/* sem + cpu をlock完了 */
 
-		SemInfoStruct* sem_info = (SemInfoStruct*)task->wait_obj;
+		SemInfoStruct* sem_info = (SemInfoStruct*)(&(task->wait_obj.sem_info));
 		/* 要求数をチェック */
 		if ( sem->remain < sem_info->count ) {
 			cpu_spinunlock(cpu);
@@ -101,10 +96,14 @@ retry_lock:
 }
 
 /* セマフォ待ちのタスクがタイムアウトした場合 */
-static void sem_wait_func(TaskStruct* task, void* wait_obj)
+static void sem_wait_func(TaskStruct* task)
 {
-	SemStruct* sem = ((SemInfoStruct*)wait_obj)->sem;
-
+	SemStruct* sem = task->wait_obj.sem_info.sem;
+	/* semはtaskがwaitする時に存在していたオブジェクトなのでnullではない */
+	/* また、オブジェクトは削除されないので、結果としてかならず存在することになる */
+	/* -------------------------------------------------------------------------- */
+	/* ここに到達するまでにtaskが起床していることが考えられるが、その場合は       */
+	/* task_wakeup_stubは特に処理はしないので問題ない                             */
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	sem_spinlock(sem);
 	CpuStruct* cpu = task->cpu_struct;
@@ -130,7 +129,6 @@ int _kernel_sem_create(SemStruct* sem, uint32_t max)
 
 int _kernel_sem_trequest(SemStruct* sem, uint32_t num, TimeOut tmout)
 {
-	SemInfoStruct sem_info;
 	uint32_t		irq_state;
 	bool req_dispatch = false;
 	TaskStruct* task = NULL;
@@ -159,10 +157,10 @@ retry_lock:
 		}
 		/* sem + cpu をlock完了 */
 
-		sem_info.sem = sem;
-		sem_info.count = num;
+		task->wait_obj.sem_info.sem = sem;
+		task->wait_obj.sem_info.count = num;
 		task_remove_queue(task);
-		task_set_wait(task, (void*)&sem_info, sem_wait_func);
+		task_set_wait(task, sem_wait_func);
 		link_add_last(&(sem->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {
 			/* タイムアウトリストに追加 */

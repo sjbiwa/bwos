@@ -27,10 +27,14 @@ int _kernel_mutex_create(MutexStruct* mtx)
 }
 
 /* タスクがタイムアウトした場合 */
-static void mutex_wait_func(TaskStruct* task, void* wait_obj)
+static void mutex_wait_func(TaskStruct* task)
 {
-	MutexStruct* mutex = (MutexStruct*)(wait_obj);
-
+	MutexStruct* mutex = task->wait_obj.mutex_info.mutex;
+	/* mutexはtaskがwaitする時に存在していたオブジェクトなのでnullではない */
+	/* また、オブジェクトは削除されないので、結果としてかならず存在することになる */
+	/* -------------------------------------------------------------------------- */
+	/* ここに到達するまでにtaskが起床していることが考えられるが、その場合は       */
+	/* task_wakeup_stubは特に処理はしないので問題ない                             */
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	mutex_spinlock(mutex);
 	CpuStruct* cpu = task->cpu_struct;
@@ -70,7 +74,8 @@ retry_lock:
 		}
 		/* mutex + cpu をlock完了 */
 
-		task_set_wait(task, mtx, mutex_wait_func);
+		task->wait_obj.mutex_info.mutex = mtx;
+		task_set_wait(task, mutex_wait_func);
 		task_remove_queue(task);
 		link_add_last(&(mtx->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {

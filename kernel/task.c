@@ -163,7 +163,7 @@ static void task_sleep_stub(TaskStruct* task)
 {
 	task_remove_queue(task);
 	link_clear(&(task->link));
-	task_set_wait(task, 0, 0);
+	task_set_wait(task, 0);
 }
 
 void task_add_timeout(TaskStruct* task, TimeOut tm)
@@ -227,13 +227,13 @@ void task_tick(void)
 		/* wait_func内で wait_object_spinlock -> cpu_spinlock の順序でロック取得を行うため */
 		/* ここでcpu_spinunlockする                                                        */
 		/*---------------------------------------------------------------------------------*/
-		/* task->wait_funcとtask->wait_objはtask自身の実行中にのみ設定される               */
+		/* task->wait_funcはtask自身の実行中にのみ設定される             				   */
 		/* 本関数はtaskが所属するCPUでの割り込みハンドラコンテキストなので、関数実行中は   */
-		/* task->wait_funcとtask->wait_objは変更されることは無い                           */
+		/* task->wait_funcが変更されることは無い                                           */
 		/*---------------------------------------------------------------------------------*/
 		if ( task->wait_func != 0 ) {
 			cpu_spinunlock(cpu);
-			(task->wait_func)(task, task->wait_obj);
+			(task->wait_func)(task);
 			cpu_spinlock(cpu);
 		}
 		else {
@@ -333,7 +333,6 @@ static inline void task_init_struct(TaskStruct* task, uint8_t* name, uint32_t ta
 	task->task_state = TASK_STANDBY;
 	link_clear(&task->tlink);
 	task->timeout = 0;
-	task->wait_obj = 0;
 	task->wait_func = 0;
 	task->result_code = 0;
 	uint32_t cpuid = CPU_GET(task_attr);

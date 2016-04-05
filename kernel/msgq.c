@@ -18,12 +18,6 @@
 /*	ないようにするためである。(バッファのラップアラウンドは除く)			*/
 /****************************************************************************/
 
-typedef	struct {
-	MsgqStruct*		msgq;		/* 要求オブジェクト */
-	void*			req_ptr;	/* 要求エリア */
-	uint32_t		req_length;	/* 要求バイト数 */
-} MsgqInfoStruct;
-
 /* オブジェクト<->インデックス変換用 */
 static void msgq_sub_init(void) {}
 OBJECT_INDEX_FUNC(msgq,MsgqStruct,MSGQ_MAX_NUM);
@@ -120,7 +114,7 @@ uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStru
 		TaskStruct* task = containerof(link, TaskStruct, link);
 		CpuStruct* cpu = task->cpu_struct;
 		cpu_spinlock(cpu);
-		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(task->wait_obj);
+		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(&(task->wait_obj.msgq_info.msgq));
 
 		/* コピーされなかったら終了 */
 		if ( !(*check_and_copy)(msgq, msgq_info) ) {
@@ -147,11 +141,15 @@ uint32_t msgq_recv_wakeup_body(MsgqStruct* msgq)
 }
 
 /* msgq待ちのタスクがタイムアウトした場合 */
-static void msgq_wait_func(TaskStruct* task, void* wait_obj)
+static void msgq_wait_func(TaskStruct* task)
 {
 	uint32_t	wakeup_cpu_list = 0;
-	MsgqStruct* msgq = ((MsgqInfoStruct*)wait_obj)->msgq;
-
+	MsgqStruct* msgq = task->wait_obj.msgq_info.msgq;
+	/* msgqはtaskがwaitする時に存在していたオブジェクトなのでnullではない */
+	/* また、オブジェクトは削除されないので、結果としてかならず存在することになる */
+	/* -------------------------------------------------------------------------- */
+	/* ここに到達するまでにtaskが起床していることが考えられるが、その場合は       */
+	/* task_wakeup_stubは特に処理はしないので問題ない                             */
 	/* タイムアウトしたタスクを起床させる(既に起床している場合は task_wakeup_stubは何もしない) */
 	msgq_spinlock(msgq);
 	CpuStruct* cpu = task->cpu_struct;
@@ -235,11 +233,10 @@ retry_lock:
 			}
 			/* msgq + cpu をlock完了 */
 
-			MsgqInfoStruct msgq_info;
-			msgq_info.msgq = msgq;
-			msgq_info.req_ptr = ptr;
-			msgq_info.req_length = length;
-			task_set_wait(task, &msgq_info, msgq_wait_func);
+			task->wait_obj.msgq_info.msgq = msgq;
+			task->wait_obj.msgq_info.req_ptr = ptr;
+			task->wait_obj.msgq_info.req_length = length;
+			task_set_wait(task, msgq_wait_func);
 			task_remove_queue(task);
 			link_add_last(&(msgq->link), &(task->link));
 			if ( tmout != TMO_FEVER ) {
@@ -318,11 +315,10 @@ retry_lock:
 				goto retry_lock;
 			}
 			/* msgq + cpu をlock完了 */
-			MsgqInfoStruct msgq_info;
-			msgq_info.msgq = msgq;
-			msgq_info.req_ptr = ptr;
-			msgq_info.req_length = length;
-			task_set_wait(task, &msgq_info, msgq_wait_func);
+			task->wait_obj.msgq_info.msgq = msgq;
+			task->wait_obj.msgq_info.req_ptr = ptr;
+			task->wait_obj.msgq_info.req_length = length;
+			task_set_wait(task, msgq_wait_func);
 			task_remove_queue(task);
 			link_add_last(&(msgq->link), &(task->link));
 			if ( tmout != TMO_FEVER ) {

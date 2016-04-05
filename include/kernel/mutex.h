@@ -25,4 +25,9 @@ typedef	struct tagMutexStruct {
 	bool			locked;	/* 獲得中？ */
 } MutexStruct;
 
+/* Mutex待ちオブジェクト */
+typedef	struct {
+	MutexStruct*	mutex;	/* Mutexオブジェクト */
+} MutexInfoStruct;
+
 #endif /* MUTEX_H_ */

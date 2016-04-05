@@ -10,13 +10,6 @@
  */
 #include "kernel.h"
 
-typedef	struct {
-	FlagStruct*		obj;			/* フラグオブジェクト */
-	uint32_t		pattern;		/* waitパターン */
-	uint32_t		wait_mode;		/* waitモード */
-	uint32_t*		ret_pattern;	/* completeフラグ値 */
-} FlagInfoStruct;
-
 /* オブジェクト<->インデックス変換用 */
 static void flag_sub_init(void) {}
 OBJECT_INDEX_FUNC(flag,FlagStruct,FLAG_MAX_NUM);
@@ -59,10 +52,14 @@ static inline bool check_and_result(FlagStruct* flag, uint32_t pattern, uint32_t
 }
 
 /* タスクがタイムアウトした場合 */
-static void flag_wait_func(TaskStruct* task, void* wait_obj)
+static void flag_wait_func(TaskStruct* task)
 {
-	FlagStruct* flag = ((FlagInfoStruct*)(wait_obj))->obj;
-
+	FlagStruct* flag = task->wait_obj.flag_info.flag;
+	/* flagはtaskがwaitする時に存在していたオブジェクトなのでnullではない */
+	/* また、オブジェクトは削除されないので、結果としてかならず存在することになる */
+	/* -------------------------------------------------------------------------- */
+	/* ここに到達するまでにtaskが起床していることが考えられるが、その場合は       */
+	/* task_wakeup_stubは特に処理はしないので問題ない                             */
 	/* タイムアウトしたタスクを起床させる */
 	flag_spinlock(flag);
 	CpuStruct* cpu = task->cpu_struct;
@@ -100,7 +97,7 @@ KERNAPI int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 		CpuStruct* cpu = task->cpu_struct;
 		cpu_spinlock(cpu);
 		link = link->next; /* 現エントリがリストから外される可能性があるので先に次のエントリを取得しておく */
-		FlagInfoStruct* flag_info = (FlagInfoStruct*)(task->wait_obj);
+		FlagInfoStruct* flag_info = (FlagInfoStruct*)(&(task->wait_obj.flag_info.flag));
 		if ( check_and_result(flag, flag_info->pattern, flag_info->wait_mode, flag_info->ret_pattern) ) {
 			/* カレントタスクがcomplate */
 			task_wakeup_stub(task, RT_OK);
@@ -133,7 +130,6 @@ KERNAPI int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 
 KERNAPI int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait_mode, uint32_t* ret_pattern, TimeOut tmout)
 {
-	FlagInfoStruct flag_info;
 	uint32_t		irq_state;
 	bool req_dispatch = false;
 	int				ret = RT_OK;
@@ -153,11 +149,11 @@ KERNAPI int _kernel_flag_twait(FlagStruct* flag, uint32_t pattern, uint32_t wait
 			CpuStruct* cpu = task->cpu_struct;
 			cpu_spinlock(cpu);
 			/* 待ちリストに追加 */
-			flag_info.obj = flag;
-			flag_info.pattern = pattern;
-			flag_info.wait_mode = wait_mode;
-			flag_info.ret_pattern = ret_pattern;
-			task_set_wait(task, (void*)(&flag_info), flag_wait_func);
+			task->wait_obj.flag_info.flag = flag;
+			task->wait_obj.flag_info.pattern = pattern;
+			task->wait_obj.flag_info.wait_mode = wait_mode;
+			task->wait_obj.flag_info.ret_pattern = ret_pattern;
+			task_set_wait(task, flag_wait_func);
 			task_remove_queue(task);
 			link_add_last(&(flag->link), &(task->link));
 			if ( tmout != TMO_FEVER ) {
