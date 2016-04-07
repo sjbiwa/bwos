@@ -14,6 +14,7 @@
 
 #include "common.h"
 #include "interface.h"
+#include "link.h"
 
 #if defined(NO_USE_SVC_CALL)
 #include "no_svc_call.h"
@@ -85,6 +86,12 @@ OSAPI int timer_enable(int id, bool enable);
 /* 初期タスクから呼び出される関数群 */
 extern void main_task(void); /* ユーザ側で最初に呼び出される関数 */
 extern void arch_init_task_depend(void);
+
+/* MemAllocユーティリティ */
+extern void memalloc_add_block(Link* link_top, void* start_addr, MemSize_t size);
+extern void* memalloc(Link* link_top, MemSize_t size);
+extern void* memalloc_align(Link* link_top, MemSize_t size, uint32_t align);
+extern void memfree(Link* link_top, void* ptr);
 
 #ifdef __cplusplus
 }

@@ -59,59 +59,8 @@ typedef	struct {
 	MBIdentify		identify;		/* メモリブロックID */
 } MBUseEpilog;
 
-
-/* 空きメモリブロック先頭 */
-static 	Link	mb_space_link;
-
-/* 排他用mutex */
-static MutexStruct	malloc_mutex;
-
-KERNAPI void __sys_malloc_init(void)
-{
-	link_clear(&mb_space_link);
-	_kernel_mutex_create(&malloc_mutex);
-}
-
-#if defined(TEST_MODE)
-static void* mb_start_addr;
-static void* mb_end_addr;
-#endif
-
-KERNAPI void __sys_malloc_add_block(void* start_addr, MemSize_t size)
-{
-	/* ブロックの先頭/最終にMBIdentifyを置いて、挟まれた初期空きブロックがALIGNされるstart/endを算出 */
-	void* end_addr = PTRVAR(start_addr) + size;
-	start_addr = POST_PTRALIGN(start_addr + sizeof(MBIdentify));
-	end_addr = PRE_PTRALIGN(end_addr - sizeof(MBIdentify));
-	size = PTRVAR(end_addr) - PTRVAR(start_addr); /* 初期の空きブロックのサイズ */
-
-	/* 最低限必要なメモリ容量のチェック */
-	if ( (PTRVAR(end_addr) < PTRVAR(start_addr)) || (size < (sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog))) ) {
-		return;
-	}
-
-#if defined(TEST_MODE)
-	mb_start_addr = start_addr;
-	mb_end_addr = end_addr;
-#endif
-
-	/* メモリブロックの先頭と最終に「使用中」識別子を書き込む */
-	((MBIdentify*)start_addr-1)->signature = ((MBIdentify*)(end_addr))->signature = MB_SIGNATURE;
-	((MBIdentify*)start_addr-1)->status = ((MBIdentify*)(end_addr))->status = MB_USE;
-
-	/* 空きメモリブロック初期化 */
-	MBSpaceProlog* mb_prolog = (MBSpaceProlog*)start_addr;
-	MBSpaceEpilog* mb_epilog = (MBSpaceEpilog*)(end_addr) - 1;
-	mb_prolog->identify.signature = mb_epilog->identify.signature = MB_SIGNATURE;
-	mb_prolog->identify.status = mb_epilog->identify.status = MB_SPACE;
-	mb_prolog->mb_size = mb_epilog->mb_size = size;
-
-	/* 空きメモリブロックをリンクリストに挿入 */
-	link_add_last(&mb_space_link, &(mb_prolog->link));
-}
-
 /* sizeは使用中ヘッダ部を含めた必要サイズ */
-static void* mb_alloc(MBSpaceProlog* mb_space_prolog, MemSize_t size)
+static void* mb_alloc(Link* link_top, MBSpaceProlog* mb_space_prolog, MemSize_t size)
 {
 	void* ret = NULL;
 
@@ -124,7 +73,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, MemSize_t size)
 		mb_remain_prolog->identify.signature = MB_SIGNATURE;
 		mb_remain_prolog->identify.status = MB_SPACE;
 		mb_remain_prolog->mb_size = mb_remain_epilog->mb_size = remain_size;
-		link_add_last(&mb_space_link, &(mb_remain_prolog->link));
+		link_add_last(link_top, &(mb_remain_prolog->link));
 	}
 	else {
 		/* 残りが少ないのでブロック全体を割り当て */
@@ -143,7 +92,7 @@ static void* mb_alloc(MBSpaceProlog* mb_space_prolog, MemSize_t size)
 	return ret;
 }
 
-KERNAPI void* __sys_malloc_align_body(MemSize_t size, uint32_t align)
+void* memalloc_align(Link* link_top, MemSize_t size, uint32_t align)
 {
 	void* ret = NULL;
 
@@ -154,7 +103,7 @@ KERNAPI void* __sys_malloc_align_body(MemSize_t size, uint32_t align)
 		/* 指定サイズ以上の空きブロックを探す */
 		MBSpaceProlog* mb_space = NULL;
 		Link* find_link = NULL;
-		for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
+		for ( find_link = link_top->next; find_link != link_top; find_link = find_link->next ) {
 			MBSpaceProlog* mb_space_prolog = containerof(find_link, MBSpaceProlog, link);
 			/* 空きブロックを使用ブロックにしたときに実データがalignに合うかチェック */
 			if ( ((PtrInt_t)((MBUseProlog*)mb_space_prolog+1) & (align-1)) == 0 ) {
@@ -194,7 +143,7 @@ KERNAPI void* __sys_malloc_align_body(MemSize_t size, uint32_t align)
 
 		if ( mb_space ) {
 			/* 指定の空きブロックからメモリ割り当て */
-			ret = mb_alloc(mb_space, size);
+			ret = mb_alloc(link_top, mb_space, size);
 			if ( !ret ) {
 				//tprintf("system error.(malloc\n");
 			}
@@ -206,7 +155,7 @@ KERNAPI void* __sys_malloc_align_body(MemSize_t size, uint32_t align)
 
 }
 
-KERNAPI void* __sys_malloc_body(MemSize_t size)
+void* memalloc(Link* link_top, MemSize_t size)
 {
 	void* ret = NULL;
 
@@ -217,7 +166,7 @@ KERNAPI void* __sys_malloc_body(MemSize_t size)
 		/* 指定サイズ以上の空きブロックを探す */
 		MBSpaceProlog* mb_space = NULL;
 		Link* find_link = NULL;
-		for ( find_link = mb_space_link.next; find_link != &mb_space_link; find_link = find_link->next ) {
+		for ( find_link = link_top->next; find_link != link_top; find_link = find_link->next ) {
 			MBSpaceProlog* mb_temp = containerof(find_link, MBSpaceProlog, link);
 			if ( size <= mb_temp->mb_size ) {
 				mb_space = mb_temp;
@@ -229,7 +178,7 @@ KERNAPI void* __sys_malloc_body(MemSize_t size)
 			link_remove(&(mb_space->link));
 
 			/* 指定の空きブロックからメモリ割り当て */
-			ret = mb_alloc(mb_space, size);
+			ret = mb_alloc(link_top, mb_space, size);
 			if ( !ret ) {
 				//tprintf("system error.(malloc\n");
 			}
@@ -238,29 +187,8 @@ KERNAPI void* __sys_malloc_body(MemSize_t size)
 	return ret;
 }
 
-OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align)
+void memfree(Link* link_top, void* ptr)
 {
-	_kernel_mutex_lock(&malloc_mutex);
-	void* ret = __sys_malloc_align_body(size, align);
-	_kernel_mutex_unlock(&malloc_mutex);
-
-	return ret;
-
-}
-
-OSAPISTUB void* __sys_malloc(MemSize_t size)
-{
-	_kernel_mutex_lock(&malloc_mutex);
-	void* ret = __sys_malloc_body(size);
-	_kernel_mutex_unlock(&malloc_mutex);
-
-	return ret;
-}
-
-OSAPISTUB void __sys_free(void* ptr)
-{
-	_kernel_mutex_lock(&malloc_mutex);
-
 	/* シグネチャチェック */
 	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;
 	if ( (mb_use_prolog->identify.signature != MB_SIGNATURE) || (mb_use_prolog->identify.status != MB_USE) ) {
@@ -298,7 +226,7 @@ OSAPISTUB void __sys_free(void* ptr)
 		mb_space_prolog->identify.status = mb_space_epilog->identify.status = MB_SPACE;
 		mb_space_epilog->mb_size = mb_space_prolog->mb_size;
 		/* 空きリンクリストに追加 */
-		link_add_last(&mb_space_link, &(mb_space_prolog->link));
+		link_add_last(link_top, &(mb_space_prolog->link));
 	}
 
 	/* 対象ブロックの後方ブロックチェック */
@@ -316,7 +244,34 @@ OSAPISTUB void __sys_free(void* ptr)
 	}
 
 err_ret:
-	_kernel_mutex_unlock(&malloc_mutex);
 
 	return;
+}
+
+void memalloc_add_block(Link* link_top, void* start_addr, MemSize_t size)
+{
+	/* ブロックの先頭/最終にMBIdentifyを置いて、挟まれた初期空きブロックがALIGNされるstart/endを算出 */
+	void* end_addr = PTRVAR(start_addr) + size;
+	start_addr = POST_PTRALIGN(start_addr + sizeof(MBIdentify));
+	end_addr = PRE_PTRALIGN(end_addr - sizeof(MBIdentify));
+	size = PTRVAR(end_addr) - PTRVAR(start_addr); /* 初期の空きブロックのサイズ */
+
+	/* 最低限必要なメモリ容量のチェック */
+	if ( (PTRVAR(end_addr) < PTRVAR(start_addr)) || (size < (sizeof(MBSpaceProlog) + sizeof(MBSpaceEpilog))) ) {
+		return;
+	}
+
+	/* メモリブロックの先頭と最終に「使用中」識別子を書き込む */
+	((MBIdentify*)start_addr-1)->signature = ((MBIdentify*)(end_addr))->signature = MB_SIGNATURE;
+	((MBIdentify*)start_addr-1)->status = ((MBIdentify*)(end_addr))->status = MB_USE;
+
+	/* 空きメモリブロック初期化 */
+	MBSpaceProlog* mb_prolog = (MBSpaceProlog*)start_addr;
+	MBSpaceEpilog* mb_epilog = (MBSpaceEpilog*)(end_addr) - 1;
+	mb_prolog->identify.signature = mb_epilog->identify.signature = MB_SIGNATURE;
+	mb_prolog->identify.status = mb_epilog->identify.status = MB_SPACE;
+	mb_prolog->mb_size = mb_epilog->mb_size = size;
+
+	/* 空きメモリブロックをリンクリストに挿入 */
+	link_add_last(link_top, &(mb_prolog->link));
 }
