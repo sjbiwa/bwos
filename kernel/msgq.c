@@ -114,7 +114,7 @@ uint32_t msgq_task_wakeup_body(MsgqStruct* msgq, bool (*check_and_copy)(MsgqStru
 		TaskStruct* task = containerof(link, TaskStruct, link);
 		CpuStruct* cpu = task->cpu_struct;
 		cpu_spinlock(cpu);
-		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(&(task->wait_obj.msgq_info.msgq));
+		MsgqInfoStruct* msgq_info = (MsgqInfoStruct*)(&(task->wait_obj.msgq_info));
 
 		/* コピーされなかったら終了 */
 		if ( !(*check_and_copy)(msgq, msgq_info) ) {

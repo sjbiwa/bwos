@@ -226,7 +226,7 @@ retry_lock:
 
 			FixmbInfoStruct* fixmb_info;
 			link_remove(link);
-			fixmb_info = (FixmbInfoStruct*)(task->wait_obj.fixmb_info.fixmb);
+			fixmb_info = (FixmbInfoStruct*)(&(task->wait_obj.fixmb_info));
 			*(fixmb_info->ptr) = ptr;
 			task_wakeup_stub(task, RT_OK);
 			if ( schedule(cpu) ) {

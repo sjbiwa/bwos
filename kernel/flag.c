@@ -97,7 +97,7 @@ KERNAPI int _kernel_flag_set(FlagStruct* flag, uint32_t pattern)
 		CpuStruct* cpu = task->cpu_struct;
 		cpu_spinlock(cpu);
 		link = link->next; /* 現エントリがリストから外される可能性があるので先に次のエントリを取得しておく */
-		FlagInfoStruct* flag_info = (FlagInfoStruct*)(&(task->wait_obj.flag_info.flag));
+		FlagInfoStruct* flag_info = (FlagInfoStruct*)(&(task->wait_obj.flag_info));
 		if ( check_and_result(flag, flag_info->pattern, flag_info->wait_mode, flag_info->ret_pattern) ) {
 			/* カレントタスクがcomplate */
 			task_wakeup_stub(task, RT_OK);
