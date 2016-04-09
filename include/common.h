@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "arch_common.h"
+#include "link.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,6 +75,17 @@ extern "C" {
 /* メモリサイズ用 */
 #define	SIZE_PRE_ALIGN_BY(x,n)				((MemSize_t)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))
 #define	SIZE_POST_ALIGN_BY(x,n)				((MemSize_t)(((PtrInt_t)(x)+(PtrInt_t)((n)-1)) & ~((PtrInt_t)((n)-1))))
+
+/* MemAllocユーティリティ */
+extern void memalloc_add_block(Link* link_top, void* start_addr, MemSize_t size);
+extern void* memalloc(Link* link_top, MemSize_t size);
+extern void* memalloc_align(Link* link_top, MemSize_t size, uint32_t align);
+extern void memfree(void* ptr);
+
+/* printf */
+extern int lprintf(const char* fmt, ...);
+extern int tprintf(const char* fmt, ...);
+extern int tsprintf(char* buff,const char* fmt, ...);
 
 #ifdef __cplusplus
 }

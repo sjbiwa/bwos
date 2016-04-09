@@ -58,6 +58,10 @@ extern "C" {
 #if USE_SMP == 1
 #define	TASK_SET_AFFINITY_APINO				39
 #endif
+#if defined(SYS_MALLOC_REGION_NUM)
+#define	SYS_MALLOC_RGN_APINO				40
+#define	SYS_MALLOC_ALIGN_RGN_APINO			41
+#endif
 
 #ifdef __cplusplus
 }

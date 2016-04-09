@@ -47,6 +47,8 @@ else
 GICOPT = --gicv3
 endif
 
+CXXFLAGS += -fpermissive
+
 ifeq ($(NOFPU_TARGET_OBJ),1)
 CFLAGS += -mgeneral-regs-only
 CXXFLAGS += -mgeneral-regs-only

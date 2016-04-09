@@ -52,6 +52,7 @@ typedef	struct {
 typedef	struct {
 	MBIdentify		identify;		/* メモリブロックID */
 	MemSize_t		mb_size;
+	Link*			link_top;
 } MBUseProlog;
 
 /* 使用ブロック最終構造 */
@@ -85,6 +86,7 @@ static void* mb_alloc(Link* link_top, MBSpaceProlog* mb_space_prolog, MemSize_t 
 	MBUseEpilog* mb_use_epilog = (MBUseEpilog*)(PTRVAR(mb_use_prolog) + size) - 1;
 	mb_use_epilog->identify.signature = MB_SIGNATURE;
 	mb_use_prolog->identify.status = mb_use_epilog->identify.status = MB_USE;
+	mb_use_prolog->link_top = link_top;
 	mb_use_prolog->mb_size = size;
 
 	ret = (void*)(mb_use_prolog + 1);
@@ -187,7 +189,7 @@ void* memalloc(Link* link_top, MemSize_t size)
 	return ret;
 }
 
-void memfree(Link* link_top, void* ptr)
+void memfree(void* ptr)
 {
 	/* シグネチャチェック */
 	MBUseProlog* mb_use_prolog = (MBUseProlog*)ptr - 1;
@@ -198,6 +200,7 @@ void memfree(Link* link_top, void* ptr)
 	if ( (mb_use_epilog->identify.signature != MB_SIGNATURE) || (mb_use_epilog->identify.status != MB_USE) ) {
 		goto err_ret;
 	}
+	Link* link_top = mb_use_prolog->link_top;
 
 	MBIdentify* mb_front_id = (MBIdentify*)mb_use_prolog - 1;
 	MBIdentify* mb_back_id = (MBIdentify*)(mb_use_epilog + 1);

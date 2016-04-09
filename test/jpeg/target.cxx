@@ -7,8 +7,6 @@
 #include "cp15reg.h"
 
 extern "C" {
-extern	void lprintf(...);
-extern int tsprintf(char* buff,char* fmt, ...);
 extern void jpeg_decompress(void* image, size_t image_size, void* output, uint32_t* r_width, uint32_t* r_height);
 }
 

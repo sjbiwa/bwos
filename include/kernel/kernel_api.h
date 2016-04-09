@@ -21,7 +21,6 @@
 #include "kernel/sem.h"
 #include "kernel/msgq.h"
 #include "kernel/fixmb.h"
-#include "kernel/malloc.h"
 #include "kernel/smp.h"
 
 /********************************************************/
@@ -74,6 +73,10 @@ OSAPISTUB int __fixmb_release(int id, void* ptr);
 OSAPISTUB void* __sys_malloc(MemSize_t size);
 OSAPISTUB void __sys_free(void* ptr);
 OSAPISTUB void* __sys_malloc_align(MemSize_t size, uint32_t align);
+#if defined(SYS_MALLOC_REGION_NUM)
+OSAPISTUB void* __sys_malloc_align_rgn(MemSize_t size, uint32_t align, uint32_t rgn);
+OSAPISTUB void* __sys_malloc_rgn(MemSize_t size, uint32_t rgn);
+#endif
 
 /* 割り込みハンドラ関連API */
 OSAPISTUB void __irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
@@ -129,5 +132,20 @@ KERNAPI int _kernel_fixmb_create(FixmbStruct* fixmb, uint32_t mb_size, uint32_t 
 KERNAPI int _kernel_fixmb_request(FixmbStruct* fixmb, void** ptr);
 KERNAPI int _kernel_fixmb_trequest(FixmbStruct* fixmb, void** ptr, TimeOut tmout);
 KERNAPI int _kernel_fixmb_release(FixmbStruct* fixmb, void* ptr);
+
+/* 低レベルメモリ割り当て関連 */
+KERNAPI extern void  __sys_malloc_init(void);
+KERNAPI extern void  __sys_malloc_add_block(void* addr, MemSize_t size);
+KERNAPI extern void* __sys_malloc_body(MemSize_t size);
+KERNAPI extern void* __sys_malloc_align_body(MemSize_t size, uint32_t align);
+#if defined(SYS_MALLOC_REGION_NUM)
+KERNAPI void __sys_malloc_add_block_rgn(void* start_addr, MemSize_t size, uint32_t rgn);
+KERNAPI void* __sys_malloc_align_body_rgn(MemSize_t size, uint32_t align, uint32_t rgn);
+KERNAPI void* __sys_malloc_body_rgn(MemSize_t size, uint32_t rgn);
+#endif
+/**/
+KERNAPI extern void  __st_malloc_init(void* mem_addr, MemSize_t mem_size);
+KERNAPI extern void* __st_malloc_align(MemSize_t alloc_size, uint32_t align);
+KERNAPI extern void  __st_malloc_normalize(void);
 
 #endif /* _KERNEL_API_H_ */

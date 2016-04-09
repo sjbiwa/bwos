@@ -72,6 +72,10 @@ OSAPI int fixmb_release(int id, void* ptr);
 OSAPI void* sys_malloc(uint32_t size);
 OSAPI void sys_free(void* ptr);
 OSAPI void* sys_malloc_align(uint32_t size, uint32_t align);
+#if defined(SYS_MALLOC_REGION_NUM)
+OSAPI void* sys_malloc_align_rgn(MemSize_t size, uint32_t align, uint32_t rgn);
+OSAPI void* sys_malloc_rgn(MemSize_t size, uint32_t rgn);
+#endif
 
 /* 割り込みハンドラ関連API */
 OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info);
@@ -86,12 +90,6 @@ OSAPI int timer_enable(int id, bool enable);
 /* 初期タスクから呼び出される関数群 */
 extern void main_task(void); /* ユーザ側で最初に呼び出される関数 */
 extern void arch_init_task_depend(void);
-
-/* MemAllocユーティリティ */
-extern void memalloc_add_block(Link* link_top, void* start_addr, MemSize_t size);
-extern void* memalloc(Link* link_top, MemSize_t size);
-extern void* memalloc_align(Link* link_top, MemSize_t size, uint32_t align);
-extern void memfree(Link* link_top, void* ptr);
 
 #ifdef __cplusplus
 }

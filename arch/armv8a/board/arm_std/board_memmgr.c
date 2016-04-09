@@ -25,5 +25,5 @@ void board_mmgr_init(void)
 
 void board_register_normal_memory(void)
 {
-	//__sys_malloc_add_block((void*)(0x0880000000uLL), (MemSize_t)(0x180000000uLL));
+	__sys_malloc_add_block_rgn((void*)(0x0880000000uLL), (MemSize_t)(0x180000000uLL), SYS_MALLOC_REGION_HIGH);
 }

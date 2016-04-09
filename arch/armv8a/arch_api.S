@@ -107,6 +107,12 @@ DEF_OSAPI sys_malloc, SYS_MALLOC_APINO
 DEF_OSAPI sys_free, SYS_FREE_APINO
 /* OSAPI void* sys_malloc_align(uint32_t size, uint32_t align); */
 DEF_OSAPI sys_malloc_align, SYS_MALLOC_ALIGN_APINO
+#if defined(SYS_MALLOC_REGION_NUM)
+/* OSAPI void* sys_malloc_rgn(uint32_t size, uint32_t rgn); */
+DEF_OSAPI sys_malloc_rgn, SYS_MALLOC_RGN_APINO
+/* OSAPI void* sys_malloc_align(uint32_t size, uint32_t align, uint32_t rgn); */
+DEF_OSAPI sys_malloc_align_rgn, SYS_MALLOC_ALIGN_RGN_APINO
+#endif
 
 /* OSAPI void irq_add_handler(uint32_t irqno, IRQ_HANDLER func, void* info); */
 DEF_OSAPI irq_add_handler, IRQ_ADD_HANDLER_APINO

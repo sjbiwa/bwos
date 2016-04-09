@@ -57,6 +57,12 @@ extern "C" {
 #define	CNTFRQ_VALUE		(100000000)		/* GenericTimerのクロック */
 #define	TIME_UNIT_VALUE		(1)				/* 1TIME-UNITのクロック数 */
 
+
+#define	SYS_MALLOC_REGION_LOW		0
+#define	SYS_MALLOC_REGION_HIGH		1
+#define	SYS_MALLOC_REGION_DEFAULT	SYS_MALLOC_REGION_LOW
+
+
 /*** Tick管理パラメータ ***/
 typedef	uint64_t			TimeSpec;		/* OS内部での時間単位 */
 typedef	uint32_t			TimeOut;		/* APIで指定するタイムアウト単位 */

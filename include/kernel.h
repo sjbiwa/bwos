@@ -16,7 +16,6 @@
 #include "kernel/kernel_api.h"
 #include "kernel/fixmb.h"
 #include "kernel/flag.h"
-#include "kernel/malloc.h"
 #include "kernel/msgq.h"
 #include "kernel/mutex.h"
 #include "kernel/sem.h"

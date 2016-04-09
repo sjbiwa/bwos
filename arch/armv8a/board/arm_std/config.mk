@@ -13,3 +13,4 @@ C_SRCS		+= debug_print.c my_board.c board_memmgr.c
 A_SRCS		+= sboot.S
 LDFLAGS		+= -Wl,-e_sstart
 DEFS		+= -DBOOT_FROM_EL3
+DEFS		+= -DSYS_MALLOC_REGION_NUM=2

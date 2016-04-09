@@ -3,8 +3,6 @@
 #include "ff.h"
 
 extern "C" {
-extern	void lprintf(...);
-extern int tsprintf(char* buff,char* fmt, ...);
 extern void jpeg_decompress(void* image, size_t image_size, void* output, uint32_t* r_width, uint32_t* r_height);
 }
 
@@ -72,6 +70,8 @@ static void test(void* arg0, void* arg1)
 	uint32_t cpuid = CPUID_get();
 	for (;;) {
 		lprintf("task:%d\n", cpuid);
+		void* ptr = sys_malloc_rgn(100, SYS_MALLOC_REGION_HIGH);
+		lprintf("%d:%08X%08X\n", cpuid, hword(ptr), lword(ptr));
 		task_tsleep(SEC(1));
 	}
 }

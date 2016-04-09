@@ -47,6 +47,10 @@ void* svc_entry_table[] = {
 		[SYS_MALLOC_APINO] =				(void*)__sys_malloc,
 		[SYS_FREE_APINO] =					(void*)__sys_free,
 		[SYS_MALLOC_ALIGN_APINO] =			(void*)__sys_malloc_align,
+#if defined(SYS_MALLOC_REGION_NUM)
+		[SYS_MALLOC_RGN_APINO] =			(void*)__sys_malloc_rgn,
+		[SYS_MALLOC_ALIGN_RGN_APINO] =		(void*)__sys_malloc_align_rgn,
+#endif
 		[IRQ_ADD_HANDLER_APINO] =			(void*)__irq_add_handler,
 		[IRQ_SET_ENABLE_APINO] =			(void*)__irq_set_enable,
 		[IRQ_GET_ENABLE_APINO] =			(void*)__irq_get_enable,

@@ -225,7 +225,7 @@ tsprintf_string(char* str,char* buff){
   Tiny sprintf関数
 */
 int
-tsprintf(char* buff,char* fmt, ...){
+tsprintf(char* buff,const char* fmt, ...){
 	va_list arg;
 	int len;
 	int size;
@@ -250,7 +250,7 @@ void lprintf_init(void)
 	printf_mutex = mutex_create();
 }
 
-int tprintf(char* fmt, ...)
+int tprintf(const char* fmt, ...)
 {
 static char		buff[1024];
 	va_list arg;
@@ -268,7 +268,7 @@ static char		buff[1024];
 	debug_print(buff);
 }
 
-int lprintf(char* fmt, ...)
+int lprintf(const char* fmt, ...)
 {
 static char		buff[1024];
 	va_list arg;
