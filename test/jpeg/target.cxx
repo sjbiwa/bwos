@@ -11,7 +11,7 @@ extern void jpeg_decompress(void* image, size_t image_size, void* output, uint32
 }
 
 #define	MAX_FILE_NUM			(2000)
-#define	BUFFER_SIZE				(1024*768*3)
+#define	BUFFER_SIZE				(1024*768*4)
 
 typedef	struct {
 	uint32_t	own_id;
@@ -98,18 +98,16 @@ void jpeg_test(void* arg0, void* arg1)
 
 	for (uint32_t counter=exec_info->own_id*100;; counter++ ) {
 		uint32_t width, height;
-		width = 1024;
+		width = 0;
 		height = 768;
 		jpeg_decompress(image_addr[counter%image_num], image_size[counter%image_num], exec_info->buffer, &width, &height);
-		uint8_t* src = exec_info->buffer;
+		uint32_t* src = (uint32_t*)exec_info->buffer;
 		for ( int iy=0; iy < height; iy++ ) {
 			uint32_t* dest = (uint32_t*)(exec_info->frame_buffer + iy * 1024 * 4);
 			for ( int ix=0; ix < width; ix++ ) {
-				uint32_t value = 0xF0000000 | (src[0]<<16) | (src[1]<<8) | src[2];
-				dest[0] = value;
-				dest++;
-				src += 3;
+				dest[ix] = src[ix];
 			}
+			src += width;
 		}
 		exec_info->draw_counter++;
 	}

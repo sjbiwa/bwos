@@ -21,8 +21,8 @@ static void parse_switches(j_decompress_ptr cinfo)
 	cinfo->err->trace_level = 0;
 	cinfo->quantize_colors = FALSE;
 	//cinfo->dct_method = JDCT_ISLOW;
-	//cinfo->dct_method = JDCT_IFAST;
-	cinfo->dct_method = JDCT_FLOAT;
+	cinfo->dct_method = JDCT_IFAST;
+	//cinfo->dct_method = JDCT_FLOAT;
 	//cinfo->dither_mode = JDITHER_FS;
 	cinfo->dither_mode = JDITHER_NONE;
 	//cinfo->dither_mode = JDITHER_ORDERED;
@@ -30,7 +30,7 @@ static void parse_switches(j_decompress_ptr cinfo)
 	cinfo->two_pass_quantize = FALSE;
 	cinfo->do_fancy_upsampling = FALSE;
 	//cinfo->out_color_space = JCS_GRAYSCALE;
-	cinfo->out_color_space = JCS_RGB;
+	cinfo->out_color_space = JCS_EXT_BGRX;//JCS_EXT_RGB;//JCS_RGB;
 	//cinfo->mem->max_memory_to_use = lval * 1000L;
 	cinfo->do_fancy_upsampling = FALSE;
 	cinfo->two_pass_quantize = FALSE;
@@ -43,6 +43,7 @@ void jpeg_decompress(void* image, size_t image_size, void* output, uint32_t* r_w
 	struct jpeg_error_mgr jerr;
 	JDIMENSION num_scanlines;
 
+	uint32_t fb_width = *r_width;
 	/* Initialize the JPEG decompression object with default error handling. */
 	cinfo.err = jpeg_std_error(&jerr);
 	jpeg_create_decompress(&cinfo);
@@ -67,11 +68,14 @@ void jpeg_decompress(void* image, size_t image_size, void* output, uint32_t* r_w
 	output_start(&cinfo);
 
 	/* Process data */
+	if ( fb_width == 0 ) {
+		fb_width = cinfo.image_width;
+	}
 
 	while (cinfo.output_scanline < cinfo.output_height) {
 		num_scanlines = jpeg_read_scanlines(&cinfo, &output, 1);
 		output_scanline(&cinfo, output, num_scanlines);
-		output = (uint8_t*)output + num_scanlines * 3 * cinfo.image_width;
+		output = (uint8_t*)output + num_scanlines * 4 * fb_width;
 	}
 
 	/* Finish decompression and release memory.
