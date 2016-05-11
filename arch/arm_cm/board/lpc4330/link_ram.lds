@@ -3,13 +3,6 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm",
 OUTPUT_ARCH(arm)
 ENTRY(_start)
 SEARCH_DIR("=/usr/local/lib"); SEARCH_DIR("=/lib"); SEARCH_DIR("=/usr/lib");
-
-MEMORY
-{
-  ROM (rx) : ORIGIN = 0x14000000, LENGTH = 0x10000
-  RAM (rwx) :  ORIGIN = 0x10000000, LENGTH = 0x8000
-}
-
 SECTIONS
 {
 	.text :
@@ -25,19 +18,18 @@ SECTIONS
 		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 		*(.rodata1)
-		__text_end =  .;
-		. = ALIGN(4);
-	} > ROM
+		__text_end = . ;
+	}
 
-	.data :
+	.data ALIGN(0x1000) :
 	{
 		__data_start = . ;
-		 __idata_start = ABSOLUTE( LOADADDR(.data));
+		__idata_start = . ;
 		*(.data .data.* .gnu.linkonce.d.*)
 		SORT(CONSTRUCTORS)
 		*(.data1)
 		__data_end = .;
-	} > RAM AT > ROM
+	}
 	_edata = .;
 	PROVIDE (edata = .);
 
@@ -49,20 +41,20 @@ SECTIONS
 		*(.bss .bss.* .gnu.linkonce.b.*)
 		*(COMMON)
 		. = ALIGN(. != 0 ? 32 / 8 : 1);
-	} > RAM
+	}
 	__bss_end = . ;
 	__bss_end__ = . ;
 	. = ALIGN(32 / 8);
 	. = ALIGN(32 / 8);
 
-	.stack ALIGN(0x10) :
+	.stack ALIGN(0x1000) :
 	{
 		*(.stack)
 	}
 	__end__ = . ;
 	_end = .; PROVIDE (end = .);
 
-	. = ALIGN(0x10);
+	. = ALIGN(0x1000);
 
 	__heap_start = .;
 

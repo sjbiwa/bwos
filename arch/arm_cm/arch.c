@@ -24,8 +24,11 @@ extern void board_init_task_depend(void);
 extern void	_entry_stub(void);
 
 /* 初期タスクの生成パラメータ */
+#if !defined(INITIAL_TASK_USR_STACK_SIZE)
+#define	INITIAL_TASK_USR_STACK_SIZE		512
+#endif
 TaskCreateInfo	_init_task_create_param = {
-	NULL, TASK_ACT, NULL, 512, 0, 0, (void*)0
+	NULL, TASK_ACT, NULL, INITIAL_TASK_USR_STACK_SIZE, 0, 0, (void*)0
 };
 
 static inline void arch_init_task(TaskStruct* task, void* cre_param)

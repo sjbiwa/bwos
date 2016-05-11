@@ -2,10 +2,6 @@
 #include "bwos.h"
 #include "cache.h"
 
-extern "C" {
-extern	void lprintf(...);
-}
-
 #if USE_SMP != 1
 #define	task_set_affinity(...)
 #endif
@@ -247,6 +243,7 @@ void task_msgq_3(void* arg0, void* arg1)
 
 
 TaskCreateInfo	task_info[] = {
+#if 1
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
@@ -255,7 +252,6 @@ TaskCreateInfo	task_info[] = {
 		{"TASK11", CPU_CORE5|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
 		{"TASK12", CPU_CORE6|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
 		{"TASK13", CPU_CORE7|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 7, (void*)0},
-#if 0
 		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
@@ -320,6 +316,80 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE5|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm1", CPU_CORE6|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE7|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+#else
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)0},
+		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK02", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 7, (void*)0},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)0},
+		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK02", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task3, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task4, 1024, 0, 8, (void*)1},
+		{"TASK14", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task6, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task5, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task6, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task5, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task6, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task5, 1024, 0, 7, (void*)0},
+		{"TASK15", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task7, 1024, 0, 8, (void*)0},
+		{"TASK16", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task8, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)0},
+		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)1},
+		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)2},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)3},
+		{"TASK01", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)4},
+		{"TASK01", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)5},
+		{"TASK01", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task1, 4096, 0, 5, (void*)6},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)7},
+		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK02", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
+		{"TASK11", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task1, 1024, 0, 5, (void*)1},
+		{"TASK12", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
+		{"TASK13", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task3, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task4, 1024, 0, 8, (void*)1},
+		{"TASK14", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task6, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task5, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task6, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task5, 1024, 0, 7, (void*)0},
+		{"TASK14", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task6, 1024, 0, 8, (void*)0},
+		{"TASK13", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task5, 1024, 0, 7, (void*)0},
+		{"TASK15", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task7, 1024, 0, 8, (void*)0},
+		{"TASK16", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task8, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
+		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+		{"TASKm1", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
+		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
 #endif
 };

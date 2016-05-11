@@ -82,14 +82,16 @@ static void startup_master(uint32_t cpuid)
 
 static void startup_slave(uint32_t cpuid)
 {
-	arch_system_preinit(cpuid);
-	arch_timer_init(cpuid);
-	arch_system_postinit(cpuid);
+	if ( USE_SMP == 1 ) {
+		arch_system_preinit(cpuid);
+		arch_timer_init(cpuid);
+		arch_system_postinit(cpuid);
 
-	/* スレーブコアに関連するスレーブコアを起動 */
-	smp_boot_relayed_cpu(cpuid);
+		/* スレーブコアに関連するスレーブコアを起動 */
+		smp_boot_relayed_cpu(cpuid);
 
-	boot_each_core(cpuid);
+		boot_each_core(cpuid);
+	}
 }
 
 void startup(void)

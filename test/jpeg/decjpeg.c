@@ -30,7 +30,8 @@ static void parse_switches(j_decompress_ptr cinfo)
 	cinfo->two_pass_quantize = FALSE;
 	cinfo->do_fancy_upsampling = FALSE;
 	//cinfo->out_color_space = JCS_GRAYSCALE;
-	cinfo->out_color_space = JCS_EXT_BGRX;//JCS_EXT_RGB;//JCS_RGB;
+	//cinfo->out_color_space = JCS_EXT_BGRX;
+	cinfo->out_color_space = JCS_RGB;
 	//cinfo->mem->max_memory_to_use = lval * 1000L;
 	cinfo->do_fancy_upsampling = FALSE;
 	cinfo->two_pass_quantize = FALSE;

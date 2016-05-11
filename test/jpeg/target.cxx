@@ -169,7 +169,7 @@ TaskCreateInfo	task_info[] = {
 		/* 計測用 */
 		{"SURVEY", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, survey_perf, 65536, 0, 1, (void*)0},
 		/* 計測用 */
-		{"CHANGE", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, change_position, 65536, 0, 1, (void*)0},
+//		{"CHANGE", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, change_position, 65536, 0, 1, (void*)0},
 		/* JPEG描画用 */
 		{"TASK1",  CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)(&exec_info[0])},
 		{"TASK2",  CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)(&exec_info[1])},
