@@ -22,7 +22,7 @@ DRVDIR  = $(TOPDIR)/driver
 INC   = -I$(ARCHDIR) -I$(APPDIR) -I$(KERNDIR) -I$(UTILDIR) -I$(DRVDIR) -I$(TOPDIR)/include
 VPATH = $(ARCHDIR) $(APPDIR) $(KERNDIR) $(UTILDIR) $(DRVDIR)
 
-OBJS = $(C_SRCS:%.c=%.o) $(A_SRCS:%.S=%.o)
+OBJS = $(C_SRCS:%.c=%.o) $(CXX_SRCS:%.cxx=%.o) $(A_SRCS:%.S=%.o)
 
 DEFS += -DTEST_MODE
 DEFS += -DOS_VER="0.01"
@@ -34,7 +34,8 @@ DEFS += -DMUTEX_MAX_NUM=5
 DEFS += -DMSGQ_MAX_NUM=0
 DEFS += -DFIXMB_MAX_NUM=0
 
-C_SRCS += target.c
+C_SRCS +=
+CXX_SRCS += target.cxx
 
 all: $(TARGET)
 

@@ -20,8 +20,17 @@ extern char __heap_start;
 
 extern void board_register_normal_memory(void);
 extern void board_init_task_depend(void);
-
 extern void	_entry_stub(void);
+
+extern char __init_array_start;
+extern char __init_array_end;
+
+static void init_global_ctor(void)
+{
+	for ( void (**p)() = &__init_array_start; p < &__init_array_end; p++ ) {
+		(**p)();
+	}
+}
 
 /* 初期タスクの生成パラメータ */
 #if !defined(INITIAL_TASK_USR_STACK_SIZE)
@@ -159,6 +168,7 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 void arch_init_task_depend(void)
 {
 extern void board_init_task_depend(void);
+	init_global_ctor();
 	board_init_task_depend();
 }
 
@@ -222,5 +232,10 @@ void raise(void)
 	tprintf("0 divided\n");
 	/* ０番地にアクセスして例外を発生させる */
 	uint32_t value = *((volatile uint32_t*)0);
+	for (;;);
+}
+
+void abort(void)
+{
 	for (;;);
 }

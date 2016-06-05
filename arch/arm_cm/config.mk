@@ -16,11 +16,12 @@ TOOL_PREFIX = arm-none-eabi-
 #for Linux
 #TOOL_PREFIX = arm-unknown-linux-gnueabi-
 
-CC = $(TOOL_PREFIX)gcc
-AS = $(TOOL_PREFIX)gcc
-LD = $(TOOL_PREFIX)gcc
+CC      = $(TOOL_PREFIX)gcc
+CXX     = $(TOOL_PREFIX)g++
+AS      = $(TOOL_PREFIX)gcc
+LD      = $(TOOL_PREFIX)gcc
 OBJCOPY = $(TOOL_PREFIX)objcopy
-RM = rm
+RM      = rm
 
 A_SRCS += boot.S dispatch.S
 C_SRCS += arch.c idle.c irq.c
@@ -49,3 +50,5 @@ AFLAGS  += $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
 LDFLAGS += $(CPUFLAGS) -mthumb -mno-thumb-interwork -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none
 LDLIBS   = -lgcc
+
+CXXFLAGS = $(CFLAGS) -fno-exceptions

@@ -5,6 +5,8 @@
  *      Author: biwa
  */
 #include "bwos.h"
+#include "board_api.h"
+
 
 /* configuration task */
 static int		task_struct[16];
@@ -29,18 +31,39 @@ static bool		up = false;
 	}
 }
 
-void task1(uint32_t arg0, uint32_t arg1)
+void tmout_handler(void* param)
+{
+static bool flag = true;
+	Board_LED_Set(0, flag ? 1 : 0);
+	flag = flag ? false : true;
+}
+
+void timer_start()
+{
+	TimerInfo info;
+	int timer = timer_create();
+	info.cyclic = MSEC(200);
+	info.tmout = SEC(5);
+	info.kind = TIMER_CYCLIC;
+	info.param = 0;
+	info.handler = tmout_handler;
+
+	timer_set(timer, &info);
+	timer_enable(timer, true);
+}
+
+void task1(void* arg0, void* arg1)
 {
 	lprintf("task1\n");
 	for (;;) {
 		Board_LED_Set(0, 0);
-		task_tsleep(MSEC(10));
+		task_tsleep(MSEC(100));
 		Board_LED_Set(0, 1);
-		task_tsleep(MSEC(10));
+		task_tsleep(MSEC(100));
 	}
 }
 
-void task2(uint32_t arg0, uint32_t arg1)
+void task2(void* arg0, void* arg1)
 {
 	lprintf("task2\n");
 	for (;;) {
@@ -54,7 +77,7 @@ void task2(uint32_t arg0, uint32_t arg1)
 float a = 10.0f;
 float b = 20.0f;
 
-void task3(uint32_t arg0, uint32_t arg1)
+void task3(void* arg0, void* arg1)
 {
 	lprintf("task3\n");
 	for (;;) {
@@ -75,14 +98,10 @@ void task4(uint32_t arg0, uint32_t arg1)
 }
 
 TaskCreateInfo	task_info[] = {
-		{"TASK1", TASK_ACT, task1, 1024, 1024, 5, (void*)128},
+//		{"TASK1", TASK_ACT, task1, 1024, 1024, 5, (void*)128},
 		{"TASK2", TASK_ACT, task2, 1024, 1024, 6, (void*)128},
-		{"TASK3", TASK_ACT, task3, 1024, 1024, 7, (void*)128},
-		{"TASK4", TASK_ACT, task4, 1024, 1024, 8, (void*)128},
-		{"TASK5", TASK_ACT, task1, 1024, 1024, 9, (void*)128},
-		{"TASK6", TASK_ACT, task2, 1024, 1024, 10, (void*)128},
-		{"TASK7", TASK_ACT, task3, 1024, 1024, 11, (void*)128},
-		{"TASK8", TASK_ACT, task4, 1024, 1024, 12, (void*)128},
+//		{"TASK3", TASK_ACT, task3, 1024, 1024, 7, (void*)128},
+//		{"TASK4", TASK_ACT, task4, 1024, 1024, 8, (void*)128},
 };
 
 void main_task(void)
@@ -91,6 +110,7 @@ void main_task(void)
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
 		task_struct[ix] = task_create(&task_info[ix]);
 	}
+	timer_start();
 
 	task_sleep();
 }

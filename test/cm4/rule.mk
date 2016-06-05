@@ -1,8 +1,14 @@
 #
 #
 #
+
+.SUFFIXES: .cxx
+
 .c.o:
 	$(CC) -c $(CFLAGS) $(INC) $(DEFS) $<
+
+.cxx.o:
+	$(CXX) -c $(CXXFLAGS) $(INC) $(DEFS) $<
 
 .S.o:
 	$(AS) -c $(AFLAGS) $(INC) $(DEFS) $<

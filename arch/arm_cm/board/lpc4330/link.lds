@@ -28,6 +28,14 @@ SECTIONS
 		__text_end =  .;
 		. = ALIGN(4);
 	} > ROM
+	.init_array     :
+	{
+		PROVIDE_HIDDEN (__init_array_start = .);
+		KEEP (*(SORT(.init_array.*)))
+		KEEP (*(.init_array ))
+		PROVIDE_HIDDEN (__init_array_end = .);
+		__text_end = . ;
+	} > ROM
 
 	.data :
 	{
