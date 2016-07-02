@@ -40,10 +40,10 @@ extern "C" {
 #define	iowrite16n(addr, idx, value)		do { *((volatile uint16_t*)(addr)+idx) = (value); } while (0)
 #define	iowrite32n(addr, idx, value)		do { *((volatile uint32_t*)(addr)+idx) = (value); } while (0)
 #define	iowrite64n(addr, idx, value)		do { *((volatile uint64_t*)(addr)+idx) = (value); } while (0)
-#define	ioread8n(addr, idx)					( *((volatile uint32_t*)(addr)+idx) )
-#define	ioread16n(addr, idx)				( *((volatile uint32_t*)(addr)+idx) )
+#define	ioread8n(addr, idx)					( *((volatile uint8_t*)(addr)+idx) )
+#define	ioread16n(addr, idx)				( *((volatile uint16_t*)(addr)+idx) )
 #define	ioread32n(addr, idx)				( *((volatile uint32_t*)(addr)+idx) )
-#define	ioread64n(addr, idx)				( *((volatile uint32_t*)(addr)+idx) )
+#define	ioread64n(addr, idx)				( *((volatile uint64_t*)(addr)+idx) )
 /**/
 #define	iowrite8(addr, value)				iowrite8n(addr,0,value)
 #define	iowrite16(addr, value)				iowrite16n(addr,0,value)
@@ -65,6 +65,9 @@ extern "C" {
 #ifndef MAX
 #define	MAX(a,b)							((a)>(b)?(a):(b))
 #endif
+
+#define	HIWORD(v)							((uint32_t)((v) >> 32))
+#define	LOWORD(v)							((uint32_t)(v))
 
 /* アドレスアラインメント演算用マクロ */
 #define	PRE_ALIGN_BY(x,n)					((void*)((PtrInt_t)(x) & ~((PtrInt_t)((n)-1))))

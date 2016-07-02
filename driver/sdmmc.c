@@ -18,9 +18,6 @@
 #include "cp15reg.h"
 #include "cache.h"
 
-#define	HIWORD(v)					((uint32_t)((v) >> 32))
-#define	LOWORD(v)					((uint32_t)(v))
-
 #define	SDMMC_CTRL					0x0				/* Control Register */
 #define	SDMMC_PWREN					0x4				/* Power Enable Register */
 #define	SDMMC_CLKDIV				0x8				/* Clock Divider Register */

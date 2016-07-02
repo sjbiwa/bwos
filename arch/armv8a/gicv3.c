@@ -16,9 +16,9 @@ static void gicd_wait_rwp(void)
 	while (ioread32(GICD_CTLR) & (0x01<<31));
 }
 
-static void gicr_wait_rwp(uint32_t cpuid)
+static void gicr_wait_rwp(uint8_t* rd_base)
 {
-	while (ioread32(GICR_CTLR(cpuid)) & (0x01<<3));
+	while (ioread32(rd_base+GICR_CTLR) & (0x01<<3));
 }
 
 void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
@@ -75,11 +75,11 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 		uint32_t cpuid = CPUID_get();
 		if ( setting == IRQ_ENABLE ) {
 			order_barrier(); /* 割り込み許可前後のメモリオーダー確定 */
-			iowrite32(GICR_ISENABLER0(cpuid), 0x01u << bit);
+			iowrite32(GIC_SGI_BASE(cpuid)+GICR_ISENABLER0, 0x01u << bit);
 		}
 		else {
-			iowrite32(GICR_ICENABLER0(cpuid), 0x01u << bit);
-			gicr_wait_rwp(cpuid);
+			iowrite32(GIC_SGI_BASE(cpuid)+GICR_ICENABLER0, 0x01u << bit);
+			gicr_wait_rwp(GIC_RD_BASE(cpuid));
 		}
 	}
 	__dsb(); /* 割り込み禁止/許可設定の同期化 */
@@ -103,7 +103,7 @@ OSAPISTUB int __irq_get_enable(uint32_t irqno)
 	}
 	else {
 		uint32_t cpuid = CPUID_get();
-		ret = (ioread32(GICR_ICENABLER0(cpuid)+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
+		ret = (ioread32(GIC_SGI_BASE(cpuid)+GICR_ICENABLER0+off*4) & (0x01<<bit)) ? IRQ_ENABLE : IRQ_DISABLE;
 	}
 	return ret;
 }
@@ -127,7 +127,7 @@ void arch_irq_init(uint32_t cpuid)
 		/*	GIC distributor setting	 (Main Core only)	*/
 		/************************************************/
 		/* GICD control disable */
-		iowrite32(GICD_CTLR, 0x00000030);
+		iowrite32(GICD_CTLR, 0x000000030);
 		gicd_wait_rwp();
 		/* SPI GROUP設定 (secure-group1) */
 		for ( ix = 1; ix < ((intr_lines+31)/32); ix++ ) {
@@ -159,41 +159,41 @@ void arch_irq_init(uint32_t cpuid)
 		for ( ix = 2; ix < ((intr_lines+15)/16); ix++ ) {
 			iowrite32n(GICD_NSACR, ix, 0x00000000);
 		}
+		/* GICD control enable */
+		iowrite32(GICD_CTLR, 0x00000037);
+		gicd_wait_rwp();
 		/* SPI Routing (Aff=CORE0) */
 		for ( ix = 32; ix < intr_lines; ix++ ) {
 			iowrite32n(GICD_IROUTER, ix, 0x00000000);
 		}
-		/* GICD control enable */
-		iowrite32(GICD_CTLR, 0x00000037);
-		gicd_wait_rwp();
 	}
 
 	/************************************************/
 	/*	GIC Redistributor setting (All Core)		*/
 	/************************************************/
-	tprintf("GICR_TYPER=%08X\n", ioread32(GICR_TYPER(cpuid)));
+	uint8_t* rd_base = GIC_RD_BASE(cpuid);
+	uint8_t* sgi_base = GIC_SGI_BASE(cpuid);
 
-	iowrite32(GICR_STATUSR(cpuid), 0xf);
-
-	iowrite32(GICR_WAKER(cpuid), ioread32(GICR_WAKER(cpuid)) & ~(0x01<<1));
-	while (ioread32(GICR_WAKER(cpuid)) & (0x01<<2));
+	iowrite32(rd_base+GICR_STATUSR, 0xf);
+	iowrite32(rd_base+GICR_WAKER, ioread32(rd_base+GICR_WAKER) & ~(0x01<<1));
+	while (ioread32(rd_base+GICR_WAKER) & (0x01<<2));
 	tprintf("GICR WAKEUP\n");
 
-	iowrite32(GICR_CTLR(cpuid), 0x00000000);
-	gicr_wait_rwp(cpuid);
-	iowrite32(GICR_IGROUPR0(cpuid), 0x00000000);
-	iowrite32(GICR_IGRPMODR0(cpuid), 0xffffffff);
-
-	iowrite32(GICR_ICENABLER0(cpuid), 0xffffffff);
-	gicr_wait_rwp(cpuid);
-	iowrite32(GICR_ICPENDR0(cpuid), 0xffffffff);
-	iowrite32(GICR_ICACTIVER0(cpuid), 0xffffffff);
+	iowrite32(rd_base+GICR_CTLR, 0x00000000);
+	gicr_wait_rwp(rd_base);
+	iowrite32(sgi_base+GICR_IGROUPR0, 0x00000000);
+	iowrite32(sgi_base+GICR_IGRPMODR0, 0xffffffff);
+	iowrite32(sgi_base+GICR_ICENABLER0, 0xffffffff);
+	iowrite32(sgi_base+GICR_ISENABLER0, 0x0000ffff);
+	iowrite32(sgi_base+GICR_ICPENDR0, 0xffffffff);
+	iowrite32(sgi_base+GICR_ICACTIVER0, 0xffffffff);
 	for ( ix = 0; ix < 8; ix++ ) {
-		iowrite32n(GICR_IPRIORITYR(cpuid), ix, 0x00000000);
+		iowrite32n(sgi_base+GICR_IPRIORITYR, ix, 0x00000000);
 	}
-	iowrite32(GICR_ICFGR0(cpuid), 0x00000000);
-	iowrite32(GICR_ICFGR1(cpuid), 0x00000000);
-	iowrite32(GICR_NSACR(cpuid), 0x00000000);
+	iowrite32(sgi_base+GICR_ICFGR0, 0x00000000);
+	iowrite32(sgi_base+GICR_ICFGR1, 0x00000000);
+	iowrite32(sgi_base+GICR_NSACR, 0x00000000);
+	gicr_wait_rwp(rd_base);
 
 
 	/************************************************/
@@ -201,11 +201,13 @@ void arch_irq_init(uint32_t cpuid)
 	/************************************************/
 	ICC_SRE_EL1_set(0x00000007);
 	__isb(); /* XXX: ISBを入れないと次のICC_CTLR_EL1へのアクセスがアボートする */
+	ICC_PMR_EL1_set(0xff);
 	ICC_CTLR_EL1_set(0x00000000);
+	ICC_IGRPEN1_EL1_set(0x00000001);
+#if 0
 	ICC_BPR0_EL1_set(0);
 	ICC_BPR1_EL1_set(0);
-	ICC_PMR_EL1_set(0xff);
-	ICC_IGRPEN1_EL1_set(0x00000001);
+#endif
 }
 
 void ipi_request_dispatch(uint32_t other_cpu_list)

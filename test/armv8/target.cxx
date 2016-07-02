@@ -78,7 +78,7 @@ static void test(void* arg0, void* arg1)
 
 
 TaskCreateInfo	task_info[] = {
-#if 1
+#if 0
 		{"TASK1",  CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK2",  CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK3",  CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
