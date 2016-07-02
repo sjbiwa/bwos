@@ -1,6 +1,7 @@
 #include <string.h>
 #include "bwos.h"
 #include "ff.h"
+#include "gicv3reg.h"
 
 extern "C" {
 extern void jpeg_decompress(void* image, size_t image_size, void* output, uint32_t* r_width, uint32_t* r_height);
@@ -78,7 +79,7 @@ static void test(void* arg0, void* arg1)
 
 
 TaskCreateInfo	task_info[] = {
-#if 0
+#if 1
 		{"TASK1",  CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK2",  CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
 		{"TASK3",  CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, jpeg_test, 65536, 0, 5, (void*)0},
@@ -94,6 +95,7 @@ TaskCreateInfo	task_info[] = {
 void main_task(void)
 {
 	int ix;
+	lprintf("main is %d\n", CPUID_get());
 	fs_mutex = mutex_create();
 	FATFS fatfs;
 	lprintf("f_mount:%d\n", f_mount(&fatfs, "0:", 1));

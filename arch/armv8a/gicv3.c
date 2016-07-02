@@ -24,7 +24,7 @@ static void gicr_wait_rwp(uint8_t* rd_base)
 void c_handler(uint32_t* sp, uint32_t pc, uint32_t sr)
 {
 	uint32_t intid = ICC_IAR1_EL1_get() & 0x00FFFFFF;
-	tprintf("c_handler:%d: IRQ=%d\n", CPUID_get(), intid);
+	//tprintf("c_handler:%d: IRQ=%d\n", CPUID_get(), intid);
 	if ( (intid < IRQ_NUM) && irq_action[intid].handler ) {
 		(*irq_action[intid].handler)(intid, irq_action[intid].info);
 	}
@@ -56,14 +56,12 @@ OSAPISTUB void __irq_set_enable(uint32_t irqno, int setting, uint32_t irq_attr)
 	if ( 32 <= irqno ) {
 		if ( setting == IRQ_ENABLE ) {
 			order_barrier(); /* 割り込み許可前後のメモリオーダー確定 */
-#if 0
 			/* Set Target Register */
 			uint32_t cpuid = CPU_GET(irq_attr);
 			if ( cpuid == CPU_GET(CPU_SELF) ) {
 				cpuid = CPUID_get();
 			}
-			iowrite8(GICD_ITARGETSR+irqno, 0x01u<<cpuid);
-#endif
+			iowrite32n(GICD_IROUTER, irqno, 0x01u<<cpuid);
 			iowrite32(GICD_ISENABLER+off*4, 0x01<<bit);
 		}
 		else {
@@ -195,19 +193,16 @@ void arch_irq_init(uint32_t cpuid)
 	iowrite32(sgi_base+GICR_NSACR, 0x00000000);
 	gicr_wait_rwp(rd_base);
 
-
 	/************************************************/
 	/*	GIC CPU interface setting (All Core)		*/
 	/************************************************/
 	ICC_SRE_EL1_set(0x00000007);
 	__isb(); /* XXX: ISBを入れないと次のICC_CTLR_EL1へのアクセスがアボートする */
-	ICC_PMR_EL1_set(0xff);
 	ICC_CTLR_EL1_set(0x00000000);
-	ICC_IGRPEN1_EL1_set(0x00000001);
-#if 0
+	ICC_PMR_EL1_set(0xff);
 	ICC_BPR0_EL1_set(0);
 	ICC_BPR1_EL1_set(0);
-#endif
+	ICC_IGRPEN1_EL1_set(0x00000001);
 }
 
 void ipi_request_dispatch(uint32_t other_cpu_list)

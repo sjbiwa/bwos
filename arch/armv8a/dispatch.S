@@ -278,6 +278,8 @@ _nodispatch_irq:
 */
 	.type   _idle_loop, %function
 _idle_loop:
-1:
-	bl		idle_task
-	b		1b
+	ldr		x0, =0x000003C5
+	SPSR_EL1_set(x0)
+	adr		x0, idle_task
+	ELR_EL1_set(x0)
+	eret
