@@ -14,7 +14,7 @@ void wait(uint32_t t)
 	}
 }
 
-void timer_handler(void* param)
+void timer_handler(void* param, bool is_first)
 {
 //	task_wakeup(task_struct[0]);
 }

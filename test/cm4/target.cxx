@@ -31,7 +31,7 @@ static bool		up = false;
 	}
 }
 
-void tmout_handler(void* param)
+void tmout_handler(void* param, bool is_first)
 {
 static bool flag = true;
 	Board_LED_Set(0, flag ? 1 : 0);

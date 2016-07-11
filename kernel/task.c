@@ -177,14 +177,12 @@ void task_wakeup_stub(TaskStruct* task, int32_t result_code)
 	if ( task->task_state == TASK_WAIT ) {
 		/* 待ちリストに登録されている場合はリストから削除 */
 		if ( !link_is_empty(&(task->link)) ) {
-			link_remove(&(task->link));
-			link_clear(&(task->link));
+			link_remove_clear(&(task->link));
 		}
 
 		/* タイムアウトキューに登録されている場合はリストから削除 */
 		if ( !link_is_empty(&(task->tlink)) ) {
-			link_remove(&(task->tlink));
-			link_clear(&(task->tlink));
+			link_remove_clear(&(task->tlink));
 		}
 
 		task->result_code = result_code;

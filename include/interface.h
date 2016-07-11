@@ -89,7 +89,7 @@ typedef	struct {
 	TimeOut		tmout;					/* タイムアウト/最初のcyclic 時間 */
 	TimeOut		cyclic;					/* 2回目以降のcyclic 時間 */
 	uint32_t	kind;					/* タイマ種別 */
-	void		(*handler)(void* param);/* タイマexpire時に呼び出される関数 */
+	void		(*handler)(void* param, bool is_first);/* タイマexpire時に呼び出される関数 */
 	void*		param;					/* handlerに渡されるパラメータ */
 } TimerInfo;
 

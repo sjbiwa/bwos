@@ -37,6 +37,11 @@ static inline void link_remove(Link* curr)
 	end->prev = top;
 }
 
+static inline void link_remove_clear(Link* curr)
+{
+	link_remove(curr);
+	link_clear(curr);
+}
 static inline void link_add_first(Link* list, Link* curr)
 {
 	Link*		first;

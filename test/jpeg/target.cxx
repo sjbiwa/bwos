@@ -165,6 +165,13 @@ static void change_position(void* arg0, void* arg1)
 	}
 }
 
+TimerInfo	info;
+
+static void timer_handler(void* param, bool is_first)
+{
+	tprintf("timer_handler: %s\n", is_first?"first":"next");
+}
+
 TaskCreateInfo	task_info[] = {
 		/* 計測用 */
 		{"SURVEY", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, survey_perf, 65536, 0, 1, (void*)0},
@@ -188,6 +195,16 @@ void main_task(void)
 	for ( ix=0; ix<arrayof(task_info); ix++ ) {
 		task_struct[ix] = task_create(&task_info[ix]);
 	}
+
+	int timer = timer_create();
+	info.cyclic = SEC(3);
+	info.tmout = SEC(5);
+	info.kind = TIMER_CYCLIC;
+	info.param = NULL;
+	info.handler = timer_handler;
+	timer_set(timer, &info);
+	timer_enable(timer, true);
+
 	task_sleep();
 }
 

@@ -18,6 +18,7 @@ typedef	struct tagTimerStruct {
 	Link		link;
 	bool		id_initialized;
 	TimeSpec	timeout;
+	bool		is_first;
 	TimerInfo	info;
 } TimerStruct;
 
@@ -37,7 +38,7 @@ static int _kernel_timer_set(TimerStruct* timer, TimerInfo* info)
 	uint32_t irq_state = irq_save();
 	if ( !link_is_empty(&timer->link) ) {
 		/* 再設定する場合はいったん外す */
-		link_remove(&timer->link);
+		link_remove_clear(&timer->link);
 	}
 	irq_restore(irq_state);
 	timer->info = *info;
@@ -68,11 +69,12 @@ static int _kernel_timer_enable(TimerStruct* timer, bool enable)
 	if ( enable ) {
 		/* 有効化 */
 		timer->timeout = get_tick_count() + timer->info.tmout;
+		timer->is_first = true;
 		_timer_add(timer);
 	}
 	else {
 		/* 無効化 */
-		link_remove(&timer->link);
+		link_remove_clear(&timer->link);
 	}
 
 	/* タイムアウト更新 */
@@ -94,11 +96,12 @@ void _timer_notify_tick(TimeSpec tick_count)
 			break;
 		}
 		/* いったんリストから削除する */
-		link_remove(&q_timer->link);
-		q_timer->info.handler(q_timer->info.param);
+		link_remove_clear(&q_timer->link);
+		q_timer->info.handler(q_timer->info.param, q_timer->is_first);
 		/* cyclicの場合は再度登録 */
 		if ( q_timer->info.kind == TIMER_CYCLIC ) {
 			q_timer->timeout = tick_count + q_timer->info.cyclic;
+			q_timer->is_first = false;
 			_timer_add(q_timer);
 		}
 	}
