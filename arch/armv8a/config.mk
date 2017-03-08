@@ -40,7 +40,8 @@ else
 DEFS += -DUSE_SMP=0
 endif
 C_SRCS += arch_smp.c
-A_SRCS += spinlock.S
+#A_SRCS += spinlock.S
+A_SRCS += ticketlock.S
 
 DEFS += -DMASTER_CPU_ID=0 -DUSE_TICKLESS
 

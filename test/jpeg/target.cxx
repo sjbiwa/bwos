@@ -10,7 +10,7 @@ extern "C" {
 extern void jpeg_decompress(void* image, size_t image_size, void* output, uint32_t* r_width, uint32_t* r_height);
 }
 
-#define	MAX_FILE_NUM			(2000)
+#define	MAX_FILE_NUM			(500)
 #define	BUFFER_SIZE				(1024*768*4)
 
 typedef	struct {
