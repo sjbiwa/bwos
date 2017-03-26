@@ -37,14 +37,14 @@ spin_lock:
 	STXR		W3, W2, [X0]
 	CMP			W3, #0
 	BNE			1b
-	MOV			W1, W1, LSR #16
+	LSR			W1, W1, #16
 2:
 	LDRH		W2, [X0]
 	CMP			W1, W2
 	BEQ			3f
 	WFE
+	B			2b
 3:
-	BNE			2b
 
 	DMB			SY
 	RET
@@ -74,16 +74,18 @@ spin_trylock:
 	LDXR		W1, [X0]
 	MOV			W3, #0
 	EOR			W3, W3, W3, ROR #16
-	CMP			W3, #0
+	CMP			W3, #0  /* W3:high16 == W3:low16 ? */
 	BNE			1f
 	ADD			W1, W1, #0x00010000
 	STXR		W3, W1, [X0]
 	CMP			W3, #0
-	BNE			1f
+	BNE			2f
 	DMB			SY
 	MOV			X0, #1
 	RET
 1:
+	CLREX
+2:
 	DMB			SY
 	MOV			X0, #0
 	RET
