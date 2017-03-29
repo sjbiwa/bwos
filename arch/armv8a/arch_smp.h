@@ -18,7 +18,12 @@
 extern "C" {
 #endif
 
-typedef	uint32_t	SpinLockObj;
+typedef	struct {
+	uint16_t	owner;		/* 獲得中のID */
+	uint16_t	req;		/* リクエスタID */
+	uint32_t	cpuid;		/* 獲得中のCPUID */
+	uint32_t	lr;			/* 獲得中処理のLR */
+} SpinLockObj;
 
 #ifdef __cplusplus
 }
