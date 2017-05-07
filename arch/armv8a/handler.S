@@ -191,10 +191,25 @@ general_sync_handler:
 	bl		general_exception_handler
 
 el0_fiq_handler:
+	mov		x0, #1
+	b		run_c_exc_handler
+	
 el0_serr_handler:
+	mov		x0, #2
+	b		run_c_exc_handler
+	
 el1_fiq_handler:
+	mov		x0, #3
+	b		run_c_exc_handler
+	
 el1_serr_handler:
+	mov		x0, #4
+	b		run_c_exc_handler
+	
 invalid_handler:
+	mov		x0, #5
+
+run_c_exc_handler:
 	bl		c_exc_handler
 	ret
 

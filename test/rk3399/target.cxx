@@ -1,6 +1,7 @@
 #include <string.h>
 #include "bwos.h"
 #include "cache.h"
+#include "gicv2reg.h"
 
 #if USE_SMP != 1
 #define	task_set_affinity(...)
@@ -39,7 +40,7 @@ typedef	struct {
 } Message;
 
 /* configuration task */
-static int		task_struct[100];
+static int		task_struct[1000];
 
 static volatile int mutex;
 static volatile int fixmb;
@@ -73,7 +74,16 @@ void task2(void* arg0, void* arg1)
 {
 	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
 		lprintf("CORE=%d:task2:%d\n", CPUID_get(), ix);
-		//task_set_affinity(ix%CPU_NUM);
+		task_set_affinity(ix%CPU_NUM);
+		task_tsleep(SEC(1));
+	}
+}
+
+void task2_1(void* arg0, void* arg1)
+{
+	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
+		lprintf("CORE=%d:task2_1:%d\n", CPUID_get(), ix);
+		lprintf("TM=%08X\n", CNTPCT_EL0_get());
 		task_tsleep(SEC(1));
 	}
 }
@@ -127,7 +137,7 @@ void task5(void* arg0, void* arg1)
 	lprintf("CORE=%d:task5:%d\n", CPUID_get(), sem);
 	for (int ix=0;;ix++ ) {
 		int ret = sem_trequest(sem, 10, MSEC(5));
-		lprintf("CORE=%d:task5:request ret=%d\n", CPUID_get(), ret);
+		lprintf("CORE=%d:task5:request ret=%08X\n", CPUID_get(), ret);
 		task_set_affinity(ix%CPU_NUM);
 	}
 }
@@ -241,10 +251,18 @@ void task_msgq_3(void* arg0, void* arg1)
 	}
 }
 
+#undef CPU_CORE4
+#undef CPU_CORE5
+#undef CPU_CORE6
+#undef CPU_CORE7
+#define	CPU_CORE4	CPU_CORE0
+#define	CPU_CORE5	CPU_CORE1
+#define	CPU_CORE6	CPU_CORE2
+#define	CPU_CORE7	CPU_CORE3
 
 TaskCreateInfo	task_info[] = {
 #if 1
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)0},
+		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 2, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
 		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},

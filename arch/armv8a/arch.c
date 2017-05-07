@@ -202,6 +202,7 @@ void arch_system_preinit(uint32_t cpuid)
 	}
 	tprintf("MPIDR = %08X%08X\n", hword(MPIDR_EL1_get()), lword(MPIDR_EL1_get()));
 	tprintf("CPU = %d\n", cpuid);
+	tprintf("EL = %d\n", CurrentEL_get());
 	tprintf("SCTLR = %08X\n", (uint32_t)SCTLR_EL1_get());
 	tprintf("ACTLR = %08X\n", (uint32_t)ACTLR_EL1_get());
 	tprintf("ID_PFR0 = %08X\n", (uint32_t)ID_PFR0_EL1_get());
@@ -352,9 +353,9 @@ void raise(void)
 	for (;;);
 }
 
-void c_exc_handler(void)
+void c_exc_handler(uint32_t eno)
 {
-	tprintf("exception\n");
+	tprintf("exception:%d EL=%08X\n", eno, CurrentEL_get());
 	for (;;);
 }
 

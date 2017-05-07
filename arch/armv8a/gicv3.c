@@ -129,8 +129,13 @@ void arch_irq_init(uint32_t cpuid)
 		gicd_wait_rwp();
 		/* SPI GROUP設定 (secure-group1) */
 		for ( ix = 1; ix < ((intr_lines+31)/32); ix++ ) {
+#if !defined(NONSECURE_KERNEL)
 			iowrite32n(GICD_IGROUPR, ix, 0x00000000);
 			iowrite32n(GICD_IGRPMODR, ix, 0xffffffff);
+#else
+			iowrite32n(GICD_IGROUPR, ix, 0xffffffff);
+			iowrite32n(GICD_IGRPMODR, ix, 0x00000000);
+#endif
 		}
 		/* SPI Clear-Enable */
 		for ( ix = 1; ix < ((intr_lines+31)/32); ix++ ) {
@@ -155,7 +160,9 @@ void arch_irq_init(uint32_t cpuid)
 		}
 		/* SPI NonSecure Access Control */
 		for ( ix = 2; ix < ((intr_lines+15)/16); ix++ ) {
+#if !defined(NONSECURE_KERNEL)
 			iowrite32n(GICD_NSACR, ix, 0x00000000);
+#endif
 		}
 		/* GICD control enable */
 		iowrite32(GICD_CTLR, 0x00000037);
@@ -179,8 +186,13 @@ void arch_irq_init(uint32_t cpuid)
 
 	iowrite32(rd_base+GICR_CTLR, 0x00000000);
 	gicr_wait_rwp(rd_base);
+#if !defined(NONSECURE_KERNEL)
 	iowrite32(sgi_base+GICR_IGROUPR0, 0x00000000);
 	iowrite32(sgi_base+GICR_IGRPMODR0, 0xffffffff);
+#else
+	iowrite32(sgi_base+GICR_IGROUPR0, 0xffffffff);
+	iowrite32(sgi_base+GICR_IGRPMODR0, 0x00000000);
+#endif
 	iowrite32(sgi_base+GICR_ICENABLER0, 0xffffffff);
 	iowrite32(sgi_base+GICR_ISENABLER0, 0x0000ffff);
 	iowrite32(sgi_base+GICR_ICPENDR0, 0xffffffff);
@@ -190,7 +202,9 @@ void arch_irq_init(uint32_t cpuid)
 	}
 	iowrite32(sgi_base+GICR_ICFGR0, 0x00000000);
 	iowrite32(sgi_base+GICR_ICFGR1, 0x00000000);
+#if !defined(NONSECURE_KERNEL)
 	iowrite32(sgi_base+GICR_NSACR, 0x00000000);
+#endif
 	gicr_wait_rwp(rd_base);
 
 	/************************************************/
