@@ -7,6 +7,8 @@
 #define	task_set_affinity(...)
 #endif
 
+#define	task_set_affinity(...)
+
 void wait(uint32_t t)
 {
 	volatile uint32_t count = t;
@@ -257,14 +259,16 @@ void task_msgq_3(void* arg0, void* arg1)
 #undef CPU_CORE7
 //#define	CPU_CORE4	CPU_CORE0
 //#define	CPU_CORE5	CPU_CORE1
-#define	CPU_CORE6	CPU_CORE0
-#define	CPU_CORE7	CPU_CORE1
+#define	CPU_CORE6	CPU_CORE4
+#define	CPU_CORE7	CPU_CORE5
 
-#undef	TASK_FPU
-#define	TASK_FPU	0
+//#undef	TASK_FPU
+//#define	TASK_FPU	0
+
 
 TaskCreateInfo	task_info[] = {
-		{"TASK02", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 2, (void*)0},
+		{"TASK02", CPU_CORE4|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 2, (void*)0},
+#if 1
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
 		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
@@ -410,7 +414,6 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
-#if 0
 #endif
 };
 

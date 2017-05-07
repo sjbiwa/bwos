@@ -117,6 +117,7 @@ entry_el1:
 	/* FPU/SIMD disable */
 	ldr		x0, =0x00000000
 	CPACR_EL1_set(x0)
+	isb
 
 #if 0 /*USE_SMP == 1*/
 	/* SMP on */

@@ -96,6 +96,7 @@ el1_irq_handler:
 enter_from_task:
 	CPACR_EL1_get(x0)
 	CPACR_EL1_set(xzr)
+	isb
 	sub		sp, sp, #16
 	str		x0, [sp, #0]
 	mov		x8, sp
@@ -128,6 +129,7 @@ ret_to_task:
 	/* CPACRをとりあえず復帰 */
 	ldr		x1, [sp, #0]
 	CPACR_EL1_set(x1)
+	isb
 	add		sp, sp, #16
 
 	/* check _dispatch_disable */

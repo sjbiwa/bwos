@@ -171,6 +171,7 @@ _skip_save_context:
 	ldp		 x8,  x9, [sp], #16
 	SP_EL0_set(x8)
 	CPACR_EL1_set(x9)
+	isb
 
 	/* CPACR check */
 	mov		w8, #0x00300000
