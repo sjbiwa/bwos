@@ -73,7 +73,7 @@ void task1(void* arg0, void* arg1)
 void task2(void* arg0, void* arg1)
 {
 	for (uint32_t ix = CPUID_get()+1;;ix++ ) {
-		lprintf("CORE=%d:task2:%d\n", CPUID_get(), ix);
+		lprintf("CORE=%d:task2:%d : MIDR=%08X\n", CPUID_get(), ix, (uint32_t)MIDR_EL1_get());
 		task_set_affinity(ix%CPU_NUM);
 		task_tsleep(SEC(1));
 	}
@@ -251,18 +251,20 @@ void task_msgq_3(void* arg0, void* arg1)
 	}
 }
 
-#undef CPU_CORE4
-#undef CPU_CORE5
+//#undef CPU_CORE4
+//#undef CPU_CORE5
 #undef CPU_CORE6
 #undef CPU_CORE7
-#define	CPU_CORE4	CPU_CORE0
-#define	CPU_CORE5	CPU_CORE1
-#define	CPU_CORE6	CPU_CORE2
-#define	CPU_CORE7	CPU_CORE3
+//#define	CPU_CORE4	CPU_CORE0
+//#define	CPU_CORE5	CPU_CORE1
+#define	CPU_CORE6	CPU_CORE0
+#define	CPU_CORE7	CPU_CORE1
+
+#undef	TASK_FPU
+#define	TASK_FPU	0
 
 TaskCreateInfo	task_info[] = {
-#if 1
-		{"TASK01", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 2, (void*)0},
+		{"TASK02", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 2, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},
 		{"TASK12", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)1},
@@ -408,11 +410,13 @@ TaskCreateInfo	task_info[] = {
 		{"TASKm1", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_1, 1024, 0, 8, (void*)0},
 		{"TASKm2", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_2, 1024, 0, 7, (void*)0},
 		{"TASKm3", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_msgq_3, 1024, 0, 7, (void*)0},
+#if 0
 #endif
 };
 
 void main_task(void)
 {
+	lprintf("main_task\n");
 	int ix;
 	mutex = mutex_create();
 	mutex_lock(mutex);

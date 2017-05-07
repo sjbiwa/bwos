@@ -222,7 +222,21 @@ void arch_irq_init(uint32_t cpuid)
 void ipi_request_dispatch(uint32_t other_cpu_list)
 {
 	__dsb();
-	ICC_SGI1R_EL1_set(other_cpu_list);
+	if ( false ) {
+		/* ARE == 0 */
+		ICC_SGI1R_EL1_set(other_cpu_list);
+	}
+	else {
+		/* ARE == 1 */
+		uint64_t aff1 = 0;
+		while ( other_cpu_list != 0 ) {
+			uint64_t aff = (aff1 << 16) | (other_cpu_list & ((0x1u << CPU_PER_CLUSTER) - 1u));
+			//tprintf("M_SGI:%08X\n", (uint32_t)aff);
+			ICC_SGI1R_EL1_set(aff);
+			other_cpu_list >>= CPU_PER_CLUSTER;
+			aff1++;
+		}
+	}
 	__isb();
 	__dsb();
 }
@@ -231,7 +245,18 @@ void ipi_request_dispatch_one(CpuStruct* cpu)
 {
 	uint32_t cpuid = cpu->cpuid;
 	__dsb();
-	ICC_SGI1R_EL1_set(0x01u<<cpuid);
+	if ( false ) {
+		/* ARE == 0 */
+		ICC_SGI1R_EL1_set(0x01u<<cpuid);
+	}
+	else {
+		/* ARE == 1 */
+		uint64_t aff1 = cpuid / CPU_PER_CLUSTER; /* affinity1 */
+		cpuid %= CPU_PER_CLUSTER; /* cpuid in affinity1 */
+		uint64_t aff = (aff1 << 16) | (0x1u << cpuid);
+		//tprintf("S_SGI:%08X\n", (uint32_t)aff);
+		ICC_SGI1R_EL1_set(aff);
+	}
 	__isb();
 	__dsb();
 }

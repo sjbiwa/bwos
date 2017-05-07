@@ -367,6 +367,7 @@ void c_exc_handler(uint32_t eno)
 void general_exception_handler(uint64_t* ptr)
 {
 	tprintf("general exception:CPU=%d:EL=%08X\n", CPUID_get(), CurrentEL_get());
+	tprintf("cpacr_el1:%08X\n", (uint32_t)CPACR_EL1_get());
 	tprintf(" X0:%08X%08X  X1:%08X%08X  X2:%08X%08X\n", hword(ptr[14]),lword(ptr[14]), hword(ptr[15]),lword(ptr[15]), hword(ptr[16]),lword(ptr[16]));
 	tprintf(" X3:%08X%08X  X4:%08X%08X  X5:%08X%08X\n", hword(ptr[17]),lword(ptr[17]), hword(ptr[18]),lword(ptr[18]), hword(ptr[19]),lword(ptr[19]));
 	tprintf(" X6:%08X%08X  X7:%08X%08X  X8:%08X%08X\n", hword(ptr[20]),lword(ptr[20]), hword(ptr[21]),lword(ptr[21]), hword(ptr[22]),lword(ptr[22]));
