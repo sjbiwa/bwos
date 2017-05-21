@@ -39,7 +39,7 @@ typedef	struct {
 } Message;
 
 /* configuration task */
-static int		task_struct[100];
+static int		task_struct[1000];
 
 static volatile int mutex;
 static volatile int fixmb;
@@ -203,13 +203,15 @@ void task_msgq_1(void* arg0, void* arg1)
 	int ix;
 	void* ptr;
 	MsgCmd	cmd;
-	for ( ix=1; ix < 100000; ix++ ) {
-		cmd.cmd = ix;
-		cmd.param1 = ix*10;
-		cmd.param2 = ix*100;
-		msgq_tsend(msgq1, &cmd, sizeof(cmd), SEC(1));
-		lprintf("CORE=%d:TASK1:MSGQ1:send:%d\n", CPUID_get(), ix);
-		task_tsleep(MSEC(100));
+	for (;;) {
+		for ( ix=1; ix < 100000; ix++ ) {
+			cmd.cmd = ix;
+			cmd.param1 = ix*10;
+			cmd.param2 = ix*100;
+			msgq_tsend(msgq1, &cmd, sizeof(cmd), SEC(1));
+			lprintf("CORE=%d:TASK1:MSGQ1:send:%d\n", CPUID_get(), ix);
+			task_tsleep(MSEC(100));
+		}
 	}
 	task_sleep();
 }

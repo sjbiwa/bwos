@@ -76,6 +76,7 @@ retry_lock:
 
 		task->wait_obj.mutex_info.mutex = mtx;
 		task_set_wait(task, mutex_wait_func);
+		task->result_code = RT_ERR;
 		task_remove_queue(task);
 		link_add_last(&(mtx->link), &(task->link));
 		if ( tmout != TMO_FEVER ) {

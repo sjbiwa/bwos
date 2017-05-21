@@ -46,6 +46,7 @@ typedef	struct {
 #define	TASK_FPU			(0x00000001u<<1)	/* FPUを使用できるタスク */
 #define	TASK_SYS			(0x00000001u<<2)	/* SYSTEMモード(特権)タスク */
 #define	CPU_MASK			(0xFFu<<24)
+#define	CPU_DEF(c)			((c & 0xFFu) << 24)
 #define	CPU_SELF			(0xFFu<<24)
 #define	CPU_CORE0			(0x00u<<24)
 #if USE_SMP == 1

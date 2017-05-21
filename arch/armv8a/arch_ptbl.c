@@ -83,7 +83,13 @@
 								(MAIR_NOCACHE_VALUE<<(MAIR_NOCACHE_INDEX*8)) | \
 								(MAIR_STRONGLY_VALUE<<(MAIR_STRONGLY_INDEX*8)))
 #define	EATTR_XN				(0x3uLL<<53)
+#if (CPU_PER_CLUSTER < CPU_NUM)
+/* outer shareable */
+#define	ETAAR_SHARE				(0x2uLL<<8)
+#else
+/* inner shareable */
 #define	ETAAR_SHARE				(0x3uLL<<8)
+#endif
 #define	EATTR_RONLY				(0x3uLL<<6)
 #define	EATTR_RW				(0x1uLL<<6)
 #define	EATTR_CACHE				(MAIR_CACHE_INDEX<<2) /* ref MAIR0:0 */

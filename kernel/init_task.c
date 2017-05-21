@@ -17,6 +17,11 @@ void init_task(void* cre_param, void* sta_param)
 	/* 初期タスクでのarch依存処理 */
 	arch_init_task_depend();
 
+#if USE_SMP == 1
+	/* CPU affinity拡張機能 */
+	cpu_affinity_ext_init();
+#endif
+	
 	/* ユーザ側エントリ呼び出し */
 	main_task();
 

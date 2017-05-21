@@ -271,6 +271,7 @@ static char		buff[1024];
 int lprintf(const char* fmt, ...)
 {
 static char		buff[1024];
+static volatile int counter = 0;
 	va_list arg;
 	int len;
 	int size;
@@ -280,10 +281,29 @@ static char		buff[1024];
 	len = 0;
 	va_start(arg, fmt);
 
-	mutex_lock(printf_mutex);
+	int ret = mutex_lock(printf_mutex);
+	if ( ret != RT_OK ) {
+		for (;;) {
+			tprintf("printf lock error:%08X\n", ret);
+			for (;;);
+		}
+	}
+	if ( 0 < counter ) {
+		for (;;) {
+			tprintf("ll:%d:%08X:", CPUID_get(), counter);
+			for (;;);
+		}
+	}
+	counter++;
 	vtsprintf(buff,fmt,arg);
 
 	va_end(arg);
 	debug_print(buff);
-	mutex_unlock(printf_mutex);
+	counter--;
+	if ( mutex_unlock(printf_mutex) != RT_OK ) {
+		for (;;) {
+			tprintf("printf unlock error\n");
+			for (;;);
+		}
+	}
 }

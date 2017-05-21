@@ -353,7 +353,7 @@ void task_init_task_create(void)
 					_init_task_create_param.task_attr,
 					init_task,
 					_init_task_create_param.usr_stack_size,
-					0);
+					1);
 	arch_init_task_create(&init_task_struct);
 	init_task_struct.task_state = TASK_READY;
 	task_add_queue(&init_task_struct);
@@ -366,7 +366,7 @@ KERNAPI int _kernel_task_create(TaskStruct* task, TaskCreateInfo* info)
 					info->task_attr,
 					info->entry,
 					info->usr_stack_size,
-					info->priority);
+					info->priority + 1/* priority0は予約のため1増やす*/);
 
 	/* TLS alloc */
 	if ( (task->tls == NULL) && (task->tls_size != 0) ) {
@@ -546,9 +546,9 @@ static void cpu_spinlock_aff(CpuStruct* cpu1, CpuStruct* cpu2)
 
 static void cpu_spinunlock_aff(CpuStruct* cpu1, CpuStruct* cpu2)
 {
-	cpu_ordering(&cpu1, &cpu2);
-	cpu_spinunlock(cpu2);
+	/* 解放側は順序不同で良いはず */
 	cpu_spinunlock(cpu1);
+	cpu_spinunlock(cpu2);
 }
 
 typedef	struct {
@@ -586,6 +586,58 @@ void do_set_affinity(AffinityInfo* info)
 	_attach_active_task(c_cpu);
 }
 
+/*
+ * affinity dispatcherタスクによるCPU affinity拡張実装
+ */
+typedef	struct {
+	TaskStruct*		req_task;
+	uint32_t		org_cpu;
+	uint32_t		req_cpu;
+} CpuAffReq;
+;
+static struct {
+	TaskStruct		aff_dsp_task;	/* cpu affinity dispatcher task */
+	MsgqStruct		req_queue;		/* cpu affinity request queue */
+} aff_dsp_info[CPU_NUM];
+
+static void aff_dsp_task(void* cre_param, void* sta_param)
+{
+	int cpuid = CPUID_get();
+	for (;;) {
+		CpuAffReq areq;
+		_kernel_msgq_recv(&aff_dsp_info[cpuid].req_queue, &areq, sizeof(areq));
+		lprintf("%d:%d>%d\n", cpuid, areq.org_cpu, areq.req_cpu);
+	}
+}
+
+TaskStruct* _task_get_ntask(void)
+{
+	TaskStruct* ntask = NULL;
+	CpuStruct* cpu = &cpu_struct[CPUID_get()];
+	cpu_spinlock(cpu);
+	ntask = cpu->ntask;
+	cpu_spinunlock(cpu);
+	return ntask;
+}
+
+void cpu_affinity_ext_init(void)
+{
+	TaskCreateInfo aff_dsp_task_info = {
+		.name				= "AFF_DSP_TASK",
+		.task_attr			= 0,
+		.entry				= aff_dsp_task,
+		.usr_stack_size		= 4096,
+		.tls_size			= 0,
+		.priority			= 0,
+		.cre_param			= NULL,
+	};
+	for ( int idx = 0; idx < CPU_NUM; idx++ ) {
+		_kernel_msgq_create(&aff_dsp_info[idx].req_queue, sizeof(CpuAffReq) * 8);
+		aff_dsp_task_info.task_attr = CPU_DEF(idx) | TASK_ACT | TASK_SYS;
+		_kernel_task_create(&aff_dsp_info[idx].aff_dsp_task, &aff_dsp_task_info);
+	}
+}
+
 KERNAPI int _kernel_task_set_affinity(uint32_t aff)
 {
 	int ret = RT_ERR;
@@ -593,20 +645,38 @@ KERNAPI int _kernel_task_set_affinity(uint32_t aff)
 	irq_state = irq_save();
 	TaskStruct* ctask = CTASK();
 	if ( (aff < CPU_NUM) && (ctask->cpu_struct->cpuid != aff) ) {
-		CpuStruct* c_cpu = ctask->cpu_struct;
-		CpuStruct* t_cpu = &cpu_struct[aff];
-
-		cpu_spinlock_aff(c_cpu, t_cpu);
-
-		/* taskをrun_queueから切り離し */
-		task_remove_queue(ctask);
-		link_clear(&(ctask->link));
-
-		AffinityInfo aff_info;
-		aff_info.c_cpu = c_cpu;
-		aff_info.t_cpu = t_cpu;
-		_detach_active_task(c_cpu, &aff_info);
-
+		if ( true ) {
+			int cpuid = CPUID_get();
+			CpuAffReq areq = {
+				.req_task = ctask,
+				.org_cpu = cpuid,
+				.req_cpu = aff,
+			};
+			_kernel_msgq_send(&aff_dsp_info[cpuid].req_queue, &areq, sizeof(areq));
+			if ( false ) {
+				if ( aff_dsp_info[cpuid].req_queue.data_num != 0 ) {
+					for (;;) {
+						tprintf("Error.....\n");
+					}
+				}
+				/* この後はaff_taskにdispatchしてCPUが切り替わる */
+			}
+		}
+		if ( true ) {
+			CpuStruct* c_cpu = ctask->cpu_struct;
+			CpuStruct* t_cpu = &cpu_struct[aff];
+	
+			cpu_spinlock_aff(c_cpu, t_cpu);
+	
+			/* taskをrun_queueから切り離し */
+			task_remove_queue(ctask);
+			link_clear(&(ctask->link));
+	
+			AffinityInfo aff_info;
+			aff_info.c_cpu = c_cpu;
+			aff_info.t_cpu = t_cpu;
+			_detach_active_task(c_cpu, &aff_info);
+		}
 		ret = RT_OK;
 	}
 

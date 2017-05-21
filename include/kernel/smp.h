@@ -14,10 +14,18 @@
 #if USE_SMP==1
 #include "arch_smp.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void spin_init(SpinLockObj* lock);
 extern void spin_lock(SpinLockObj* lock);
 extern void spin_unlock(SpinLockObj* lock);
 extern int spin_trylock(SpinLockObj* lock);
+
+#ifdef __cplusplus
+}
+#endif
 
 #else
 typedef	int		SpinLockObj;

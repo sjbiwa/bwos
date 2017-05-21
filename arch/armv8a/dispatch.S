@@ -134,7 +134,7 @@ _skip_save_context:
 	sub		x4, x4, x3, LSL #IDLE_TASK_STACK_SIZE_SHIFT
 	mov		sp, x4
 
-#if 1
+#if 0
 	/* 割り込み許可して保留中の割り込みを受付     */
 	/* ※ディスパッチしないようにディスパッチ禁止 */
 	ldr		x4, =_dispatch_disable
@@ -150,9 +150,18 @@ _skip_save_context:
 	DAIFSet_seti(0x2)
 	strb	wzr, [x4]
 #endif
-
+	
+#if 1
+	/* loadn and check _ntask */
+	mov		x8, x0
+	bl		_task_get_ntask
+	mov		x2, x0
+	mov		x0, x8
+#else
 	/* loadn and check _ntask */
 	ldr		x2, [x0, #CPUSTRUCT_NTASK]
+#endif
+	
 	/* store _ctask <- _ntask */
 	str		x2, [x0, #CPUSTRUCT_CTASK]
 	/* dispatchするタスクが無い場合はIDLEタスクへ */

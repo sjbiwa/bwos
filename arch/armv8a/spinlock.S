@@ -32,6 +32,7 @@ spin_init:
 	.type   spin_lock, %function
 	.globl	spin_lock
 spin_lock:
+	DMB		SY
 	MOV		w1, #1
 Loop:
 	LDXR	w2, [x0]
@@ -54,6 +55,7 @@ wait_event:
 	.type   spin_lock, %function
 	.globl	spin_unlock
 spin_unlock:
+	DMB		SY
 	LDR		w1, [x0]
 	CMP		w1, #1
 	BNE		err_unlock
@@ -77,6 +79,7 @@ err_unlock:
 	.type   spin_trylock, %function
 	.globl	spin_trylock
 spin_trylock:
+	DMB		SY
 	MOV		w1, #1
 	LDXR	w2, [x0]
 	CMP		w2, #0

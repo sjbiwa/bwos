@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 #define	STACK_ALIGN							(16)
-#define	TASK_SVC_STACK_SIZE					(2048)
+#define	TASK_SVC_STACK_SIZE					(4096)
 
 #ifdef __cplusplus
 }
