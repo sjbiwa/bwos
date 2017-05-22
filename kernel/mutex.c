@@ -44,6 +44,8 @@ static void mutex_wait_func(TaskStruct* task)
 	mutex_spinunlock(mutex);
 }
 
+extern volatile int lpr_counter;
+
 int _kernel_mutex_tlock(MutexStruct* mtx, TimeOut tmout)
 {
 	uint32_t		irq_state;
@@ -61,6 +63,7 @@ retry_lock:
 	else if ( (tmout == TMO_POLL) || !can_dispatch() ) {
 		/* ポーリングなのでタイムアウトエラーとする */
 		ret = RT_TIMEOUT;
+		tprintf("RT_TM:%:%d\n", CPUID_get(), can_dispatch());
 	}
 	else {
 		/* 他タスクlock中なので待ち状態に遷移 */
@@ -83,6 +86,7 @@ retry_lock:
 			/* タイムアウトリストに追加 */
 			task_add_timeout(task, tmout);
 		}
+		TaskStruct* ntask = cpu->ntask;
 		req_dispatch = schedule(cpu);
 
 		/* cpu開放 */

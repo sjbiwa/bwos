@@ -274,7 +274,12 @@ bool schedule(CpuStruct* cpu)
 	else {
 		cpu->ntask = NULL;
 	}
-	return ((ntask != cpu->ntask) ? true : false);
+	
+	/* 再スケジュール対象CPUが自身であればdispatchが必要であると判断する */
+	if ( (cpu == &cpu_struct[CPUID_get()]) || (ntask != cpu->ntask) ) {
+		return true;
+	}
+	return false;
 }
 
 uint32_t schedule_any(uint32_t wakeup_cpu_list)
