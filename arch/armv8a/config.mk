@@ -54,4 +54,4 @@ CXXFLAGS += $(CBASEFLAGS)
 AFLAGS  += $(CFLAGS) -D__ASM__
 LDFLAGS += $(CPUFLAGS) -g -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none
-LDLIBS   += -lgcc
+LDLIBS   += -lgcc -lm
