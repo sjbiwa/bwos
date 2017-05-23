@@ -174,7 +174,7 @@ retry_lock:
 			task_add_timeout(task, tmout);
 		}
 		req_dispatch = schedule(cpu);
-		
+
 		cpu_spinunlock(cpu);
 	}
 
@@ -229,9 +229,9 @@ retry_lock:
 			fixmb_info = (FixmbInfoStruct*)(&(task->wait_obj.fixmb_info));
 			*(fixmb_info->ptr) = ptr;
 			task_wakeup_stub(task, RT_OK);
-			schedule(cpu);
-			req_dispatch_cpu = cpu;
-			
+			if ( schedule(cpu) ) {
+				req_dispatch_cpu = cpu;
+			}
 			/* CPU開放 */
 			cpu_spinunlock(cpu);
 		}
