@@ -2,6 +2,7 @@
 #include "bwos.h"
 #include "cache.h"
 #include "gicv2reg.h"
+#include "armv8reg.h"
 
 #if USE_SMP != 1
 #define	task_set_affinity(...)
@@ -263,11 +264,48 @@ void task_msgq_3(void* arg0, void* arg1)
 
 extern "C" void benchmark(int,int);
 
+static double second(void)
+{
+	return (double)CNTPCT_EL0_get() / (double)CNTFRQ_VALUE;
+}
+
+static uint32_t temp_mem[1*1024*1024];
+
 static void task_benchmark(void* arg0, void* arg1)
 {
+#if 1
 	benchmark(CPUID_get(), 200);
 	task_sleep();
+#endif
+	
+#if 0
+	for (;;) {
+		volatile uint64_t total_counter = 0;
+		uint32_t counter = 30000000;
+		uint32_t idx;
+		double start_sec = second();
+		for ( idx = 0; idx < counter; idx++ ) {
+			total_counter += 3 * idx;
+		}
+		double stop_sec = second();
+		lprintf("%d:time=%d\n", CPUID_get(), (uint32_t)((stop_sec - start_sec)*1000));
+	}
+	task_sleep();
+#endif
+	uint32_t cntfrq = CNTFRQ_EL0_get();
+	lprintf("CNTFRQ:%08X\n", cntfrq);
+	lprintf("start\n");
+	PMEVTYPER_EL0_set(0, 0x11);
+	PMEVCNTR_EL0_set(0, 0);
+	PMCR_EL0_set(0x57U);
+	PMCNTENSET_EL0_set(0xFFFFFFFFu);
+	for (uint8_t idx=0;; idx++ ) {
+		memset(temp_mem, idx, sizeof(temp_mem));
+		lprintf("%d:PMCNTR:%08X\n", CPUID_get(), (uint32_t)PMEVCNTR_EL0_get(0));
+		task_tsleep(SEC(1));
+	}
 }
+
 //#undef CPU_CORE4
 //#undef CPU_CORE5
 #undef CPU_CORE6
@@ -282,13 +320,15 @@ static void task_benchmark(void* arg0, void* arg1)
 
 
 TaskCreateInfo	task_info[] = {
-//		{"TASK_BENCH", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
-//		{"TASK_BENCH", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
-//		{"TASK_BENCH", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
-//		{"TASK_BENCH", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
-		{"TASK_BENCH", CPU_CORE4|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
-//		{"TASK_BENCH", CPU_CORE5|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
 #if 0
+		{"TASK_BENCH", CPU_CORE0|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
+		{"TASK_BENCH", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
+		{"TASK_BENCH", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
+		{"TASK_BENCH", CPU_CORE3|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
+		{"TASK_BENCH", CPU_CORE4|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
+		{"TASK_BENCH", CPU_CORE5|TASK_ACT|TASK_FPU|TASK_SYS, task_benchmark, 4096, 0, 2, (void*)0},
+#endif
+#if 1
 		{"TASK02", CPU_CORE4|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 2, (void*)0},
 		{"TASK02", CPU_CORE1|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 6, (void*)0},
 		{"TASK11", CPU_CORE2|TASK_ACT|TASK_FPU|TASK_SYS, task2, 1024, 0, 5, (void*)1},

@@ -37,7 +37,7 @@ extern "C" {
 #define	GENERIC_TIMER_INTR	(30)			/* genericTimerの割り込み番号 */
 
 #define	CPU_CLOCK			(1000000000)	/* CPUクロック(未使用) */
-#define	CNTFRQ_VALUE		(19200000)		/* GenericTimerのクロック */
+#define	CNTFRQ_VALUE		(24000000)		/* GenericTimerのクロック */
 #define	TIME_UNIT_VALUE		(1)				/* 1TIME-UNITのクロック数 */
 
 /*** Tick管理パラメータ ***/
