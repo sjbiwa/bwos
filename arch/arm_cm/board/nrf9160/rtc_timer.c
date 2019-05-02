@@ -11,7 +11,6 @@
 #include "kernel.h"
 #include "common.h"
 #include "cmsis.h"
-#include "nrfx_clock.h"
 
 #define	NO_TMOUT_COUNT		(0xFFFFFFFFFFFFFFFFLL)
 #define	NORMAL_TMOUT_COUNT	(10000)
@@ -84,17 +83,8 @@ void update_first_timeout(TimeSpec tmout)
 	irq_restore(irq_state);
 }
 
-static void nrfx_clock_event_handler(nrfx_clock_evt_type_t event)
-{
-}
-
 void arch_timer_init(uint32_t cpuid)
 {
-	nrfx_clock_init(nrfx_clock_event_handler);
-	nrfx_clock_enable();
-	nrfx_clock_hfclk_start();
-	nrfx_clock_lfclk_start();
-	
 	__irq_set_enable(RTC0_IRQn, IRQ_DISABLE, 0);
 
 

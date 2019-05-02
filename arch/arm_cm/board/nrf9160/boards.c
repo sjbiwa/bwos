@@ -10,6 +10,11 @@
  */
 
 #include "bwos.h"
+#include "nrfx_clock.h"
+
+static void nrfx_clock_event_handler(nrfx_clock_evt_type_t event)
+{
+}
 
 void board_init_task_depend(void)
 {
@@ -24,6 +29,10 @@ void board_init_task_depend(void)
 
 void board_system_preinit(void)
 {
+	nrfx_clock_init(nrfx_clock_event_handler);
+	nrfx_clock_enable();
+	nrfx_clock_hfclk_start();
+	nrfx_clock_lfclk_start();
 }
 
 void board_register_normal_memory(void)
