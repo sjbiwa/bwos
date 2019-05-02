@@ -174,7 +174,9 @@ extern void board_init_task_depend(void);
 
 static inline void setup_sys_int(uint32_t id, uint32_t pri)
 {
-#if __ARM_ARCH == 7
+#if __ARM_ARCH == 8
+	SCB->SHPR[id] = pri;
+#elif __ARM_ARCH == 7
 	SCB->SHP[id] = pri;
 #else
 	id -= 4;
@@ -190,8 +192,12 @@ void system_init(void)
 	SCB->VTOR = (uint32_t)(&handler_entry);
 #endif
 
+#if __ARM_ARCH == 8
+	SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
+#else
 	SCB->CCR |= SCB_CCR_STKALIGN_Msk | SCB_CCR_UNALIGN_TRP_Msk;
-
+#endif
+	
 	SCB->SHCSR = 0;
 #if defined(MPU_FAULT_PRIORITY)
 	setup_sys_int(SHP_NO(MemoryManagement_IRQn), MPU_FAULT_PRIORITY);

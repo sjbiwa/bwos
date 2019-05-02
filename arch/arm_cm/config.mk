@@ -44,11 +44,15 @@ endif
 ifeq ($(CPU_TYPE),CORTEXM4F)
 CPUFLAGS = -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16
 endif
-CFLAGS  += -std=gnu11 $(CPUFLAGS) -mno-thumb-interwork -mthumb $(DEFS)
-CFLAGS  += -g -gdwarf-3 -Os -fno-builtin -mno-unaligned-access
+ifeq ($(CPU_TYPE),CORTEXM33)
+CPUFLAGS = -mcpu=cortex-m33 -mfloat-abi=hard -mfpu=fpv4-sp-d16
+endif
+
+CFLAGS  += $(CPUFLAGS) -mno-thumb-interwork -mthumb $(DEFS)
+CFLAGS  += -gdwarf-2 -O0 -fno-builtin -mno-unaligned-access
 AFLAGS  += $(CFLAGS) -Wa,-mthumb,-mimplicit-it=thumb -D__ASM__
-LDFLAGS += $(CPUFLAGS) -mthumb -mno-thumb-interwork -g -T $(LDSCRIPT)
+LDFLAGS += $(CPUFLAGS) -mthumb -mno-thumb-interwork -gdwarf-2 -T $(LDSCRIPT)
 LDFLAGS += -nostdlib -static -Wl,-Ttext=$(START_MEM_ADDR),--build-id=none
 LDLIBS   = -lgcc
 
-CXXFLAGS = $(CFLAGS) -fno-exceptions
+CXXFLAGS = $(CFLAGS) -std=c++14 -fno-exceptions
